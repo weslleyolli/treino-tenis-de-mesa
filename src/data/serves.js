@@ -1,0 +1,288 @@
+/* ============ ABA SAQUE — conteúdo ============ */
+import { CircleDot, Wind, Zap, Eye, EyeOff, Layers } from "lucide-react";
+import { yt } from "../lib/helpers.jsx";
+
+const SERVE_RULES = [
+  "A bola parte da **palma aberta e imóvel**, acima do nível da mesa e **atrás da linha de fundo**.",
+  "O lançamento é **quase vertical**, com no mínimo **16 cm** de altura (cerca de um palmo e meio).",
+  "A bola deve ficar **visível ao adversário** desde o instante em que sai da mão até ser golpeada.",
+  "O braço que lançou **não pode esconder** a bola. Tire-o do caminho após o lançamento.",
+  "Bola toca a rede e entra: **let** (repete). Toca a rede e não entra: ponto do adversário.",
+];
+
+const SERVE_FAULTS = [
+  "Esconder a bola com o braço, o ombro ou a cabeça — falta, ponto do adversário.",
+  "Lançar a bola menos de 16 cm ou 'largar' da mão sem lançar.",
+  "Lançar para frente ou para o lado em vez de para cima.",
+  "Bater na bola com o pé/corpo à frente da linha de fundo.",
+  "Segurar a bola com os dedos em concha ou com a palma virada para baixo.",
+  "Deixar a bola tocar a mão livre depois do lançamento.",
+];
+
+const SERVE_GRIP = [
+  "Empunhadura **muito mais frouxa** que nos golpes: pressão 2/10. É o punho que gera efeito, e punho travado não gira.",
+  "Para os saques pendulares, **solte o indicador** da borracha e deixe o **polegar mais relaxado** — isso libera a rotação do antebraço.",
+  "O punho começa **carregado** (dobrado para trás) e descarrega no contato, como um chicote.",
+  "Tronco baixo e joelhos flexionados: seus olhos devem ficar quase na altura da bola. Assim você vê o ponto de contato.",
+  "Lançamento sempre na **mesma altura e no mesmo lugar** — 20–25 cm, ligeiramente à frente e à direita do corpo (destro).",
+];
+
+const CONTACT_ZONES = [
+  { z: "Base — 6 h", spin: "Backspin puro", how: "Raquete quase paralela ao chão, movimento para baixo e para frente, roçando a parte de baixo da bola." },
+  { z: "Diagonal inferior — 4/5 h", spin: "Lateral + backspin", how: "O saque mais útil do iniciante: cai curto e ainda foge para o lado." },
+  { z: "Lateral direita — 3 h", spin: "Efeito lateral", how: "Raquete mais vertical, movimento horizontal da direita para a esquerda (pendular)." },
+  { z: "Traseira — 9 h", spin: "Quase sem efeito (no-spin)", how: "Contato chapado na parte de trás, com a região da raquete próxima ao cabo, onde a velocidade é menor." },
+  { z: "Topo — 11/12 h", spin: "Topspin", how: "Escovar de baixo para cima na parte traseira/superior, punho acelerando no último instante." },
+];
+
+const TABLE_ZONES = [
+  { n: 1, name: "Curto no backhand", tag: "o mais seguro", d: "Cai perto da rede no lado do BH dele. Difícil de atacar e é o destino que você deve dominar primeiro.", x: 65, y: 29, w: 26, h: 14 },
+  { n: 2, name: "Curto no meio (cotovelo)", tag: "força a decisão", d: "Bola no eixo do corpo: ele precisa escolher FH ou BH e costuma hesitar. Excelente com no-spin.", x: 37, y: 29, w: 26, h: 14 },
+  { n: 3, name: "Curto no forehand", tag: "abre o ângulo", d: "Puxa o adversário para fora da mesa e deixa o lado do BH aberto para sua 3ª bola.", x: 9, y: 29, w: 26, h: 14 },
+  { n: 4, name: "Longo profundo no backhand", tag: "surpresa", d: "Rasante até a linha de fundo do BH. Use 1 ou 2 vezes por set, nunca como padrão.", x: 65, y: 9, w: 26, h: 14 },
+  { n: 5, name: "Longo rápido no cotovelo", tag: "ponto direto", d: "O saque que mais rende ponto direto no amador: rasante e profundo no eixo do corpo.", x: 37, y: 9, w: 26, h: 14 },
+  { n: 6, name: "Longo no forehand", tag: "arriscado", d: "Só contra quem tem FH fraco. Contra bom FH, é convite para contra-ataque.", x: 9, y: 9, w: 26, h: 14 },
+];
+
+const SERVE_SUMMARY = [
+  ["Pendular backspin", "Backspin", "Curto · zona 1", "Saque base — 70% dos seus saques"],
+  ["Pendular lateral", "Lateral", "Curto ou longo", "Tirar ele da posição"],
+  ["Pendular NO-SPIN", "Nenhum", "Curto · zona 2", "Par do backspin — sua arma nº 1"],
+  ["Pendular topspin", "Topspin", "Longo · zonas 4-5", "Se ele empurrar, a bola voa"],
+  ["Pendular invertido", "Lateral inverso", "Curto · zona 2", "Mês 2 — avançado"],
+  ["Tomahawk", "Lateral oposto", "Longo · zonas 5-6", "Variação surpresa"],
+  ["Longo rápido", "Leve topspin", "Longo · zona 5", "1-2× por set, ponto direto"],
+  ["Saque de backhand", "Backspin/lateral", "Curto · zona 2", "Ângulo raro no amador"],
+];
+
+const HALF_LONG_WARNING = "Evite a bola **meio-longa** (half-long): aquela que quica e, se não fosse tocada, cairia bem na borda da mesa do adversário. É a altura e o comprimento ideais para ele atacar. Regra prática: ou a bola **quicaria duas vezes** na metade dele (curta), ou vai **rasante até a linha de fundo** (longa). Nada no meio.";
+
+const SERVES = [
+  {
+    id: "pend-bs", name: "Pendular — Backspin", level: "Semana 1 · saque base",
+    idea: "O saque base de todo o repertório. Cai curto, freia e volta para a rede, obrigando o adversário a levantar a bola.",
+    setup: [
+      "Fique no canto **direito** da mesa (destro), corpo virado ~45° para a direita, pé esquerdo à frente.",
+      "Joelhos flexionados e tronco baixo — os olhos quase na altura da bola.",
+      "Bola na palma esquerda aberta, dedos juntos, mão parada e visível.",
+      "Empunhadura **frouxa** (pressão 2/10): o punho precisa chicotear livre.",
+    ],
+    motion: [
+      "Lance a bola quase vertical, 20–25 cm, e afaste o braço livre.",
+      "A raquete parte de **cima e atrás**, do lado direito do corpo, com o punho **carregado para trás**.",
+      "Desce em **arco de pêndulo**, da direita para a esquerda, passando por baixo da bola.",
+      "O contato acontece **na descida do arco**, com a bola já baixa, perto do nível da mesa.",
+      "**Ponto de contato: base da bola (6 h)**, raquete quase paralela ao chão.",
+      "O punho **libera no instante do contato** — é ele que gera o efeito, não o braço.",
+      "Contato **fino e raspado**: som seco e bola girando visivelmente para trás.",
+      "Siga o movimento até a raquete cruzar o corpo, à frente do quadril esquerdo.",
+    ],
+    length: "Para ficar **curto**: primeiro quique na SUA metade, na região do meio para a rede; a bola cruza baixa e quicaria duas vezes na metade do adversário.",
+    err: [
+      "Bola sobe muito → raquete fechada ou força para frente. Abra mais e roce por baixo.",
+      "Sem efeito → contato grosso (chapado). Afine o toque e acelere o punho, não o braço.",
+      "Saque longo demais → o primeiro quique está perto da sua linha de fundo. Traga-o para o meio.",
+    ],
+    drill: "40 bolas: 20 curtas no BH (zona 1), 20 curtas no FH (zona 3). Meta: 15 de 20 caindo curto com efeito visível.",
+    third: "Ele vai empurrar (push). Espere uma bola cortada — é exatamente o seu treino de quarta: abra com topspin de FH.",
+    videos: [["Pendulum backspin serve — PingSkills", yt("pendulum backspin serve table tennis PingSkills")], ["Backspin serve slow motion", yt("table tennis backspin serve slow motion")]],
+  },
+  {
+    id: "pend-side", name: "Pendular — Lateral (sidespin)", level: "Semana 2",
+    idea: "Mesmo movimento do backspin, mas a bola foge para o lado e empurra a devolução do adversário para fora da mesa.",
+    setup: ["Mesma posição do pendular backspin — nada muda no corpo.", "Empunhadura frouxa, tronco baixo."],
+    motion: [
+      "Lançamento e arco **idênticos** ao pendular backspin.",
+      "A diferença: a raquete fica **mais na vertical** e o movimento é mais **horizontal**, da direita para a esquerda.",
+      "**Ponto de contato: lateral direita da bola (3 h)** — você raspa o lado dela.",
+      "O punho gira rápido no contato; o rosto da raquete atravessa a bola lateralmente.",
+      "Finalize à frente do quadril esquerdo, na mesma linha do backspin.",
+    ],
+    length: "Funciona curto ou longo. Curto na zona 1 (BH) e longo na zona 5 (cotovelo) são os melhores destinos.",
+    err: ["Bola sai reta sem fugir → contato muito atrás da bola; vá mais para a lateral (3 h).", "Bola alta → raquete aberta demais; deixe-a mais vertical."],
+    drill: "40 bolas: 20 curtas no BH, 20 longas no cotovelo. Observe a curva da bola no ar.",
+    third: "O efeito empurra a devolução dele para a SUA esquerda. Antecipe: fique pronto para atacar de BH ou dar um passo para abrir o FH.",
+    videos: [["Sidespin serve — PingSkills", yt("sidespin serve table tennis PingSkills")], ["Pendulum serve tutorial", yt("pendulum serve table tennis tutorial")]],
+  },
+  {
+    id: "pend-nospin", name: "Pendular — NO-SPIN (sem efeito)", level: "Semana 3 · o par do backspin", key: true,
+    idea: "O saque mais valioso do jogo amador. Movimento idêntico ao backspin, mas a bola sai quase sem efeito: o adversário empurra como se fosse cortada, a bola sobe alta — e você ataca.",
+    setup: ["Exatamente a mesma posição, o mesmo tronco baixo e o mesmo lançamento do pendular backspin. **Nada muda no corpo.**"],
+    motion: [
+      "Lançamento, arco e finalização **idênticos** ao pendular backspin. Essa é a regra número um.",
+      "**Diferença 1 — ponto de contato:** toque a **parte de trás da bola (9 h)**, não a base.",
+      "**Diferença 2 — região da raquete:** toque com a parte **próxima ao cabo**. Ali a raquete corre mais devagar, então gera muito menos efeito com o mesmo movimento aparente.",
+      "**Diferença 3 — punho:** mantenha o punho **firme**, sem chicotear. O contato é chapado e curto.",
+      "Depois do toque, **continue o arco completo até cruzar o corpo**, igual ao backspin. É essa finalização falsa que engana.",
+      "A bola deve viajar reta, baixa e curta, sem girar.",
+    ],
+    length: "Curto, na zona 2 (meio/cotovelo) é onde ele mais erra. Primeiro quique na sua metade perto da rede.",
+    err: [
+      "Saiu com backspin leve → você desceu para a base da bola. Suba o contato para 9 h.",
+      "Bola sobe demais → contato forte demais. Suavize: o no-spin quase não precisa de força.",
+      "Ele leu na hora → sua finalização mudou. Filme e compare com o seu backspin.",
+    ],
+    drill: "20 bolas alternando 1 backspin + 1 no-spin com gesto idêntico. Depois peça a alguém para adivinhar 10 saques: se ele acerta mais de 6, o disfarce ainda está fraco.",
+    third: "Ele empurra achando que é cortada → a bola sobe mole e alta. **Prepare o ataque de FH antes de sacar.** Este é o padrão que ganha pontos.",
+    videos: [["No-spin vs backspin serve", yt("no spin serve vs backspin serve table tennis")], ["No-spin serve tutorial", yt("table tennis no spin serve tutorial")]],
+  },
+  {
+    id: "pend-ts", name: "Pendular — Topspin", level: "Semana 4",
+    idea: "Mesmo arco, mas a bola avança e mergulha. É o par de comprimento do backspin: se ele trata como cortada, a bola voa para fora.",
+    setup: ["Mesma posição base do pendular. O lançamento pode ser levemente mais alto para dar tempo de acelerar."],
+    motion: [
+      "Arco pendular igual, mas o contato acontece **um pouco mais cedo**, com a bola mais alta.",
+      "**Ponto de contato: traseira/superior da bola (11 h)**, escovando de **baixo para cima**.",
+      "O punho acelera **para cima** no último instante, e não para baixo como no backspin.",
+      "Finalização mais alta, com a raquete terminando na altura do ombro esquerdo.",
+    ],
+    length: "Melhor **longo**: primeiro quique perto da SUA linha de fundo, rasante até a zona 4 ou 5.",
+    err: ["Bola sai longa demais → menos força para frente, mais escovada para cima.", "Bola alta → contato muito atrás; suba para 11 h."],
+    drill: "30 bolas longas alternando zona 4 e zona 5. Meta: 20 de 30 dentro da mesa, rasantes.",
+    third: "Se ele empurrar, a bola vai voar. Se bloquear, volta rápida — fique com a base firme e pronto para contra-atacar.",
+    videos: [["Topspin serve tutorial", yt("table tennis topspin serve tutorial")], ["Long topspin serve", yt("table tennis long topspin serve technique")]],
+  },
+  {
+    id: "pend-rev", name: "Pendular Invertido (reverse)", level: "Semana 4+ · avançado",
+    idea: "O efeito lateral gira ao contrário e a bola foge para o outro lado. É um dos saques marcantes do Calderano.",
+    setup: ["Mesma posição inicial — a mudança é toda no punho."],
+    motion: [
+      "A raquete parte **à frente e à esquerda** do corpo, com o punho **pronado** (polegar apontando para baixo).",
+      "O movimento vai da **esquerda para a direita**, ao contrário do pendular normal.",
+      "**Ponto de contato: lateral esquerda da bola (9 h no plano horizontal)**.",
+      "O punho supina rápido no contato — sensação de 'abrir uma maçaneta'.",
+      "Finalize com a raquete indo para a sua direita, na altura do ombro.",
+    ],
+    length: "Excelente curto na zona 2: o efeito contrário atrapalha a leitura do adversário.",
+    err: ["Perda de controle no início é normal — treine 2 semanas só o gesto antes de exigir precisão.", "Punho travado → o saque perde todo o efeito. Relaxe a mão."],
+    drill: "30 bolas sem meta de precisão nas primeiras sessões: o objetivo é sentir o giro invertido.",
+    third: "O efeito empurra a devolução para a SUA direita. Fique pronto para abrir de FH.",
+    videos: [["Reverse pendulum serve", yt("reverse pendulum serve table tennis tutorial")], ["Calderano serve slow motion", yt("Hugo Calderano serve slow motion")]],
+  },
+  {
+    id: "tomahawk", name: "Tomahawk", level: "Semana 4+ · variação",
+    idea: "Movimento de machadada com o cotovelo alto. Efeito lateral oposto ao pendular e trajetória diferente — ótima variação surpresa.",
+    setup: ["Corpo mais de frente para a mesa.", "**Cotovelo alto**, acima do ombro, raquete apontando para cima."],
+    motion: [
+      "Lance a bola e deixe a raquete cair de cima, do seu lado direito.",
+      "O movimento é de **cima para baixo e da esquerda para a direita**, como uma machadada.",
+      "**Ponto de contato: lateral direita/inferior da bola**, raquete quase vertical.",
+      "O punho acelera na descida; o contato é fino.",
+      "Finalize com a raquete perto do quadril direito.",
+    ],
+    length: "Sai naturalmente mais longo. Use como saque **profundo e rápido** na zona 6 (FH) ou zona 5.",
+    err: ["Cotovelo baixo → perde ângulo e efeito. Suba o cotovelo.", "Bola alta → contato muito por baixo."],
+    drill: "30 bolas profundas no canto de FH. Alterne com um pendular curto para sentir o contraste.",
+    third: "Costuma vir devolução em bloco pela diagonal. Recupere a base rápido e contra-ataque.",
+    videos: [["Tomahawk serve tutorial", yt("tomahawk serve table tennis tutorial")], ["Tomahawk slow motion", yt("tomahawk serve slow motion table tennis")]],
+  },
+  {
+    id: "fast-long", name: "Saque Longo Rápido", level: "Qualquer semana · arma de surpresa",
+    idea: "Bola rasante e profunda que pega o adversário recuando. Rende ponto direto no amador — mas só funciona se for raro: 1 ou 2 vezes por set.",
+    setup: ["Mesma base do pendular, mas você pode ficar um pouco mais em pé para ganhar linha reta.", "Ideal usar quando o adversário está **grudado na mesa** esperando um saque curto."],
+    motion: [
+      "Contato **mais alto**, com a bola acima do nível da mesa.",
+      "Movimento **reto para frente**, com leve escovada de topspin para a bola mergulhar dentro.",
+      "**O segredo está no primeiro quique: bem perto da SUA linha de fundo.** Só assim a trajetória fica rasante e profunda.",
+      "Sem arco grande: é um movimento curto, rápido e direto.",
+      "A bola deve passar rente à rede e cair perto da linha de fundo dele.",
+    ],
+    length: "Sempre longo, zona 5 (cotovelo) é o alvo mais eficaz; zona 4 (BH profundo) como alternativa.",
+    err: ["Bola alta e lenta → o primeiro quique está longe da sua linha de fundo.", "Bola longa fora da mesa → falta topspin; escove um pouco mais para cima."],
+    drill: "20 bolas: 10 na zona 5, 10 na zona 4. Meta: 12 de 20 rasantes e dentro. Não treine mais que isso — é saque de surpresa, não de repetição.",
+    third: "Volta rápido e reto. Fique com a raquete pronta na frente do corpo para bloquear ou contra-atacar de FH.",
+    videos: [["Fast long serve", yt("table tennis fast long serve technique")], ["Fast serve tutorial", yt("table tennis fast serve tutorial")]],
+  },
+  {
+    id: "bh-serve", name: "Saque de Backhand", level: "Bônus · variação rara",
+    idea: "Ângulo de saída completamente diferente e pouquíssimo visto no amador. Como você está firmando o BH, vale aprender.",
+    setup: ["Corpo **de frente** para a mesa, mais para o meio.", "Bola lançada à frente do corpo; cotovelo à frente, raquete no lado esquerdo."],
+    motion: [
+      "A raquete parte do seu **lado esquerdo**, na frente do corpo.",
+      "O movimento vai da **esquerda para a direita**, atravessando à frente do abdômen.",
+      "Para **backspin**: contato na base (6 h), raquete aberta. Para **lateral**: contato na lateral esquerda da bola.",
+      "O punho abre no contato, como quem espana algo da mesa.",
+      "Finalize com a raquete à frente do quadril direito.",
+    ],
+    length: "Curto na zona 2 é o melhor uso: o ângulo diferente confunde mesmo com pouco efeito.",
+    err: ["Cotovelo colado no corpo → sem espaço para o movimento. Leve o cotovelo à frente.", "Bola muito para trás do corpo → contato desconfortável; lance mais à frente."],
+    drill: "20 bolas curtas na zona 2, sem cobrar precisão nas primeiras sessões.",
+    third: "Você fica em posição central — boa para atacar dos dois lados. Aproveite.",
+    videos: [["Backhand serve tutorial", yt("table tennis backhand serve tutorial")], ["Backhand sidespin serve", yt("table tennis backhand sidespin serve")]],
+  },
+];
+
+const DECEPTION = {
+  principle: "O adversário não lê o efeito pelo seu braço — ele lê pelo **ponto de contato** e pela **velocidade do punho no instante do toque**. Se o gesto inteiro (lançamento, arco, finalização) for idêntico, tudo o que ele pode fazer é esperar e olhar a bola no ar. E aí já é tarde: ele decide o golpe quando a bola já saiu.",
+  keys: [
+    { icon: CircleDot, t: "1. Mude só o ponto de contato", d: "Base da bola (6 h) = backspin. Traseira (9 h) = quase sem efeito. Traseira/superior (11 h) = topspin. O braço faz o **mesmo arco** nos três." },
+    { icon: Wind, t: "2. Use a região da raquete", d: "Perto da **ponta** a raquete corre mais rápido → mais efeito. Perto do **cabo** a velocidade é baixa → sai quase sem efeito com o mesmo movimento aparente. É o truque clássico do no-spin." },
+    { icon: Zap, t: "3. Punho: solta ou não solta", d: "No backspin o punho **chicoteia** no contato. No no-spin ele fica **firme** e o contato é chapado. Visualmente o braço é igual; o efeito muda por completo." },
+    { icon: Eye, t: "4. Finalização falsa (a peça-chave)", d: "O contato acontece **no começo** do arco. Depois de tocar a bola, **continue o mesmo movimento até o fim**, sempre igual. Se você segue raspando o ar como se tivesse feito backspin, ele jura que foi backspin." },
+    { icon: EyeOff, t: "5. Mesma altura, mesmo ritmo", d: "Lançamento sempre na mesma altura e cadência, e sempre no mesmo ponto do corpo. Qualquer mudança de ritmo entrega o saque antes de a bola sair." },
+    { icon: Layers, t: "6. Esconda também o comprimento", d: "O mesmo gesto pode sair curto ou longo — só muda **onde cai o primeiro quique** na sua metade. Perto da rede: curto. Perto da sua linha de fundo: longo e rasante." },
+  ],
+  pairs: [
+    { a: "Pendular BACKSPIN", b: "Pendular NO-SPIN", star: true,
+      diff: "Contato 6 h (base) vs 9 h (traseira). Punho: chicote vs firme. Raquete: ponta vs perto do cabo.",
+      tell: "O backspin volta para a rede; o no-spin segue reto e um pouco mais alto. Ele empurra os dois igual — e no no-spin a bola sobe mole para você atacar.",
+      use: "É o SEU par principal. Domine este antes de qualquer outro." },
+    { a: "Pendular LATERAL", b: "LATERAL + BACKSPIN",
+      diff: "Contato 3 h (lado) vs 4–5 h (lado inferior). Mesmo arco, raquete levemente mais aberta.",
+      tell: "Um foge só para o lado; o outro foge e freia. Muda o ponto exato onde ele encontra a bola.",
+      use: "Bom para tirar o adversário da posição sem arriscar." },
+    { a: "BACKSPIN curto", b: "TOPSPIN longo",
+      diff: "Contato 6 h vs 11 h, e o primeiro quique vai do meio da mesa para perto da sua linha de fundo.",
+      tell: "Se ele empurra o topspin longo como se fosse cortada, a bola voa para fora da mesa.",
+      use: "O par mais letal do jogo amador. Guarde para pontos importantes." },
+    { a: "CURTO na zona 2", b: "LONGO RÁPIDO na zona 5",
+      diff: "Mesmo movimento e mesmo efeito — muda apenas o local do primeiro quique na sua metade.",
+      tell: "Ele se aproxima da mesa esperando curto e o saque longo passa rasante pelo cotovelo.",
+      use: "Alternância de comprimento, sem precisar de novo gesto. Fácil e muito eficaz." },
+  ],
+  drill: [
+    "**Bloco A — 20 bolas cegas:** faça o mesmo movimento e alterne mentalmente backspin / no-spin sem avisar. Diga em voz alta qual foi antes de a bola quicar e confira se acertou o que produziu.",
+    "**Bloco B — teste da câmera:** apoie o celular do lado do adversário e filme 10 saques. Assista **sem ver a bola** (pause no momento do contato) e tente adivinhar o efeito só pelo seu braço. Se acerta fácil, o disfarce está fraco.",
+    "**Bloco C — 20 bolas com alvo:** garrafa PET deitada nas zonas 1 e 2. Alterne os efeitos mantendo o alvo. Meta: 12 de 20.",
+    "**Bloco D — teste com parceiro (domingo):** peça ao amigo para **chamar o efeito em voz alta antes de tocar** a bola. Cada erro dele é um ponto a favor do seu disfarce. Anote o placar.",
+    "**Bloco E — 3ª bola:** saque no-spin curto e já prepare o ataque. Combine com o amigo: ele empurra, você abre. 20 repetições.",
+  ],
+  videos: [
+    ["Mesmo movimento, efeitos diferentes", yt("same serve motion different spin table tennis")],
+    ["Serve deception — Tom Lodziak", yt("table tennis deceptive serves Tom Lodziak")],
+    ["No-spin vs backspin serve", yt("no spin serve vs backspin serve table tennis")],
+    ["Como disfarçar o saque", yt("how to disguise your serve table tennis")],
+  ],
+};
+
+const SERVE_SETUP = [
+  "**40 a 60 bolas** em um balde ou caixa ao lado do corpo — treinar saque com 5 bolas é perder tempo catando bola.",
+  "**2 garrafas PET deitadas** como alvo nas zonas que você quer treinar.",
+  "**Uma toalha dobrada** atravessada na metade do adversário, a ~40 cm da rede: se a bola quica antes da toalha e a segunda quicada também, o saque está curto de verdade.",
+  "**Celular apoiado** do lado do adversário para o teste de disfarce.",
+  "**Uma folha para anotar**: séries de 10, quantos acertaram o alvo. Sem número, não há progresso.",
+];
+
+const SERVE_SESSION = {
+  total: "≈ 20–25 min",
+  blocks: [
+    { label: "Aquecimento de punho", time: "3 min", target: "30 saques leves só de punho, sem força", rest: "—", cue: "Solte a mão. Empunhadura 2/10." },
+    { label: "Saque da semana — repetição", time: "8 min", target: "40 bolas do saque da semana, mesmo alvo", rest: "—", cue: "Qualidade de efeito antes de precisão." },
+    { label: "Comprimento (curto × longo)", time: "5 min", target: "20 bolas: alterne 1 curto e 1 longo", rest: "—", cue: "Curto: 1º quique no meio da sua metade. Longo: 1º quique perto da sua linha de fundo." },
+    { label: "Disfarce — mesmo movimento", time: "6 min", target: "20 bolas alternando 2 efeitos com gesto idêntico", rest: "—", cue: "O contato muda, o braço não. Finalização sempre igual." },
+    { label: "Alvo sob pressão", time: "3 min", target: "10 saques na garrafa · use o placar abaixo", rest: "—", cue: "Simule ponto de campeonato: uma tentativa, sem repetir." },
+  ],
+};
+
+const SERVE_PLAN = [
+  { w: "Sem 1", t: "Pendular backspin", d: "Só efeito e comprimento curto na zona 1. Nada de variação ainda." },
+  { w: "Sem 2", t: "Pendular lateral", d: "Entra o lateral; alterne com o backspin. Zonas 1 e 2." },
+  { w: "Sem 3", t: "NO-SPIN + comprimento", d: "O par backspin × no-spin com gesto idêntico. Curto × longo." },
+  { w: "Sem 4", t: "Disfarce completo", d: "Topspin entra. Teste da câmera e teste com o parceiro no domingo." },
+  { w: "Mês 2", t: "Reverse e tomahawk", d: "Só depois que o par principal estiver automático." },
+];
+
+
+export {
+  SERVE_RULES, SERVE_FAULTS, SERVE_GRIP, CONTACT_ZONES, TABLE_ZONES, SERVE_SUMMARY, HALF_LONG_WARNING, SERVES, DECEPTION, SERVE_SETUP, SERVE_SESSION, SERVE_PLAN
+};

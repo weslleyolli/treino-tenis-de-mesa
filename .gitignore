@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# Configuração local do Claude Code (caminhos da máquina, não versionar)
+.claude/settings.local.json
+
+# Netlify
+.netlify
