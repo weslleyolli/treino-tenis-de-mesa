@@ -11,6 +11,7 @@ import { ServeTab } from "./tabs/ServeTab.jsx";
 import { StrokesTab, TacticsTab, EvolutionTab } from "./tabs/StrokesTacticsEvolution.jsx";
 import { AnalysisTab } from "./tabs/AnalysisTab.jsx";
 import { TournamentTab } from "./tabs/TournamentTab.jsx";
+import { RankingTab } from "./tabs/RankingTab.jsx";
 
 /* Navegação por intenção, não por assunto: o que eu faço hoje, o que eu estudo,
    o que eu meço e o que eu jogo. Cada grupo abre no máximo 3 seções. */
@@ -25,13 +26,16 @@ const NAV = [
     { id: "evolucao", label: "Evolução" },
     { id: "analise", label: "Análise" },
   ] },
-  { id: "jogos", label: "Jogos", icon: Trophy },
+  { id: "jogos", label: "Jogos", icon: Trophy, subs: [
+    { id: "torneio", label: "Torneio" },
+    { id: "ranking", label: "Ranking" },
+  ] },
 ];
 
 /* ============ APP ============ */
 export default function App() {
   const [group, setGroup] = useState("hoje");
-  const [sub, setSub] = useState({ tecnica: "golpes", progresso: "evolucao" });
+  const [sub, setSub] = useState({ tecnica: "golpes", progresso: "evolucao", jogos: "torneio" });
   const [week, setWeek] = useState(1);
   const [activeIdx, setActiveIdx] = useState(0);
   const [done, setDone] = useState({});
@@ -106,7 +110,8 @@ export default function App() {
         {view === "taticas" && <TacticsTab />}
         {view === "analise" && <AnalysisTab />}
         {view === "evolucao" && <EvolutionTab done={done} records={records} keyOf={keyOf} />}
-        {group === "jogos" && <TournamentTab />}
+        {view === "torneio" && <TournamentTab />}
+        {view === "ranking" && <RankingTab />}
       </main>
 
       {timer && (
