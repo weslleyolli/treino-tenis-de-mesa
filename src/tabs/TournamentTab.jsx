@@ -100,20 +100,41 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
     </div>);
 }
 
-function MatchRow({ match, players, bestOf, onOpen }) {
+/* Um confronto. Os dois jogadores ficam separados pela rede, como no placar
+   ao vivo — mesma ideia, escala menor. Só o vencedor recebe cor. */
+function MatchRow({ match, players, bestOf, onOpen, readOnly }) {
   const nm = (id) => players.find(p => p.id === id)?.name || "—";
   const r = matchResult(match, bestOf);
-  const setStr = (match.sets || []).map(s => `${s.a}-${s.b}`).join("  ");
+  const done = r.done;
+  const sets = (match.sets || []).map(s => `${s.a}-${s.b}`);
+  const emAndamento = sets.length > 0 && !done;  // já tem sets, mas ninguém fechou
+  const Tag = readOnly ? "div" : "button";
+
+  const lado = (side) => (
+    <div className={"mside" + (done && r.winner === match[side] ? " win" : "")}>
+      <span className="mside-name">{nm(match[side])}</span>
+      {sets.length > 0 && <span className="mside-sc">{side === "a" ? r.wa : r.wb}</span>}
+    </div>);
+
   return (
-    <button className={"mrow" + (match.done ? " done" : "")} onClick={() => onOpen(match)}>
-      <div className="mrow-players">
-        <div className={"mp" + (r.winner === match.a ? " win" : "")}>{nm(match.a)}<span className="mp-w">{match.done ? r.wa : ""}</span></div>
-        <div className={"mp" + (r.winner === match.b ? " win" : "")}>{nm(match.b)}<span className="mp-w">{match.done ? r.wb : ""}</span></div>
+    <Tag className={"mrow" + (done ? " mrow-done" : "") + (emAndamento ? " mrow-vivo" : "")}
+      onClick={readOnly ? undefined : () => onOpen(match)}>
+      <div className="mrow-head">
+        <div className="mrow-main">
+          {lado("a")}
+          <div className="mrow-net" />
+          {lado("b")}
+        </div>
+        {!done && !readOnly && (
+          <span className={"mrow-cta" + (emAndamento ? " vivo" : "")}>
+            <Play size={12} /> {emAndamento ? "continuar" : "registrar"}</span>)}
       </div>
-      <div className="mrow-right">
-        {match.done ? <span className="mrow-sets">{setStr}</span> : <span className="mrow-play"><Play size={13} /> registrar</span>}
-      </div>
-    </button>);
+      {sets.length > 0 && (
+        <div className="mrow-sets">
+          {emAndamento && <span className="ms-vivo">em andamento</span>}
+          {sets.map((s, i) => <span key={i}>{s}</span>)}
+        </div>)}
+    </Tag>);
 }
 
 function TournamentTab() {
@@ -356,20 +377,6 @@ function Bracket({ t, table, canKO, startKO, onOpen, champion, nm }) {
 }
 
 
-function HistMatchRow({ m, players, bestOf }) {
-  const nm = (id) => players.find(p => p.id === id)?.name || "—";
-  const r = matchResult(m, bestOf);
-  const setStr = (m.sets || []).map(s => `${s.a}-${s.b}`).join("  ");
-  return (
-    <div className="mrow" style={{ cursor: "default" }}>
-      <div className="mrow-players">
-        <div className={"mp" + (r.winner === m.a ? " win" : "")}>{nm(m.a)}<span className="mp-w">{r.wa}</span></div>
-        <div className={"mp" + (r.winner === m.b ? " win" : "")}>{nm(m.b)}<span className="mp-w">{r.wb}</span></div>
-      </div>
-      <div className="mrow-right"><span className="mrow-sets">{setStr}</span></div>
-    </div>);
-}
-
 function HistoryCard({ h, onRemove }) {
   const nm = (id) => h.players.find(p => p.id === id)?.name || "—";
   const date = new Date(h.finishedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -382,7 +389,7 @@ function HistoryCard({ h, onRemove }) {
       <ClassTable table={h.table} />
       {koDone.length > 0 && <>
         <div className="round-lbl">Mata-mata</div>
-        {koDone.map(m => <HistMatchRow key={m.id} m={m} players={h.players} bestOf={h.koBestOf || h.bestOf} />)}
+        {koDone.map(m => <MatchRow key={m.id} match={m} players={h.players} bestOf={h.koBestOf || h.bestOf} readOnly />)}
       </>}
       <button className="linkbtn" style={{ color: "#D14A32" }}
         onClick={() => { if (confirm("Remover este campeonato do histórico?")) onRemove(h.id); }}>
