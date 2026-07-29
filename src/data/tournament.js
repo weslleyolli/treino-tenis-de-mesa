@@ -47,6 +47,20 @@ function serverOf(a, b, starter = 0) {
 // Quem abre o saque no set `i` — alterna a cada set.
 const setStarter = (matchStarter, i) => (matchStarter + i) % 2;
 
+/* Situação do saque agora: quem saca, se é o 1º ou o 2º saque da vez e se a
+   troca acontece no próximo ponto. No deuce cada jogador saca uma vez só. */
+function serveInfo(a, b, starter = 0) {
+  const total = a + b;
+  const deuce = a >= 10 && b >= 10;
+  return {
+    server: serverOf(a, b, starter),
+    deuce,
+    de: deuce ? 1 : 2,                       // quantos saques seguidos ele tem
+    numero: deuce ? 1 : (total % 2) + 1,     // em qual deles está
+    trocaNoProximo: deuce || total % 2 === 1,
+  };
+}
+
 // Set encerrado: 11 pontos com 2 de vantagem (ou mais, no deuce).
 const setDone = (s) => (s.a >= 11 || s.b >= 11) && Math.abs(s.a - s.b) >= 2;
 
@@ -133,5 +147,5 @@ const SEED_TOURNEY = {
 
 export {
   uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, SEED_TOURNEY,
-  serverOf, setStarter, setDone
+  serverOf, setStarter, setDone, serveInfo
 };

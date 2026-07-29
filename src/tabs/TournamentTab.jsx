@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, SEED_TOURNEY, serverOf, setStarter, setDone } from "../data/tournament.js";
+import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, SEED_TOURNEY, serverOf, setStarter, setDone, serveInfo } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
 /* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
@@ -36,9 +36,10 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
   const decided = wa >= need || wb >= need;
 
   const s = sets[cur];
-  const server = serverOf(s.a, s.b, setStarter(starter, cur));
+  const saque = serveInfo(s.a, s.b, setStarter(starter, cur));
+  const server = saque.server;
   const thisSetDone = setDone(s);
-  const deuce = s.a >= 10 && s.b >= 10;
+  const deuce = saque.deuce;
 
   const bump = (side, d) => {
     const nx = sets.map(x => ({ ...x }));
@@ -91,8 +92,15 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
       <div className={"pan" + (serving ? " pan-serve" : "") + (mine > theirs ? " pan-lead" : "")}>
         <button className="pan-hit" onClick={() => bump(side, 1)} aria-label={`Ponto para ${nm(match[side])}`}>
           <span className="pan-top">
-            {/* a bola ocupa lugar mesmo escondida, senão os dois painéis desalinham */}
-            <span className={"pan-ball" + (serving ? "" : " off")} aria-label={serving ? "saca" : undefined} />
+            {/* o selo ocupa lugar mesmo escondido, senão os dois painéis desalinham */}
+            <span className={"saca" + (serving ? "" : " off")}>
+              <span className="saca-ball" />
+              <span className="saca-txt">Saca</span>
+              <span className="saca-pips" aria-hidden="true">
+                {Array.from({ length: saque.de }).map((_, i) =>
+                  <i key={i} className={"spip" + (i < saque.numero ? " on" : "")} />)}
+              </span>
+            </span>
             <span className="pan-name">{nm(match[side])}</span>
           </span>
           <span className="pan-row">
@@ -134,9 +142,12 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
         </div>)}
 
       <div className="stage-foot">
-        <button className="bf-serve" onClick={() => setStarterId(starter ? 0 : 1)}>
-          <span className="bf-ball" /> Saque de <strong>{nm(match[server === 0 ? "a" : "b"])}</strong>
-          {deuce && <em>· deuce, troca a cada ponto</em>}
+        <button className="bf-serve" onClick={() => setStarterId(starter ? 0 : 1)}
+          title="Toque para inverter quem abriu o saque">
+          <span className="bf-ball" /> Saca <strong>{nm(match[server === 0 ? "a" : "b"])}</strong>
+          <em>{deuce ? "· deuce, troca a cada ponto"
+            : saque.trocaNoProximo ? "· troca no próximo ponto"
+              : `· saque ${saque.numero} de ${saque.de}`}</em>
         </button>
 
         <div className="setnav">
@@ -174,21 +185,21 @@ function MatchRow({ match, players, bestOf, onOpen, readOnly }) {
   return (
     <Tag className={"mrow" + (done ? " mrow-done" : "") + (emAndamento ? " mrow-vivo" : "")}
       onClick={readOnly ? undefined : () => onOpen(match)}>
-      <div className="mrow-head">
-        <div className="mrow-main">
-          {lado("a")}
-          <div className="mrow-net" />
-          {lado("b")}
-        </div>
-        {!done && !readOnly && (
-          <span className={"mrow-cta" + (emAndamento ? " vivo" : "")}>
-            <Play size={12} /> {emAndamento ? "continuar" : "registrar"}</span>)}
+      <div className="mrow-main">
+        {lado("a")}
+        <div className="mrow-net" />
+        {lado("b")}
       </div>
-      {sets.length > 0 && (
+      {/* rodapé sempre presente: sem ele, jogos com e sem sets teriam alturas diferentes */}
+      <div className="mrow-foot">
         <div className="mrow-sets">
           {emAndamento && <span className="ms-vivo">em andamento</span>}
           {sets.map((s, i) => <span key={i}>{s}</span>)}
-        </div>)}
+        </div>
+        {!done && !readOnly && (
+          <span className={"mrow-cta" + (emAndamento ? " vivo" : "")}>
+            <Play size={12} /> {emAndamento ? "Continuar" : "Registrar"}</span>)}
+      </div>
     </Tag>);
 }
 
