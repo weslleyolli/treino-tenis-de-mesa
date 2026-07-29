@@ -336,14 +336,31 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
 .mrow-vivo{border-color:#F0D3AE;}
 .ms-vivo{font-family:var(--f-mono);font-size:10px;font-weight:700;text-transform:uppercase;
   letter-spacing:.1em;color:#A85A12;background:#FDECD9;border-radius:6px;padding:3px 7px;}
-/* ---- Placar ao vivo: dois painéis separados pela rede ---- */
-.livewrap{margin:14px 0 0;}
-.live-bar{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+/* ---- Placar ao vivo: tela dedicada, dois painéis separados pela rede ---- */
+.stage{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:10px;
+  background:#F1F5F2;padding:12px;overflow:auto;overscroll-behavior:contain;}
+.stage-bar{display:flex;align-items:center;gap:9px;flex:none;}
 .live-tag{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#66756D;background:#fff;border:1px solid #E2EAE4;padding:5px 10px;border-radius:99px;}
 .live-meta{font-size:11px;color:#9BA89E;font-weight:600;flex:1;}
-.live-x{background:none;border:none;color:#9BA89E;cursor:pointer;padding:4px;flex:none;}
+.stage-ic{background:#fff;border:1px solid var(--line);color:#66756D;cursor:pointer;flex:none;
+  width:36px;height:36px;border-radius:11px;display:grid;place-items:center;}
+.stage-flash{display:flex;align-items:center;gap:7px;background:#EAF7F0;border-radius:11px;padding:11px;
+  font-size:12.5px;color:#1F6647;flex:none;}
+.stage-flash svg{color:#2FA36B;flex:none;}
+.stage-flash.win{background:#FBF1D6;color:#7A5A12;}
+.stage-flash.win svg{color:#D6A324;}
+.stage-foot{flex:none;}
+.stage-save{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);
+  color:#fff;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;
+  font-family:inherit;margin-top:9px;}
+.stage-save:active{transform:scale(.99);}
+.stage-hint{display:none;margin:9px 0 0;text-align:center;font-size:11.5px;color:var(--muted);}
+.stage-hint kbd{font-family:var(--f-mono);font-size:10.5px;background:#fff;border:1px solid var(--line);
+  border-bottom-width:2px;border-radius:5px;padding:1px 5px;margin:0 1px;}
 
-.board{border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(15,46,39,.22);}
+.board{border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(15,46,39,.22);
+  flex:1;min-height:0;display:flex;flex-direction:column;}
+.board>.pan{flex:1;display:flex;flex-direction:column;justify-content:center;}
 .pan{position:relative;background:linear-gradient(165deg,#153A30,#0B241E);}
 .pan+.pan{background:linear-gradient(165deg,#123027,#081C17);}
 .pan-hit{width:100%;border:none;background:none;color:#fff;cursor:pointer;text-align:left;
@@ -357,11 +374,12 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
 .pan-sets{display:flex;gap:6px;flex:none;padding-bottom:14px;}
 .pip{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.15);display:block;}
 .pip.on{background:#FF7A29;box-shadow:0 0 0 3px rgba(255,122,41,.18);}
-.pan-pts{display:block;font-family:var(--f-mono);font-size:74px;font-weight:700;line-height:.94;
+.pan-pts{display:block;font-family:var(--f-mono);font-size:clamp(64px,13vh,120px);font-weight:700;line-height:.94;
   color:#E4EDE8;letter-spacing:-.03em;}
 .pan-lead .pan-pts{color:#fff;}
 .pan-ball{width:13px;height:13px;border-radius:50%;flex:none;
   background:radial-gradient(circle at 32% 30%,#FFD9A6,#FF7A29 64%);box-shadow:0 0 0 4px rgba(255,122,41,.2);}
+.pan-ball.off{visibility:hidden;}
 .pan-undo{position:absolute;right:15px;top:13px;width:34px;height:34px;border-radius:10px;border:none;
   background:rgba(255,255,255,.09);color:#9FB6AA;display:grid;place-items:center;cursor:pointer;z-index:1;}
 .pan-undo:disabled{opacity:.22;}
@@ -396,6 +414,45 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
 .live-done.win{background:#FBF1D6;color:#7A5A12;}
 .live-done.win svg{color:#D6A324;}
 @media (prefers-reduced-motion:no-preference){.pan-hit{transition:background .12s;}}
+
+/* ---- Telão: notebook / tela larga. Painéis lado a lado, rede na vertical ---- */
+@media (min-width:760px) and (orientation:landscape){
+  .stage{padding:18px 22px;gap:14px;}
+  .stage-bar{gap:12px;}
+  .live-tag{font-size:12px;padding:7px 13px;}
+  .live-meta{font-size:13px;}
+
+  .board{flex-direction:row;border-radius:24px;}
+  .board>.pan{flex:1;min-width:0;}
+  .pan+.pan{background:linear-gradient(200deg,#123027,#081C17);}
+
+  .pan-hit{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;
+    text-align:center;padding:24px;}
+  .pan-top{flex-direction:column;gap:14px;padding-right:0;justify-content:center;}
+  .pan-name{font-size:clamp(22px,3.2vw,40px);letter-spacing:.04em;white-space:normal;}
+  .pan-row{flex-direction:column;align-items:center;gap:18px;}
+  .pan-pts{font-size:clamp(140px,26vh,280px);letter-spacing:-.04em;}
+  .pan-sets{padding-bottom:0;gap:10px;}
+  .pip{width:16px;height:16px;}
+  .pan-ball{width:20px;height:20px;box-shadow:0 0 0 6px rgba(255,122,41,.2);}
+  .pan-undo{width:42px;height:42px;top:18px;right:18px;}
+
+  /* a rede vira vertical */
+  .net{height:auto;width:26px;flex:none;}
+  .net::before{left:50%;right:auto;top:0;bottom:0;height:auto;width:9px;transform:translateX(-50%);
+    background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.34) 0 1px,transparent 1px 5px);
+    border-top:none;border-bottom:none;
+    border-left:1.5px solid rgba(255,255,255,.5);border-right:1.5px solid rgba(255,255,255,.5);}
+  .net-set{padding:11px 0;writing-mode:vertical-rl;text-orientation:mixed;}
+
+  /* rodapé em uma linha só, para o placar dominar a tela */
+  .stage-foot{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;}
+  .bf-serve{width:auto;font-size:14px;padding:13px 18px;}
+  .setnav{margin-top:0;}
+  .stage-save{width:auto;margin-top:0;padding:14px 22px;white-space:nowrap;}
+  .stage-hint{display:block;grid-column:1/-1;margin:0;}
+  .stage-flash{font-size:14px;padding:13px 16px;justify-content:center;}
+}
 .champbox{display:flex;align-items:center;gap:14px;background:linear-gradient(150deg,#5C4310,#2E1D08);color:#fff;border-radius:16px;padding:16px;margin-bottom:14px;}
 .champbox svg{color:#FFD24A;flex:none;}
 .cb-l{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#E6D5A8;}

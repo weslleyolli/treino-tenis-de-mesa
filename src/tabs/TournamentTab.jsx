@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from "react";
 import {
-  Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
+  Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Maximize, Minimize
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, SEED_TOURNEY, serverOf, setStarter, setDone } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
+/* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
+   Falha em silêncio onde a API não existe (iOS) — o overlay já ocupa a tela toda. */
+function pedirFullscreen() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (fn) { try { Promise.resolve(fn.call(el)).catch(() => {}); } catch {} }
+}
+function sairFullscreen() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) return;
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (fn) { try { Promise.resolve(fn.call(document)).catch(() => {}); } catch {} }
+}
+
 /* Placar ao vivo: cada jogador é um painel inteiro. Toque no painel = +1 ponto,
    para marcar sem olhar com o celular apoiado na mesa. A linha entre os dois
-   painéis é a rede; a bola laranja marca quem saca. */
+   painéis é a rede; a bola laranja marca quem saca. No notebook os painéis ficam
+   lado a lado e as setas do teclado marcam ponto. */
 function LiveScore({ match, players, bestOf, onSave, onClose }) {
   const [sets, setSets] = useState(() => match.sets.length ? match.sets.map(s => ({ ...s })) : [{ a: 0, b: 0 }]);
   const [cur, setCur] = useState(Math.max(0, match.sets.length ? match.sets.length - 1 : 0));
@@ -32,7 +46,41 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
     setSets(nx);
   };
   const addSet = () => { setSets([...sets, { a: 0, b: 0 }]); setCur(sets.length); };
-  const save = () => onSave({ ...match, sets: sets.filter(x => x.a > 0 || x.b > 0), done: decided, starter });
+  const save = () => { sairFullscreen(); onSave({ ...match, sets: sets.filter(x => x.a > 0 || x.b > 0), done: decided, starter }); };
+  const fechar = () => { sairFullscreen(); onClose(); };
+
+  const [fs, setFs] = useState(false);
+  useEffect(() => {
+    const sync = () => setFs(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    sync();
+    document.addEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync);
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      document.removeEventListener("webkitfullscreenchange", sync);
+    };
+  }, []);
+
+  // trava o scroll do app atrás do placar
+  useEffect(() => {
+    const anterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = anterior; };
+  }, []);
+
+  // teclado: no notebook marcar ponto com a mão no teclado é mais rápido que clicar
+  useEffect(() => {
+    const onKey = (e) => {
+      const k = e.key;
+      const esq = k === "ArrowLeft" || k === "a" || k === "A";
+      const dir = k === "ArrowRight" || k === "l" || k === "L";
+      if (!esq && !dir) return;
+      e.preventDefault();
+      bump(esq ? "a" : "b", e.shiftKey ? -1 : 1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const panel = (side) => {
     const mine = side === "a" ? s.a : s.b;
@@ -43,7 +91,8 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
       <div className={"pan" + (serving ? " pan-serve" : "") + (mine > theirs ? " pan-lead" : "")}>
         <button className="pan-hit" onClick={() => bump(side, 1)} aria-label={`Ponto para ${nm(match[side])}`}>
           <span className="pan-top">
-            {serving && <span className="pan-ball" aria-label="saca" />}
+            {/* a bola ocupa lugar mesmo escondida, senão os dois painéis desalinham */}
+            <span className={"pan-ball" + (serving ? "" : " off")} aria-label={serving ? "saca" : undefined} />
             <span className="pan-name">{nm(match[side])}</span>
           </span>
           <span className="pan-row">
@@ -60,11 +109,15 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
   };
 
   return (
-    <div className="livewrap">
-      <div className="live-bar">
+    <div className="stage">
+      <div className="stage-bar">
         <span className="live-tag">{match.label || "Partida"}</span>
         <span className="live-meta">melhor de {bestOf}</span>
-        <button className="live-x" onClick={onClose} aria-label="Fechar"><X size={18} /></button>
+        <button className="stage-ic" onClick={() => (fs ? sairFullscreen() : pedirFullscreen())}
+          aria-label={fs ? "Sair da tela cheia" : "Tela cheia"} title={fs ? "Sair da tela cheia" : "Tela cheia"}>
+          {fs ? <Minimize size={17} /> : <Maximize size={17} />}
+        </button>
+        <button className="stage-ic" onClick={fechar} aria-label="Fechar placar"><X size={18} /></button>
       </div>
 
       <div className="board">
@@ -73,7 +126,14 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
         {panel("b")}
       </div>
 
-      <div className="board-foot">
+      {(thisSetDone || decided) && (
+        <div className={"stage-flash" + (decided ? " win" : "")}>
+          {decided
+            ? <><Trophy size={15} /> <strong>{wa > wb ? nm(match.a) : nm(match.b)}</strong> vence por {Math.max(wa, wb)}×{Math.min(wa, wb)}</>
+            : <><Check size={15} /> Set para <strong>{s.a > s.b ? nm(match.a) : nm(match.b)}</strong> — abra o próximo em <Plus size={12} /></>}
+        </div>)}
+
+      <div className="stage-foot">
         <button className="bf-serve" onClick={() => setStarterId(starter ? 0 : 1)}>
           <span className="bf-ball" /> Saque de <strong>{nm(match[server === 0 ? "a" : "b"])}</strong>
           {deuce && <em>· deuce, troca a cada ponto</em>}
@@ -88,15 +148,10 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
           </div>
           <button disabled={cur >= sets.length - 1} onClick={() => setCur(cur + 1)} aria-label="Próximo set"><ChevronRight size={18} /></button>
         </div>
+
+        <button className="stage-save" onClick={save}><Check size={16} /> Salvar placar</button>
+        <p className="stage-hint">Toque no painel do jogador para marcar ponto. No teclado: <kbd>←</kbd> <kbd>→</kbd> marcam, com <kbd>Shift</kbd> corrigem.</p>
       </div>
-
-      {thisSetDone && !decided && (
-        <div className="live-done"><Check size={14} /> Set para <strong>{s.a > s.b ? nm(match.a) : nm(match.b)}</strong>. Toque em <Plus size={12} /> para abrir o próximo.</div>)}
-      {decided && (
-        <div className="live-done win"><Trophy size={14} /> <strong>{wa > wb ? nm(match.a) : nm(match.b)}</strong> vence por {Math.max(wa, wb)}×{Math.min(wa, wb)}</div>)}
-
-      <button className="bigbtn" style={{ background: "#2FA36B" }} onClick={save}>
-        <Check size={16} /> Salvar placar</button>
     </div>);
 }
 
@@ -230,6 +285,9 @@ function TournamentTab() {
 
   if (showHistory) return <TourneyHistory history={history} onBack={() => setShowHistory(false)} onRemove={removeHistory} />;
 
+  // o pedido de fullscreen precisa sair de dentro do gesto do usuário
+  const abrirPlacar = (m) => { pedirFullscreen(); setLive(m); };
+
   if (live) return (
     <LiveScore match={live} players={t.players} bestOf={live.phase === "ko" ? (t.koBestOf || t.bestOf) : t.bestOf}
       onSave={saveMatch} onClose={() => setLive(null)} />);
@@ -264,8 +322,8 @@ function TournamentTab() {
           </div>
 
           {view === "tabela" && <ClassTable table={table} />}
-          {view === "jogos" && <GroupGames t={t} onOpen={setLive} />}
-          {view === "chave" && <Bracket t={t} table={table} canKO={canKO} startKO={startKO} onOpen={setLive} champion={champion} nm={nm} />}
+          {view === "jogos" && <GroupGames t={t} onOpen={abrirPlacar} />}
+          {view === "chave" && <Bracket t={t} table={table} canKO={canKO} startKO={startKO} onOpen={abrirPlacar} champion={champion} nm={nm} />}
 
           <button className="linkbtn" onClick={() => { if (confirm("Reiniciar o torneio? Isso apaga todos os resultados.")) save({ ...DEFAULT_TOURNEY, players: t.players }); }}>
             <RotateCcw size={13} /> Reconfigurar torneio</button>
