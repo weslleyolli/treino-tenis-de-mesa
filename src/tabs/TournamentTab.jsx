@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, SEED_TOURNEY, serverOf, setStarter, setDone, serveInfo } from "../data/tournament.js";
+import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
 /* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
@@ -213,13 +213,13 @@ function TournamentTab() {
 
   useEffect(() => { (async () => {
     const saved = await store.get("tourney:v1");
-    const seeded = await store.get("tourney:seeded");
-    if (saved) setT(saved);
-    else if (!seeded) { setT(SEED_TOURNEY); store.set("tourney:v1", SEED_TOURNEY); store.set("tourney:seeded", true); }
-    else setT({ ...DEFAULT_TOURNEY });
+    if (saved && ehExemploAntigo(saved)) {          // descarta o campeonato de exemplo
+      const limpo = { ...DEFAULT_TOURNEY };
+      setT(limpo); store.set("tourney:v1", limpo);
+    } else setT(saved || { ...DEFAULT_TOURNEY });
     setHistory((await store.get("tourney:history")) || []);
   })(); }, []);
-  const save = (nt) => { setT(nt); store.set("tourney:v1", nt); store.set("tourney:seeded", true); };
+  const save = (nt) => { setT(nt); store.set("tourney:v1", nt); };
   const removeHistory = (id) => { const nh = history.filter(h => h.id !== id); setHistory(nh); store.set("tourney:history", nh); };
 
   if (!t) return <div className="loading">Carregando torneio…</div>;

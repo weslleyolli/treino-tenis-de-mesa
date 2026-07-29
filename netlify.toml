@@ -1,11 +1,17 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA: qualquer rota cai no index.html (arquivos reais são servidos antes disto).
+# SPA: qualquer rota cai no index.html. A API vem antes para não ser engolida.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/dados"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

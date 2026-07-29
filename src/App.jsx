@@ -12,6 +12,8 @@ import { StrokesTab, TacticsTab, EvolutionTab } from "./tabs/StrokesTacticsEvolu
 import { AnalysisTab } from "./tabs/AnalysisTab.jsx";
 import { TournamentTab } from "./tabs/TournamentTab.jsx";
 import { RankingTab } from "./tabs/RankingTab.jsx";
+import { SyncBadge } from "./components/Sync.jsx";
+import { sincronizar } from "./lib/sync.js";
 
 /* Navegação por intenção, não por assunto: o que eu faço hoje, o que eu estudo,
    o que eu meço e o que eu jogo. Cada grupo abre no máximo 3 seções. */
@@ -44,16 +46,28 @@ export default function App() {
   const [serveNote, setServeNote] = useState("");
   const [timer, setTimer] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [versao, setVersao] = useState(0);
 
-  useEffect(() => { (async () => {
+  const carregar = async () => {
     setDone((await store.get("progress:v4")) || {});
     setRecords((await store.get("records:v4")) || {});
     setNotes((await store.get("notes:v4")) || {});
     setServeNote((await store.get("servenote:v3")) || "");
     const w = await store.get("week:v4"); if (w) setWeek(w);
+  };
+
+  useEffect(() => { (async () => {
+    await carregar();
     const js = new Date().getDay(); setActiveIdx(js === 0 ? 6 : js - 1);
     setLoaded(true);
+    // puxa da nuvem depois de mostrar o local: a tela nunca espera a rede
+    const { mudou } = await sincronizar();
+    if (mudou && mudou.length) recarregarTudo();
   })(); }, []);
+
+  /* Quando a nuvem traz novidade, as abas precisam reler o banco. Elas leem no
+     mount, então trocar a key remonta todas de uma vez. */
+  const recarregarTudo = async () => { await carregar(); setVersao(v => v + 1); };
 
   useEffect(() => { if (!timer || !timer.running) return;
     const id = setInterval(() => setTimer(t => (t && t.running ? { ...t, left: Math.max(0, t.left - 1) } : t)), 1000);
@@ -86,7 +100,8 @@ export default function App() {
       <header className="hdr">
         <div className="brand"><span className="ball" />
           <div><div className="brand-name">MESA<span>1</span></div>
-            <div className="brand-sub">Robô 7 dias · 2 aulas · campeonato</div></div></div>
+            <div className="brand-sub">Robô 7 dias · 2 aulas · campeonato</div></div>
+          <SyncBadge onSynced={recarregarTudo} /></div>
         <div className="tabs">
           {NAV.map(g => { const I = g.icon;
             return (<button key={g.id} className={"tab" + (group === g.id ? " active" : "")} onClick={() => setGroup(g.id)}>
@@ -94,7 +109,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="content" style={{ paddingBottom: timer ? 90 : 26 }}>
+      <main className="content" key={versao} style={{ paddingBottom: timer ? 90 : 26 }}>
         {cur.subs && (
           <div className="segtabs subnav">
             {cur.subs.map(s => (

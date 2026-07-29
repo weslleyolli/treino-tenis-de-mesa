@@ -122,30 +122,13 @@ const DEFAULT_TOURNEY = {
   koMatches: [],
 };
 
-const SEED_TOURNEY = {
-  name: "Campeonato de Domingo",
-  bestOf: 3, koBestOf: 3, doubleRound: false, koStart: 4, phase: "ko",
-  players: [
-    { id: 1, name: "Weslley" }, { id: 2, name: "Aleykson" }, { id: 3, name: "Henrique" },
-    { id: 4, name: "Leo" }, { id: 5, name: "Caio" },
-  ],
-  // Classificacao final da 1a fase, exatamente como no placar oficial do campeonato.
-  frozen: [
-    { id: 1, name: "Weslley",  P: 8, J: 6, V: 4, D: 1, SP: 10, SC: 4 },
-    { id: 2, name: "Aleykson", P: 6, J: 6, V: 3, D: 3, SP: 8,  SC: 6 },
-    { id: 3, name: "Henrique", P: 6, J: 6, V: 3, D: 2, SP: 7,  SC: 6 },
-    { id: 4, name: "Leo",      P: 2, J: 6, V: 1, D: 5, SP: 2,  SC: 11 },
-    { id: 5, name: "Caio",     P: 0, J: 0, V: 0, D: 0, SP: 0,  SC: 0 },
-  ],
-  groupMatches: [],
-  koMatches: [
-    { id: 201, phase: "ko", roundSize: 4, a: 1, b: 4, sets: [{ a: 10, b: 12 }, { a: 11, b: 5 }, { a: 11, b: 3 }], done: true, label: "Semifinal #1 · 1º x 4º" },
-    { id: 202, phase: "ko", roundSize: 4, a: 2, b: 3, sets: [{ a: 9, b: 11 }, { a: 11, b: 6 }, { a: 11, b: 8 }], done: true, label: "Semifinal #2 · 2º x 3º" },
-    { id: 203, phase: "ko", roundSize: 2, a: 1, b: 2, sets: [{ a: 9, b: 11 }, { a: 9, b: 11 }], done: true, label: "Final" },
-  ],
-};
+/* Houve um campeonato de exemplo embutido aqui, que se autogravava em todo
+   aparelho novo e contaminava o ranking. Foi removido; isto só reconhece o que
+   ficou gravado para poder descartar. Os ids 201-203 eram dele. */
+const ehExemploAntigo = (t) =>
+  !!t && Array.isArray(t.koMatches) && t.koMatches.some(m => m.id === 201 || m.id === 202 || m.id === 203);
 
 export {
-  uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, SEED_TOURNEY,
-  serverOf, setStarter, setDone, serveInfo
+  uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY,
+  serverOf, setStarter, setDone, serveInfo, ehExemploAntigo
 };
