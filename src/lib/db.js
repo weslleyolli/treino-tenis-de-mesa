@@ -65,20 +65,12 @@ export const storage = {
     return mapa;
   },
 
-  /* Aplica o que veio da nuvem, chave a chave, só quando for mais novo.
-     Devolve as chaves que mudaram de fato. */
-  async aplicarRemoto(remoto) {
-    const locais = await db.kv.toArray();
-    const porChave = new Map(locais.map((r) => [r.key, r]));
-    const mudou = [];
-    for (const [key, item] of Object.entries(remoto || {})) {
-      if (!item || typeof item !== "object") continue;
-      const local = porChave.get(key);
-      if (local && (local.updatedAt || 0) >= (item.updatedAt || 0)) continue;
-      await db.kv.put({ key, value: item.value, updatedAt: item.updatedAt || Date.now() });
-      mudou.push(key);
-    }
-    return mudou;
+  /* Grava o estado já mesclado. A decisão de o que vence é do merge.js. */
+  async aplicarEstado(mapa) {
+    const linhas = Object.entries(mapa || {})
+      .filter(([, v]) => v && typeof v === "object")
+      .map(([key, v]) => ({ key, value: v.value, updatedAt: v.updatedAt || Date.now() }));
+    if (linhas.length) await db.kv.bulkPut(linhas);
   },
 };
 

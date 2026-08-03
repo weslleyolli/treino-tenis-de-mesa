@@ -420,8 +420,19 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
 .saca-pips{display:flex;gap:3px;}
 .spip{width:5px;height:5px;border-radius:50%;background:rgba(255,179,92,.32);display:block;}
 .spip.on{background:#FF7A29;}
-/* a borda laranja marca o lado que saca sem precisar ler nada */
-.pan-serve{box-shadow:inset 0 0 0 2px rgba(255,122,41,.55);}
+/* O lado que saca troca de cor por inteiro: de longe você vê o painel âmbar,
+   sem precisar caçar a bolinha. A especificidade extra vence o `.pan+.pan`. */
+.board .pan.pan-serve{background:linear-gradient(165deg,#7A3D10,#401D06);
+  box-shadow:inset 0 0 0 2px rgba(255,168,90,.45);}
+.pan-serve .pan-name{color:#FFE2C4;}
+.pan-serve .pan-pts{color:#fff;}
+.pan-serve .pip{background:rgba(255,255,255,.22);}
+.pan-serve .pip.on{background:#FFC98A;box-shadow:0 0 0 3px rgba(255,201,138,.18);}
+.pan-serve .pan-undo{background:rgba(0,0,0,.22);color:#F0C9A6;}
+.pan-serve .saca{background:rgba(0,0,0,.26);border-color:rgba(255,201,138,.55);}
+.pan-serve .saca-txt{color:#FFD9AE;}
+.pan-serve .spip{background:rgba(255,217,174,.3);}
+.pan-serve .spip.on{background:#FFC98A;}
 .pan-undo{position:absolute;right:15px;top:13px;width:34px;height:34px;border-radius:10px;border:none;
   background:rgba(255,255,255,.09);color:#9FB6AA;display:grid;place-items:center;cursor:pointer;z-index:1;}
 .pan-undo:disabled{opacity:.22;}

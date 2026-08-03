@@ -1,4 +1,5 @@
 import { storage, definirAoGravar } from "./db.js";
+import { mesclarEstados, chavesMudadas } from "./merge.js";
 
 /* Sincronização com a nuvem (Netlify Blobs via /api/dados).
    O app continua offline-first: o IndexedDB é sempre a fonte imediata da tela,
@@ -44,8 +45,13 @@ async function sincronizar() {
   try {
     await storage.carimbarAntigos();   // protege dados anteriores à sincronização
     const locais = await storage.paraSync();
-    const { dados } = await chamar("POST", { dados: locais });
-    const mudou = await storage.aplicarRemoto(dados);
+    /* Lê, mescla aqui e só então grava. Antes o servidor mesclava por carimbo,
+       e um aparelho com histórico vazio mas recém-carimbado apagava o do outro. */
+    const { dados: remotos } = await chamar("GET");
+    const final = mesclarEstados(locais, remotos);
+    const mudou = chavesMudadas(locais, final);
+    await storage.aplicarEstado(final);
+    await chamar("POST", { dados: final });
     const agora = Date.now();
     gravarUltimoSync(agora);
     definirEstado({ fase: "ok", erro: null, em: agora });

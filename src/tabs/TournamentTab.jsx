@@ -220,7 +220,15 @@ function TournamentTab() {
     setHistory((await store.get("tourney:history")) || []);
   })(); }, []);
   const save = (nt) => { setT(nt); store.set("tourney:v1", nt); };
-  const removeHistory = (id) => { const nh = history.filter(h => h.id !== id); setHistory(nh); store.set("tourney:history", nh); };
+  /* Apagar registra o id: como o histórico é mesclado por união entre aparelhos,
+     sem esse registro o campeonato voltaria na próxima sincronização. */
+  const removeHistory = async (id) => {
+    const nh = history.filter(h => h.id !== id);
+    setHistory(nh);
+    const lixo = (await store.get("tourney:removidos")) || [];
+    await store.set("tourney:removidos", [...lixo.filter(r => r.id !== id), { id, em: Date.now() }]);
+    await store.set("tourney:history", nh);
+  };
 
   if (!t) return <div className="loading">Carregando torneio…</div>;
 
