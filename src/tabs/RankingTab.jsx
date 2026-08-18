@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, Info, Award, Layers } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, Info, Award, Layers, X, Trash2, Check, Undo2 } from "lucide-react";
 import { Hero, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import { buildRanking, countEvents, RANK_TABLE, RANKING_SEED } from "../data/ranking.js";
@@ -11,11 +11,13 @@ const fmtPts = (n) => n.toLocaleString("pt-BR");
 
 /* `parcial` = o recorte mistura saldo herdado com campeonatos registrados, então
    a contagem de campeonatos não descreve o total e seria enganosa ao lado dos títulos. */
-function RankRow({ r, i, max, parcial }) {
+function RankRow({ r, i, max, parcial, onRemover }) {
   const pct = max > 0 ? Math.round((r.points / max) * 100) : 0;
   return (
     <div className={"rk" + (i < 3 ? " rk-podio rk-p" + (i + 1) : "")}>
-      <span className="rk-pos">{i + 1}</span>
+      {onRemover
+        ? <button className="rk-rm" onClick={() => onRemover(r.name)} aria-label={`Tirar ${r.name} do ranking`}><X size={15} /></button>
+        : <span className="rk-pos">{i + 1}</span>}
       <div className="rk-mid">
         <div className="rk-top">
           <span className="rk-name">{r.name}</span>
@@ -34,15 +36,27 @@ function RankRow({ r, i, max, parcial }) {
 
 function RankingTab() {
   const [history, setHistory] = useState(null);
+  const [removidos, setRemovidos] = useState([]);
+  const [editando, setEditando] = useState(false);
   const [scope, setScope] = useState("ano");
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
 
-  useEffect(() => { (async () => setHistory((await store.get("tourney:history")) || []))(); }, []);
+  useEffect(() => { (async () => {
+    setHistory((await store.get("tourney:history")) || []);
+    setRemovidos((await store.get("ranking:removidos")) || []);
+  })(); }, []);
   if (!history) return <div className="loading">Carregando ranking…</div>;
 
-  const rank = buildRanking(history, { scope, year, month });
+  const gravarRemovidos = (lista) => { setRemovidos(lista); store.set("ranking:removidos", lista); };
+  const remover = (nome) => {
+    if (!confirm(`Tirar ${nome} do ranking?\n\nOs campeonatos continuam no histórico; ele só deixa de aparecer aqui e pode voltar depois.`)) return;
+    gravarRemovidos([...removidos.filter(r => r.nome !== nome), { nome, em: Date.now() }]);
+  };
+  const restaurar = (nome) => gravarRemovidos(removidos.filter(r => r.nome !== nome));
+
+  const rank = buildRanking(history, { scope, year, month, removidos });
   const events = countEvents(history, { scope, year, month });
   const max = rank.length ? rank[0].points : 0;
   const temSaldo = scope === "ano" && year === RANKING_SEED.year;
@@ -85,8 +99,29 @@ function RankingTab() {
         <div className="emptybox"><Info size={16} />
           <span>Sem pontos em {periodo}. Arquive um campeonato na aba Torneio para o ranking começar a contar.</span></div>
       ) : (
-        <div className="rklist">{rank.map((r, i) => <RankRow key={r.name} r={r} i={i} max={max} parcial={temSaldo} />)}</div>
+        <div className="rklist">{rank.map((r, i) =>
+          <RankRow key={r.name} r={r} i={i} max={max} parcial={temSaldo}
+            onRemover={editando ? remover : null} />)}</div>
       )}
+
+      {(rank.length > 0 || removidos.length > 0) && (
+        <button className="linkbtn" onClick={() => setEditando(e => !e)}>
+          {editando ? <><Check size={14} /> Concluir</> : <><Trash2 size={14} /> Remover jogadores do ranking</>}
+        </button>)}
+
+      {editando && removidos.length > 0 && (
+        <div className="block">
+          <div className="section-eyebrow"><Undo2 size={13} /> Fora do ranking</div>
+          <div className="plist">
+            {removidos.map(r => (
+              <div className="pchip" key={r.nome}>
+                <span className="pc-nome">{r.nome}</span>
+                <button className="pc-voltar" onClick={() => restaurar(r.nome)}>Trazer de volta</button>
+              </div>))}
+          </div>
+          <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
+            Os campeonatos deles continuam no histórico — só não entram na contagem do ranking.</p>
+        </div>)}
 
       {temSaldo && (
         <div className="emptymini" style={{ marginTop: 12 }}><Info size={15} />

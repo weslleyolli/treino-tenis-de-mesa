@@ -85,11 +85,12 @@ function awardsOf(h) {
 
 /* Monta o ranking a partir dos campeonatos arquivados.
    scope "ano": todos do ano + saldo herdado. scope "mes": só os do mês. */
-function buildRanking(history, { scope, year, month }) {
+function buildRanking(history, { scope, year, month, removidos }) {
+  const fora = new Set((removidos || []).map(r => normName(r.nome ?? r)));
   const acc = new Map();
   const bump = (name, points, titles, events) => {
     const k = normName(name);
-    if (!k) return;
+    if (!k || fora.has(k)) return;   // tirado do ranking pelo usuário
     const cur = acc.get(k) || { name, points: 0, titles: 0, events: 0 };
     cur.points += points; cur.titles += titles; cur.events += events;
     acc.set(k, cur);
