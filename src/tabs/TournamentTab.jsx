@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia, agruparTies, tieResult, garantirDesempates, formatoDe, temGrupos, temMata, ordemInicial, ordemValida, confrontosDe } from "../data/tournament.js";
+import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia, agruparTies, tieResult, garantirDesempates, formatoDe, temGrupos, temMata, ordemInicial, ordemValida, confrontosDe, escolherStarter, resumoSaques, koIdaVoltaDe, koBestOfDe } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
 /* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
@@ -257,7 +257,7 @@ function TournamentTab() {
       const ids = ordemValida(t.ordemChave, t.players, t.koStart)
         ? t.ordemChave : ordemInicial(t.players, t.koStart);
       const ordem = ids.map(id => (id == null ? undefined : { id }));
-      const bracket = genBracket(ordem, t.koBestOf || t.bestOf, t.koStart, t.doubleRound);
+      const bracket = genBracket(ordem, koBestOfDe(t), t.koStart, koIdaVoltaDe(t));
       bracket.forEach((m, i) => { m.label = KO_SIZES[t.koStart] + (m.bye ? " · passa direto" : " #" + (Math.floor(i / (t.doubleRound ? 2 : 1)) + 1)); });
       save({ ...t, groupMatches: [], koMatches: bracket, frozen: null, phase: "ko", ordemChave: ids });
       setView("chave");
@@ -280,7 +280,7 @@ function TournamentTab() {
     const sorteio = modo === "sorteio";
     const q = sorteio ? embaralhar(t.players) : table.slice(0, t.koStart);
     const tam = sorteio ? proximaPotencia(q.length) : t.koStart;
-    const bracket = genBracket(q, t.koBestOf || t.bestOf, tam);
+    const bracket = genBracket(q, koBestOfDe(t), tam, koIdaVoltaDe(t));
     bracket.forEach((m, i) => { m.label = KO_SIZES[tam] + (m.bye ? " · passa direto" : " #" + (i + 1)); });
     /* Congela a classificação e descarta os jogos de grupo que não foram
        disputados: deixá-los na lista sugeriria que ainda valem alguma coisa. */
@@ -296,8 +296,8 @@ function TournamentTab() {
     if (m.phase === "grupo") {
       save({ ...t, groupMatches: t.groupMatches.map(x => x.id === m.id ? m : x) });
     } else {
-      const bo = t.koBestOf || t.bestOf;
-      const idaVolta = !!t.doubleRound;
+      const bo = koBestOfDe(t);
+      const idaVolta = koIdaVoltaDe(t);
       let ko = t.koMatches.map(x => x.id === m.id ? m : x);
       ko = garantirDesempates(ko, bo);   // agregado empatado abre o set extra
 
@@ -336,7 +336,7 @@ function TournamentTab() {
     }
     const finais = Object.values(agruparTies(t.koMatches)[2] || {})[0];
     if (!finais) return null;
-    const r = tieResult(finais, t.koBestOf || t.bestOf);
+    const r = tieResult(finais, koBestOfDe(t));
     return r.done ? r.winner : null;
   })();
 
@@ -355,11 +355,16 @@ function TournamentTab() {
   if (showHistory) return <TourneyHistory history={history} onBack={() => setShowHistory(false)} onRemove={removeHistory} />;
 
   // o pedido de fullscreen precisa sair de dentro do gesto do usuário
-  const abrirPlacar = (m) => { pedirFullscreen(); setLive(m); };
+  const abrirPlacar = (m) => {
+    pedirFullscreen();
+    // define ali quem abre o saque, equilibrando com o que ja aconteceu no torneio
+    const todas = [...t.groupMatches, ...t.koMatches];
+    setLive({ ...m, starter: escolherStarter(m, todas) });
+  };
 
   if (live) return (
     <LiveScore match={live} players={t.players}
-      bestOf={live.desempate ? 1 : (live.phase === "ko" ? (t.koBestOf || t.bestOf) : t.bestOf)}
+      bestOf={live.desempate ? 1 : (live.phase === "ko" ? (koBestOfDe(t)) : t.bestOf)}
       onSave={saveMatch} onClose={() => setLive(null)} />);
 
   return (
@@ -400,6 +405,8 @@ function TournamentTab() {
           {temGrupos(t) && view === "jogos" && <GroupGames t={t} onOpen={abrirPlacar} />}
           {temMata(t) && (!temGrupos(t) || view === "chave") &&
             <Bracket t={t} table={table} canKO={canKO} startKO={startKO} onOpen={abrirPlacar} champion={champion} nm={nm} />}
+
+          <AjustesTorneio t={t} save={save} />
 
           <button className="linkbtn" onClick={() => { if (confirm("Voltar para a configuração?\n\nOs jogadores são mantidos e você pode trocar o formato, mas os resultados deste torneio são apagados.")) save({ ...DEFAULT_TOURNEY, players: t.players, formato: t.formato, chaveamento: t.chaveamento, bestOf: t.bestOf, koStart: t.koStart }); }}>
             <RotateCcw size={13} /> Reconfigurar torneio</button>
@@ -500,6 +507,25 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
                     <button key={n} className={"seg" + (t.koStart === n ? " seg-v" : "")} onClick={() => save({ ...t, koStart: n })}>{lbl}</button>)}
               </div>
             </div>
+
+            {!soMata && (
+              <div className="optrow" style={{ marginTop: 14 }}>
+                <span className="opt-l">Formato dos confrontos no mata-mata</span>
+                <div className="segs">
+                  <button className={"seg" + (!koIdaVoltaDe(t) ? " seg-v" : "")} onClick={() => save({ ...t, koIdaVolta: false })}>Só ida</button>
+                  <button className={"seg" + (koIdaVoltaDe(t) ? " seg-v" : "")} onClick={() => save({ ...t, koIdaVolta: true })}>Ida e volta</button>
+                </div>
+              </div>)}
+
+            {!soMata && (
+            <div className="optrow" style={{ marginTop: 14 }}>
+              <span className="opt-l">Sets por partida no mata-mata</span>
+              <div className="segs">
+                {[3, 5, 7].map(b => (
+                  <button key={b} className={"seg" + (koBestOfDe(t) === b ? " seg-v" : "")}
+                    onClick={() => save({ ...t, koBestOf: b })}>Melhor de {b}</button>))}
+              </div>
+            </div>)}
 
             <p className="tm-cap" style={{ textAlign: "left", marginTop: 12 }}>
               {soMata
@@ -619,7 +645,7 @@ function Bracket({ t, table, canKO, startKO, onOpen, champion, nm }) {
           {sobras > 0 && `, com ${sobras} ${sobras === 1 ? "passando" : "passando"} direto`}.</p>
       </div>);
   }
-  const bo = t.koBestOf || t.bestOf;
+  const bo = koBestOfDe(t);
   const porRodada = agruparTies(t.koMatches);
   const sizes = Object.keys(porRodada).map(Number).sort((a, b) => b - a);
   return (
@@ -682,6 +708,62 @@ function TourneyHistory({ history, onBack, onRemove }) {
       {history.length === 0 && <div className="emptybox"><Info size={16} /><span>Quando um campeonato terminar, arquive-o para vê-lo aqui depois.</span></div>}
       {history.map(h => <HistoryCard key={h.id} h={h} onRemove={onRemove} />)}
     </>);
+}
+
+
+/* Ajustes com o torneio em andamento. Antes tudo era decidido na criacao e nao
+   dava mais para mexer — o caso real e marcar ida e volta nos grupos e depois
+   descobrir que nao ha tempo para isso no mata-mata. */
+function AjustesTorneio({ t, save }) {
+  const koGerado = t.koMatches.length > 0;
+  const jogouGrupo = t.groupMatches.some(m => (m.sets || []).length > 0);
+  const ida = koIdaVoltaDe(t), sets = koBestOfDe(t);
+
+  return (
+    <Collapsible icon={<Gauge size={15} />} title="Ajustes do torneio" sub="vale daqui em diante">
+      {temMata(t) && (
+        <>
+          <div className="optrow">
+            <span className="opt-l">Mata-mata em ida e volta</span>
+            <div className="segs">
+              <button className={'seg' + (!ida ? ' seg-v' : '')} onClick={() => save({ ...t, koIdaVolta: false })}>Só ida</button>
+              <button className={'seg' + (ida ? ' seg-v' : '')} onClick={() => save({ ...t, koIdaVolta: true })}>Ida e volta</button>
+            </div>
+          </div>
+          <div className="optrow" style={{ marginTop: 14 }}>
+            <span className="opt-l">Sets por partida no mata-mata</span>
+            <div className="segs">
+              {[3, 5, 7].map(b => (
+                <button key={b} className={'seg' + (sets === b ? ' seg-v' : '')}
+                  onClick={() => save({ ...t, koBestOf: b })}>Melhor de {b}</button>))}
+            </div>
+          </div>
+          <p className="tm-cap" style={{ textAlign: 'left', marginTop: 11 }}>
+            {koGerado
+              ? 'A chave atual já existe, então isto vale para as próximas rodadas. Os confrontos já criados seguem como estão.'
+              : 'A chave ainda não foi montada, então isto vale para ela inteira.'}</p>
+        </>)}
+
+      {temGrupos(t) && (
+        <div className="optrow" style={{ marginTop: temMata(t) ? 18 : 0 }}>
+          <span className="opt-l">Sets por partida nos grupos</span>
+          <div className="segs">
+            {[3, 5, 7].map(b => (
+              <button key={b} className={'seg' + (t.bestOf === b ? ' seg-v' : '')}
+                onClick={() => {
+                  if (jogouGrupo && !confirm('Mudar os sets recalcula os jogos de grupo já registrados e pode alterar a classificação. Continuar?')) return;
+                  save({ ...t, bestOf: b });
+                }}>Melhor de {b}</button>))}
+          </div>
+          {jogouGrupo && (
+            <p className="tm-cap" style={{ textAlign: 'left', marginTop: 11 }}>
+              Já há jogos registrados: mudar isto reinterpreta os placares existentes e pode mexer na classificação.</p>)}
+        </div>)}
+
+      <div className="emptymini" style={{ marginTop: 16 }}><Info size={15} />
+        <span>Quem abre o saque é decidido a cada partida, dando preferência a quem
+        abriu menos vezes. Dentro do placar, toque na faixa <strong>Saca</strong> para inverter.</span></div>
+    </Collapsible>);
 }
 
 export { TournamentTab };

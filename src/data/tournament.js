@@ -128,6 +128,59 @@ function genBracket(qualifiers, bestOf, tamanho, idaVolta) {
   return first;
 }
 
+/* ---- Quem abre o saque ----
+   `starter` é 0 ou 1: o lado A ou o lado B daquela partida. Antes era sempre 0,
+   ou seja, sempre o cabeça de chave / primeiro da lista — nunca variava. Agora
+   quem abriu menos vezes no torneio começa sacando, e o empate vai a sorteio. */
+
+/* Por jogador: em quantas partidas já entrou e em quantas abriu o saque. */
+function estatSaques(matches) {
+  const st = new Map();
+  const reg = (id) => { if (!st.has(id)) st.set(id, { jogos: 0, saques: 0 }); return st.get(id); };
+  for (const m of matches || []) {
+    if (m.starter == null || m.bye || m.a == null || m.b == null) continue;
+    reg(m.a).jogos++; reg(m.b).jogos++;
+    reg(m.starter === 0 ? m.a : m.b).saques++;
+  }
+  return st;
+}
+
+const VAZIO = { jogos: 0, saques: 0 };
+
+/* Começa quem tem mais "dívida" de saque — partidas jogadas menos saques
+   abertos. Só comparar a contagem de saques não bastava: como as duas contagens
+   empatam muito no começo, o sorteio do desempate se acumulava e alguém podia
+   terminar o torneio sem abrir nenhum. A dívida se corrige sozinha, porque quem
+   perde o sorteio fica devendo e ganha a próxima. */
+function escolherStarter(match, matches) {
+  if (match.starter != null) return match.starter;       // já foi decidido
+  if (match.a == null || match.b == null) return 0;
+  const st = estatSaques(matches);
+  const A = st.get(match.a) || VAZIO, B = st.get(match.b) || VAZIO;
+
+  const da = A.jogos - A.saques, db = B.jogos - B.saques;
+  if (da !== db) return da > db ? 0 : 1;
+  if (A.saques !== B.saques) return A.saques < B.saques ? 0 : 1;
+
+  /* Empatado nos dois critérios: prioriza quem tem menos jogos pela frente,
+     porque terá menos chances de compensar depois. */
+  const faltam = (id) => (matches || []).filter(
+    m => m.starter == null && !m.bye && m.id !== match.id && (m.a === id || m.b === id)).length;
+  const fa = faltam(match.a), fb = faltam(match.b);
+  if (fa !== fb) return fa < fb ? 0 : 1;
+
+  return Math.random() < 0.5 ? 0 : 1;
+}
+
+/* Quantas vezes cada jogador abriu o saque — para mostrar na tela que está justo. */
+function resumoSaques(players, matches) {
+  const st = estatSaques(matches);
+  return (players || []).map(p => {
+    const e = st.get(p.id) || VAZIO;
+    return { id: p.id, name: p.name, n: e.saques, jogos: e.jogos };
+  }).sort((x, y) => x.n - y.n || x.name.localeCompare(y.name));
+}
+
 /* ---- Confronto do mata-mata: pode ter 1 jogo, 2 jogos (ida e volta) e ainda
    um set de desempate. Quem vence é quem somar mais sets no agregado; se o
    agregado empatar (2x0 e depois 0x2, por exemplo), decide o set extra. ---- */
@@ -258,6 +311,11 @@ const formatoDe = (t) => {
   return f;
 };
 const temGrupos = (t) => formatoDe(t) !== "mata";
+
+/* Mata-mata pode ter formato proprio: as vezes da tempo de ida e volta nos
+   grupos mas nao na eliminatoria. null = segue o que vale para os grupos. */
+const koIdaVoltaDe = (t) => (t && t.koIdaVolta != null ? !!t.koIdaVolta : !!(t && t.doubleRound));
+const koBestOfDe = (t) => (t && t.koBestOf) || (t && t.bestOf) || 5;
 const temMata = (t) => formatoDe(t) !== "so-grupos";
 
 const ehExemploAntigo = (t) =>
@@ -267,5 +325,6 @@ export {
   uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY,
   serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia,
   agruparTies, tieResult, garantirDesempates, idDoTie, formatoDe, temGrupos, temMata,
-  ordemInicial, ordemValida, confrontosDe
+  ordemInicial, ordemValida, confrontosDe, estatSaques, escolherStarter, resumoSaques,
+  koIdaVoltaDe, koBestOfDe
 };
