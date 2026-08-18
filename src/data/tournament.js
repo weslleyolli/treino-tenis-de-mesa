@@ -108,8 +108,11 @@ function seedOrder(n) { // ordenamento clássico de chave (1 vs n, 2 vs n-1 espe
 /* Monta a primeira rodada. `tamanho` permite uma chave maior que o número de
    jogadores: as vagas que sobram viram bye, e pela ordem de chaveamento elas
    caem nos primeiros cabeças, como num torneio de verdade. */
+const proximaPotencia = (n) => { let p = 2; while (p < n) p *= 2; return p; };
+
 function genBracket(qualifiers, bestOf, tamanho) {
-  const n = tamanho || qualifiers.length;
+  // sem potencia de 2 o chaveamento nao fecha e seedOrder entra em recursao infinita
+  const n = tamanho || proximaPotencia(Math.max(2, qualifiers.length));
   const order = seedOrder(n);
   const first = [];
   for (let i = 0; i < n; i += 2) {
@@ -156,5 +159,5 @@ const ehExemploAntigo = (t) =>
 
 export {
   uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY,
-  serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar
+  serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia
 };

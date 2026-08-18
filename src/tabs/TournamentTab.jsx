@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar } from "../data/tournament.js";
+import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
 /* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
@@ -267,11 +267,23 @@ function TournamentTab() {
   // ---- gerar mata-mata a partir da classificacao ----
   const groupsDone = t.groupMatches.length > 0 && t.groupMatches.every(m => matchResult(m, t.bestOf).done);
   const canKO = (t.frozen || groupsDone);
-  const startKO = () => {
-    const q = table.slice(0, t.koStart);
-    const bracket = genBracket(q, t.koBestOf || t.bestOf);
-    bracket.forEach((m, i) => m.label = KO_SIZES[t.koStart] + " #" + (i + 1));
-    save({ ...t, koMatches: bracket, phase: "ko" });
+  /* Pode ser chamado antes de a fase de grupos terminar: é a saída para quem
+     quer ir direto ao mata-mata. `modo` decide a ordem de cabeça de chave. */
+  const startKO = (modo = "classificacao") => {
+    /* No sorteio todo mundo entra, então a chave cresce até caber todos — senão
+       um jogador ficaria de fora por acaso. Pela classificação valem os
+       `koStart` primeiros, que é o combinado da fase de grupos. */
+    const sorteio = modo === "sorteio";
+    const q = sorteio ? embaralhar(t.players) : table.slice(0, t.koStart);
+    const tam = sorteio ? proximaPotencia(q.length) : t.koStart;
+    const bracket = genBracket(q, t.koBestOf || t.bestOf, tam);
+    bracket.forEach((m, i) => { m.label = KO_SIZES[tam] + (m.bye ? " · passa direto" : " #" + (i + 1)); });
+    /* Congela a classificação e descarta os jogos de grupo que não foram
+       disputados: deixá-los na lista sugeriria que ainda valem alguma coisa. */
+    save({
+      ...t, koMatches: bracket, phase: "ko", frozen: t.frozen || table,
+      groupMatches: t.groupMatches.filter(m => matchResult(m, t.bestOf).done),
+    });
     setView("chave");
   };
 
@@ -370,7 +382,7 @@ function TournamentTab() {
           {(t.formato === "mata" || view === "chave") &&
             <Bracket t={t} table={table} canKO={canKO} startKO={startKO} onOpen={abrirPlacar} champion={champion} nm={nm} />}
 
-          <button className="linkbtn" onClick={() => { if (confirm("Reiniciar o torneio? Isso apaga todos os resultados.")) save({ ...DEFAULT_TOURNEY, players: t.players }); }}>
+          <button className="linkbtn" onClick={() => { if (confirm("Voltar para a configuração?\n\nOs jogadores são mantidos e você pode trocar o formato, mas os resultados deste torneio são apagados.")) save({ ...DEFAULT_TOURNEY, players: t.players, formato: t.formato, chaveamento: t.chaveamento, bestOf: t.bestOf, koStart: t.koStart }); }}>
             <RotateCcw size={13} /> Reconfigurar torneio</button>
         </>)}
     </>);
@@ -514,13 +526,33 @@ function GroupGames({ t, onOpen }) {
 }
 
 function Bracket({ t, table, canKO, startKO, onOpen, champion, nm }) {
-  if (t.koMatches.length === 0) return (
-    <div className="block" style={{ textAlign: "center" }}>
-      <p className="p-lead" style={{ textAlign: "center" }}>{canKO
-        ? `A fase de grupos terminou. Gere o mata-mata com os ${t.koStart} primeiros.`
-        : "Termine todas as partidas da fase de grupos para liberar o mata-mata."}</p>
-      <button className="bigbtn" disabled={!canKO} onClick={startKO}><Layers size={16} /> Gerar mata-mata ({KO_SIZES[t.koStart]})</button>
-    </div>);
+  if (t.koMatches.length === 0) {
+    const faltam = t.groupMatches.filter(m => !matchResult(m, t.bestOf).done).length;
+    const tamSorteio = proximaPotencia(Math.max(2, t.players.length));
+    const sobras = tamSorteio - t.players.length;
+    /* Antes isto ficava travado até a fase de grupos acabar, e não havia como
+       ir direto ao mata-mata sem apagar o torneio inteiro. */
+    const gerar = (modo) => {
+      if (faltam > 0 && !confirm(
+        `Ainda ${faltam === 1 ? "falta 1 jogo" : `faltam ${faltam} jogos`} na fase de grupos.\n\n` +
+        "Gerar o mata-mata agora descarta os jogos restantes e congela a classificação como está. Continuar?")) return;
+      startKO(modo);
+    };
+    return (
+      <div className="block">
+        <p className="p-lead">{canKO
+          ? `A fase de grupos terminou. Monte o mata-mata com os ${t.koStart} primeiros.`
+          : `Você pode ir direto para o mata-mata agora. ${faltam === 1 ? "1 jogo" : `${faltam} jogos`} da fase de grupos ${faltam === 1 ? "seria descartado" : "seriam descartados"}.`}</p>
+        <button className="bigbtn" onClick={() => gerar("classificacao")}>
+          <Layers size={16} /> Pela classificação · {KO_SIZES[t.koStart]}</button>
+        <button className="bigbtn" style={{ background: "#1C6F63" }} onClick={() => gerar("sorteio")}>
+          <Repeat size={16} /> Sortear a chave · {KO_SIZES[tamSorteio]}</button>
+        <p className="tm-cap" style={{ textAlign: "left", marginTop: 4 }}>
+          Pela classificação avançam os {t.koStart} primeiros, e o 1º enfrenta o último.
+          No sorteio entram os {t.players.length} jogadores, em ordem aleatória
+          {sobras > 0 && `, com ${sobras} ${sobras === 1 ? "passando" : "passando"} direto`}.</p>
+      </div>);
+  }
   const bySize = {};
   t.koMatches.forEach(m => { (bySize[m.roundSize] = bySize[m.roundSize] || []).push(m); });
   const sizes = Object.keys(bySize).map(Number).sort((a, b) => b - a);
