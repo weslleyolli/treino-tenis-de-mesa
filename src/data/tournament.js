@@ -194,6 +194,37 @@ function garantirDesempates(koMatches, bestOf) {
    Acima de metade garante que nenhum confronto fique vazio dos dois lados. */
 const cabeNaChave = (qtd, tamanho) => qtd > tamanho / 2 && qtd <= tamanho;
 
+/* A ordem de chaveamento como uma lista de `tamanho` posições (ids ou null).
+   Guardar as vagas vazias explicitamente é o que permite arrastar um jogador
+   para uma posição que dá bye. */
+function ordemInicial(players, tamanho) {
+  const out = new Array(tamanho).fill(null);
+  players.slice(0, tamanho).forEach((p, i) => { out[i] = p.id; });
+  return out;
+}
+
+/* A ordem guardada só serve se cobrir exatamente os jogadores atuais. */
+function ordemValida(ordem, players, tamanho) {
+  if (!Array.isArray(ordem) || ordem.length !== tamanho) return false;
+  const ids = new Set(players.map(p => p.id));
+  const usados = ordem.filter(x => x != null);
+  return usados.length === Math.min(players.length, tamanho)
+    && usados.every(id => ids.has(id))
+    && new Set(usados).size === usados.length;
+}
+
+/* Os confrontos que uma ordem produz: pares de posições de seed. */
+function confrontosDe(ordem, tamanho) {
+  const seq = seedOrder(tamanho);
+  const jogos = [];
+  for (let i = 0; i < tamanho; i += 2) {
+    const ia = seq[i] - 1, ib = seq[i + 1] - 1;
+    if (ordem[ia] == null && ordem[ib] == null) continue;
+    jogos.push({ ia, ib, a: ordem[ia], b: ordem[ib] });
+  }
+  return jogos;
+}
+
 function embaralhar(lista) {
   const a = lista.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -235,5 +266,6 @@ const ehExemploAntigo = (t) =>
 export {
   uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY,
   serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia,
-  agruparTies, tieResult, garantirDesempates, idDoTie, formatoDe, temGrupos, temMata
+  agruparTies, tieResult, garantirDesempates, idDoTie, formatoDe, temGrupos, temMata,
+  ordemInicial, ordemValida, confrontosDe
 };

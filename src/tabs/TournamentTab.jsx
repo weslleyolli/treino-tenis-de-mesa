@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia, agruparTies, tieResult, garantirDesempates, formatoDe, temGrupos, temMata } from "../data/tournament.js";
+import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia, agruparTies, tieResult, garantirDesempates, formatoDe, temGrupos, temMata, ordemInicial, ordemValida, confrontosDe } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
 /* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
@@ -253,10 +253,13 @@ function TournamentTab() {
 
   const comecar = () => {
     if (formatoDe(t) === "mata") {
-      const ordem = t.chaveamento === "sorteio" ? embaralhar(t.players) : t.players;
+      // a ordem montada no editor manda; ids nulos viram as vagas livres
+      const ids = ordemValida(t.ordemChave, t.players, t.koStart)
+        ? t.ordemChave : ordemInicial(t.players, t.koStart);
+      const ordem = ids.map(id => (id == null ? undefined : { id }));
       const bracket = genBracket(ordem, t.koBestOf || t.bestOf, t.koStart, t.doubleRound);
       bracket.forEach((m, i) => { m.label = KO_SIZES[t.koStart] + (m.bye ? " · passa direto" : " #" + (Math.floor(i / (t.doubleRound ? 2 : 1)) + 1)); });
-      save({ ...t, groupMatches: [], koMatches: bracket, frozen: null, phase: "ko", ordemChave: ordem.map(p => p.id) });
+      save({ ...t, groupMatches: [], koMatches: bracket, frozen: null, phase: "ko", ordemChave: ids });
       setView("chave");
       return;
     }
@@ -415,7 +418,19 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
   const chaveServe = !soMata || fasesOk.some(([n]) => n === t.koStart);
   const byes = soMata && chaveServe ? t.koStart - qtd : 0;
   const podeComecar = qtd >= 2 && (!soMata || chaveServe);
-  const ordenavel = soMata && t.chaveamento === "ordem";
+
+  /* A ordem de chaveamento é recalculada sempre que deixa de refletir os
+     jogadores atuais — adicionar ou remover alguém invalida a anterior. */
+  const ordem = ordemValida(t.ordemChave, t.players, t.koStart)
+    ? t.ordemChave : ordemInicial(t.players, t.koStart);
+  const setOrdem = (nova) => save({ ...t, ordemChave: nova });
+
+  /* Sem isto a tela trava: com 5 jogadores a fase padrão (semis) não comporta
+     todos, e nada aparecia até escolher "Quartas" na mão. */
+  useEffect(() => {
+    if (soMata && fasesOk.length && !fasesOk.some(([n]) => n === t.koStart))
+      save({ ...t, koStart: fasesOk[0][0] });
+  }, [soMata, qtd, t.koStart]);
 
   return (
     <>
@@ -431,17 +446,9 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
           {t.players.map((p, i) => (
             <div className="pchip" key={p.id}>
               <span className="pc-n">{i + 1}</span><span className="pc-nome">{p.name}</span>
-              {ordenavel && (
-                <span className="pc-mover">
-                  <button onClick={() => moverPlayer(i, -1)} disabled={i === 0} aria-label="Subir"><ChevronUp size={14} /></button>
-                  <button onClick={() => moverPlayer(i, 1)} disabled={i === qtd - 1} aria-label="Descer"><ChevronDown size={14} /></button>
-                </span>)}
               <button className="pc-x" onClick={() => rmPlayer(p.id)} aria-label="Remover"><X size={13} /></button>
             </div>))}
         </div>
-        {ordenavel && qtd > 1 && (
-          <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
-            A ordem acima é a ordem de cabeça de chave: o 1º enfrenta o último, o 2º o penúltimo, e assim por diante.</p>)}
       </div>
 
       <SecTitle n="2" icon={<Layers size={14} />}>Formato do torneio</SecTitle>
@@ -494,15 +501,6 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
               </div>
             </div>
 
-            {soMata && (
-              <div className="optrow" style={{ marginTop: 14 }}>
-                <span className="opt-l">Chaveamento</span>
-                <div className="segs">
-                  <button className={"seg" + (t.chaveamento === "ordem" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "ordem" })}>Eu escolho</button>
-                  <button className={"seg" + (t.chaveamento === "sorteio" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "sorteio" })}>Sortear</button>
-                </div>
-              </div>)}
-
             <p className="tm-cap" style={{ textAlign: "left", marginTop: 12 }}>
               {soMata
                 ? (byes > 0
@@ -510,13 +508,58 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
                   : `Chave cheia: os ${qtd} jogadores se enfrentam já na primeira rodada.`)
                 : `Os ${t.koStart} primeiros da classificação avançam. O chaveamento é montado automaticamente (1º x último, e assim por diante).`}</p>
           </div>
+
+          {soMata && chaveServe && (
+            <EditorChave players={t.players} tamanho={t.koStart} ordem={ordem} onOrdem={setOrdem} />)}
         </>)}
 
       <button className="bigbtn" disabled={!podeComecar} onClick={comecar}>
-        <Play size={17} /> {soMata
-          ? (t.chaveamento === "sorteio" ? "Sortear a chave e começar" : "Montar a chave e começar")
-          : "Gerar partidas e começar"}</button>
+        <Play size={17} /> {soMata ? "Começar o mata-mata" : "Gerar partidas e começar"}</button>
     </>);
+}
+
+/* Editor de chaveamento: mostra os confrontos que vão sair e deixa trocar
+   jogador de lugar. Antes só havia setas para reordenar a lista, e como a
+   chave pareia o 1º com o último, o resultado parecia aleatório. */
+function EditorChave({ players, tamanho, ordem, onOrdem }) {
+  const [sel, setSel] = useState(null);
+  const nome = (id) => players.find(p => p.id === id)?.name || null;
+  const jogos = confrontosDe(ordem, tamanho);
+
+  const tocar = (i) => {
+    if (sel === null) { setSel(i); return; }
+    if (sel === i) { setSel(null); return; }
+    const nova = ordem.slice();
+    [nova[sel], nova[i]] = [nova[i], nova[sel]];
+    onOrdem(nova);
+    setSel(null);
+  };
+
+  const slot = (i) => {
+    const n = nome(ordem[i]);
+    return (
+      <button className={"ch-slot" + (sel === i ? " sel" : "") + (n ? "" : " vago")} onClick={() => tocar(i)}>
+        {n || "vaga livre"}
+      </button>);
+  };
+
+  return (
+    <div className="block">
+      <div className="section-eyebrow"><Layers size={13} /> Confrontos da primeira rodada</div>
+      <div className="chlist">
+        {jogos.map((j, k) => (
+          <div className="chjogo" key={k}>
+            <span className="ch-n">{k + 1}</span>
+            {slot(j.ia)}<span className="ch-x">×</span>{slot(j.ib)}
+          </div>))}
+      </div>
+      <p className="tm-cap" style={{ textAlign: "left", marginTop: 11 }}>
+        {sel === null
+          ? "Toque em dois jogadores para trocá-los de lugar. Quem cair contra uma vaga livre passa direto."
+          : "Agora toque em quem vai trocar de lugar com o selecionado."}</p>
+      <button className="linkbtn" onClick={() => { onOrdem(embaralhar(ordem)); setSel(null); }}>
+        <Repeat size={14} /> Sortear os confrontos</button>
+    </div>);
 }
 
 function ClassTable({ table }) {

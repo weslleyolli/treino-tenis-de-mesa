@@ -840,3 +840,16 @@ font-family:inherit;color:#16221D;background:#FBFCFD;}
 .tie-nota svg{flex:none;margin-top:1px;color:var(--ball);}
 .mrow-etq{font-family:var(--f-mono);font-size:9.5px;font-weight:700;text-transform:uppercase;
   letter-spacing:.12em;color:var(--muted);margin-bottom:7px;}
+
+/* ---- Editor de chaveamento ---- */
+.chlist{display:flex;flex-direction:column;gap:8px;}
+.chjogo{display:flex;align-items:center;gap:7px;}
+.ch-n{width:20px;flex:none;font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--muted);}
+.ch-slot{flex:1;min-width:0;background:#F7F9FB;border:1.5px solid var(--line);border-radius:11px;
+  padding:11px 9px;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.02em;
+  font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ch-slot.sel{background:#FDECD9;border-color:var(--ball);color:#A85A12;}
+.ch-slot.vago{font-family:var(--f-body);text-transform:none;letter-spacing:0;font-size:12.5px;
+  font-style:italic;font-weight:500;color:#A9B4AD;}
+.ch-x{flex:none;font-size:12px;font-weight:700;color:#BEC7BE;}
