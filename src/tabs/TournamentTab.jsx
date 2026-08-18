@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia } from "../data/tournament.js";
+import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia, agruparTies, tieResult, garantirDesempates, formatoDe, temGrupos, temMata } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
 /* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
@@ -168,7 +168,7 @@ function LiveScore({ match, players, bestOf, onSave, onClose }) {
 
 /* Um confronto. Os dois jogadores ficam separados pela rede, como no placar
    ao vivo — mesma ideia, escala menor. Só o vencedor recebe cor. */
-function MatchRow({ match, players, bestOf, onOpen, readOnly }) {
+function MatchRow({ match, players, bestOf, onOpen, readOnly, etiqueta }) {
   const nm = (id) => players.find(p => p.id === id)?.name || "—";
   const r = matchResult(match, bestOf);
   const done = r.done;
@@ -186,6 +186,7 @@ function MatchRow({ match, players, bestOf, onOpen, readOnly }) {
   return (
     <Tag className={"mrow" + (done ? " mrow-done" : "") + (emAndamento ? " mrow-vivo" : "") + (bye ? " mrow-bye" : "")}
       onClick={(readOnly || bye) ? undefined : () => onOpen(match)}>
+      {etiqueta && <div className="mrow-etq">{etiqueta}</div>}
       <div className="mrow-main">
         {lado("a")}
         <div className="mrow-net" />
@@ -251,10 +252,10 @@ function TournamentTab() {
   };
 
   const comecar = () => {
-    if (t.formato === "mata") {
+    if (formatoDe(t) === "mata") {
       const ordem = t.chaveamento === "sorteio" ? embaralhar(t.players) : t.players;
-      const bracket = genBracket(ordem, t.koBestOf || t.bestOf, t.koStart);
-      bracket.forEach((m, i) => { m.label = KO_SIZES[t.koStart] + (m.bye ? " · passa direto" : " #" + (i + 1)); });
+      const bracket = genBracket(ordem, t.koBestOf || t.bestOf, t.koStart, t.doubleRound);
+      bracket.forEach((m, i) => { m.label = KO_SIZES[t.koStart] + (m.bye ? " · passa direto" : " #" + (Math.floor(i / (t.doubleRound ? 2 : 1)) + 1)); });
       save({ ...t, groupMatches: [], koMatches: bracket, frozen: null, phase: "ko", ordemChave: ordem.map(p => p.id) });
       setView("chave");
       return;
@@ -292,22 +293,29 @@ function TournamentTab() {
     if (m.phase === "grupo") {
       save({ ...t, groupMatches: t.groupMatches.map(x => x.id === m.id ? m : x) });
     } else {
+      const bo = t.koBestOf || t.bestOf;
+      const idaVolta = !!t.doubleRound;
       let ko = t.koMatches.map(x => x.id === m.id ? m : x);
-      // gera proxima rodada se a atual terminou
-      const bySize = {};
-      ko.forEach(x => { (bySize[x.roundSize] = bySize[x.roundSize] || []).push(x); });
-      const sizes = Object.keys(bySize).map(Number).sort((a, b) => b - a);
+      ko = garantirDesempates(ko, bo);   // agregado empatado abre o set extra
+
+      /* A rodada avança por confronto, não por partida: na ida e volta cada
+         confronto tem dois jogos e pode ter ainda o desempate. */
+      const porRodada = agruparTies(ko);
+      const sizes = Object.keys(porRodada).map(Number).sort((a, b) => b - a);
       sizes.forEach(sz => {
         if (sz === 2) return;
-        const rd = bySize[sz];
-        const allDone = rd.length === sz / 2 && rd.every(x => matchResult(x, t.koBestOf || t.bestOf).done);
+        const ties = Object.values(porRodada[sz]);
+        const rs = ties.map(legs => tieResult(legs, bo));
         const nextSz = sz / 2;
-        const hasNext = (bySize[nextSz] || []).length > 0;
-        if (allDone && !hasNext) {
-          const winners = rd.map(x => matchResult(x, t.koBestOf || t.bestOf).winner);
+        const temProxima = Object.keys(porRodada[nextSz] || {}).length > 0;
+        if (ties.length === sz / 2 && rs.every(r => r.done) && !temProxima) {
+          const winners = rs.map(r => r.winner);
           const nextRound = [];
           for (let i = 0; i < winners.length; i += 2) {
-            nextRound.push({ id: uid(), phase: "ko", roundSize: nextSz, a: winners[i], b: winners[i + 1], sets: [], done: false, label: KO_SIZES[nextSz] + (nextSz > 2 ? " #" + (i / 2 + 1) : "") });
+            const rotulo = KO_SIZES[nextSz] + (nextSz > 2 ? " #" + (i / 2 + 1) : "");
+            const tie = "c" + uid();
+            nextRound.push({ id: uid(), phase: "ko", roundSize: nextSz, tie, leg: 1, a: winners[i], b: winners[i + 1], sets: [], done: false, label: rotulo });
+            if (idaVolta) nextRound.push({ id: uid(), phase: "ko", roundSize: nextSz, tie, leg: 2, a: winners[i + 1], b: winners[i], sets: [], done: false, label: rotulo });
           }
           ko = ko.concat(nextRound);
         }
@@ -318,8 +326,15 @@ function TournamentTab() {
   };
 
   const champion = (() => {
-    const fin = t.koMatches.find(m => m.roundSize === 2 && m.done);
-    return fin ? matchResult(fin, t.koBestOf || t.bestOf).winner : null;
+    // sem mata-mata, campeão é o líder quando todos os jogos de grupo terminam
+    if (!temMata(t)) {
+      const fim = t.groupMatches.length > 0 && t.groupMatches.every(m => matchResult(m, t.bestOf).done);
+      return fim && table.length ? table[0].id : null;
+    }
+    const finais = Object.values(agruparTies(t.koMatches)[2] || {})[0];
+    if (!finais) return null;
+    const r = tieResult(finais, t.koBestOf || t.bestOf);
+    return r.done ? r.winner : null;
   })();
 
   const archiveTournament = () => {
@@ -340,7 +355,8 @@ function TournamentTab() {
   const abrirPlacar = (m) => { pedirFullscreen(); setLive(m); };
 
   if (live) return (
-    <LiveScore match={live} players={t.players} bestOf={live.phase === "ko" ? (t.koBestOf || t.bestOf) : t.bestOf}
+    <LiveScore match={live} players={t.players}
+      bestOf={live.desempate ? 1 : (live.phase === "ko" ? (t.koBestOf || t.bestOf) : t.bestOf)}
       onSave={saveMatch} onClose={() => setLive(null)} />);
 
   return (
@@ -369,17 +385,17 @@ function TournamentTab() {
           addPlayer={addPlayer} rmPlayer={rmPlayer} moverPlayer={moverPlayer} comecar={comecar} />
       ) : (
         <>
-          {/* sem fase de grupos não há classificação nem rodadas para mostrar */}
-          {t.formato !== "mata" && (
+          {/* cada aba só existe se o formato a usa */}
+          {temGrupos(t) && (
             <div className="segtabs">
               <button className={"segtab" + (view === "tabela" ? " on" : "")} onClick={() => setView("tabela")}>Classificação</button>
               <button className={"segtab" + (view === "jogos" ? " on" : "")} onClick={() => setView("jogos")}>Jogos</button>
-              <button className={"segtab" + (view === "chave" ? " on" : "")} onClick={() => setView("chave")}>Mata-mata</button>
+              {temMata(t) && <button className={"segtab" + (view === "chave" ? " on" : "")} onClick={() => setView("chave")}>Mata-mata</button>}
             </div>)}
 
-          {t.formato !== "mata" && view === "tabela" && <ClassTable table={table} />}
-          {t.formato !== "mata" && view === "jogos" && <GroupGames t={t} onOpen={abrirPlacar} />}
-          {(t.formato === "mata" || view === "chave") &&
+          {temGrupos(t) && view === "tabela" && <ClassTable table={table} />}
+          {temGrupos(t) && view === "jogos" && <GroupGames t={t} onOpen={abrirPlacar} />}
+          {temMata(t) && (!temGrupos(t) || view === "chave") &&
             <Bracket t={t} table={table} canKO={canKO} startKO={startKO} onOpen={abrirPlacar} champion={champion} nm={nm} />}
 
           <button className="linkbtn" onClick={() => { if (confirm("Voltar para a configuração?\n\nOs jogadores são mantidos e você pode trocar o formato, mas os resultados deste torneio são apagados.")) save({ ...DEFAULT_TOURNEY, players: t.players, formato: t.formato, chaveamento: t.chaveamento, bestOf: t.bestOf, koStart: t.koStart }); }}>
@@ -391,7 +407,8 @@ function TournamentTab() {
 const FASES = [[2, "Final"], [4, "Semis"], [8, "Quartas"], [16, "Oitavas"]];
 
 function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, moverPlayer, comecar }) {
-  const soMata = t.formato === "mata";
+  const fmt = formatoDe(t);
+  const soMata = fmt === "mata";
   const qtd = t.players.length;
   // no mata-mata direto a chave precisa comportar os jogadores sem virar só bye
   const fasesOk = FASES.filter(([n]) => (soMata ? cabeNaChave(qtd, n) : n <= Math.max(2, qtd)));
@@ -427,67 +444,73 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
             A ordem acima é a ordem de cabeça de chave: o 1º enfrenta o último, o 2º o penúltimo, e assim por diante.</p>)}
       </div>
 
-      <SecTitle n="2" icon={<Layers size={14} />}>Formato</SecTitle>
+      <SecTitle n="2" icon={<Layers size={14} />}>Formato do torneio</SecTitle>
       <div className="block">
-        <div className="segs">
-          <button className={"seg" + (!soMata ? " seg-v" : "")} onClick={() => save({ ...t, formato: "grupos" })}>Grupos + mata-mata</button>
-          <button className={"seg" + (soMata ? " seg-v" : "")} onClick={() => save({ ...t, formato: "mata" })}>Só mata-mata</button>
+        <div className="segs wrap">
+          <button className={"seg" + (fmt === "mata" ? " seg-v" : "")} onClick={() => save({ ...t, formato: "mata" })}>Mata-mata</button>
+          <button className={"seg" + (fmt === "so-grupos" ? " seg-v" : "")} onClick={() => save({ ...t, formato: "so-grupos" })}>Fase de grupos</button>
+          <button className={"seg" + (fmt === "grupos+mata" ? " seg-v" : "")} onClick={() => save({ ...t, formato: "grupos+mata" })}>Grupos + mata-mata</button>
         </div>
         <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
-          {soMata
-            ? "Elimina direto, sem fase de grupos. Quem perde está fora."
-            : "Todos jogam entre si primeiro; os melhores avançam para o mata-mata."}</p>
+          {fmt === "mata" ? "Elimina direto. Quem perde o confronto está fora."
+            : fmt === "so-grupos" ? "Todos jogam entre si e vence quem liderar a classificação. Sem mata-mata."
+              : "Todos jogam entre si primeiro; os melhores avançam para o mata-mata."}</p>
       </div>
 
-      {!soMata && (
-        <>
-          <SecTitle n="3" icon={<Repeat size={14} />}>Fase de grupos</SecTitle>
-          <div className="block">
-            <div className="optrow">
-              <span className="opt-l">Formato dos confrontos</span>
-              <div className="segs">
-                <button className={"seg" + (!t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: false })}>Só ida</button>
-                <button className={"seg" + (t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: true })}>Ida e volta</button>
-              </div>
-            </div>
-          </div>
-        </>)}
-
-      <SecTitle n={soMata ? "3" : "4"} icon={<Trophy size={14} />}>{soMata ? "A chave" : "Fase eliminatória"}</SecTitle>
+      <SecTitle n="3" icon={<Repeat size={14} />}>Confrontos</SecTitle>
       <div className="block">
         <div className="optrow">
-          <span className="opt-l">Começar em</span>
-          <div className="segs wrap">
-            {fasesOk.length === 0
-              ? <p className="tm-cap" style={{ textAlign: "left", margin: 0 }}>Adicione mais jogadores para montar uma chave.</p>
-              : fasesOk.map(([n, lbl]) =>
-                <button key={n} className={"seg" + (t.koStart === n ? " seg-v" : "")} onClick={() => save({ ...t, koStart: n })}>{lbl}</button>)}
+          <span className="opt-l">Formato dos confrontos</span>
+          <div className="segs">
+            <button className={"seg" + (!t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: false })}>Só ida</button>
+            <button className={"seg" + (t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: true })}>Ida e volta</button>
           </div>
         </div>
-
-        {soMata && (
-          <div className="optrow" style={{ marginTop: 14 }}>
-            <span className="opt-l">Chaveamento</span>
-            <div className="segs">
-              <button className={"seg" + (t.chaveamento === "ordem" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "ordem" })}>Eu escolho</button>
-              <button className={"seg" + (t.chaveamento === "sorteio" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "sorteio" })}>Sortear</button>
-            </div>
-          </div>)}
-
         <div className="optrow" style={{ marginTop: 14 }}>
           <span className="opt-l">Sets por partida</span>
           <div className="segs">
             {[3, 5, 7].map(b => <button key={b} className={"seg" + (t.bestOf === b ? " seg-v" : "")} onClick={() => save({ ...t, bestOf: b })}>Melhor de {b}</button>)}
           </div>
         </div>
-
         <p className="tm-cap" style={{ textAlign: "left", marginTop: 12 }}>
-          {soMata
-            ? (byes > 0
-              ? `Com ${qtd} jogadores numa chave de ${t.koStart}, ${byes} ${byes === 1 ? "passa" : "passam"} direto para a rodada seguinte.`
-              : `Chave cheia: os ${qtd} jogadores se enfrentam já na primeira rodada.`)
-            : `Os ${t.koStart} primeiros da classificação avançam. O chaveamento é montado automaticamente (1º x último, e assim por diante).`}</p>
+          {t.doubleRound
+            ? (temMata(t)
+              ? "Cada dupla se enfrenta duas vezes, com o mando invertido na volta. No mata-mata vence quem somar mais sets nos dois jogos; se o agregado empatar, um set extra decide."
+              : "Cada dupla se enfrenta duas vezes, com o mando invertido na volta.")
+            : "Cada dupla se enfrenta uma vez só."}</p>
       </div>
+
+      {temMata(t) && (
+        <>
+          <SecTitle n="4" icon={<Trophy size={14} />}>Fase mata-mata</SecTitle>
+          <div className="block">
+            <div className="optrow">
+              <span className="opt-l">Começar em</span>
+              <div className="segs wrap">
+                {fasesOk.length === 0
+                  ? <p className="tm-cap" style={{ textAlign: "left", margin: 0 }}>Adicione mais jogadores para montar uma chave.</p>
+                  : fasesOk.map(([n, lbl]) =>
+                    <button key={n} className={"seg" + (t.koStart === n ? " seg-v" : "")} onClick={() => save({ ...t, koStart: n })}>{lbl}</button>)}
+              </div>
+            </div>
+
+            {soMata && (
+              <div className="optrow" style={{ marginTop: 14 }}>
+                <span className="opt-l">Chaveamento</span>
+                <div className="segs">
+                  <button className={"seg" + (t.chaveamento === "ordem" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "ordem" })}>Eu escolho</button>
+                  <button className={"seg" + (t.chaveamento === "sorteio" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "sorteio" })}>Sortear</button>
+                </div>
+              </div>)}
+
+            <p className="tm-cap" style={{ textAlign: "left", marginTop: 12 }}>
+              {soMata
+                ? (byes > 0
+                  ? `Com ${qtd} jogadores numa chave de ${t.koStart}, ${byes} ${byes === 1 ? "passa" : "passam"} direto para a rodada seguinte.`
+                  : `Chave cheia: os ${qtd} jogadores se enfrentam já na primeira rodada.`)
+                : `Os ${t.koStart} primeiros da classificação avançam. O chaveamento é montado automaticamente (1º x último, e assim por diante).`}</p>
+          </div>
+        </>)}
 
       <button className="bigbtn" disabled={!podeComecar} onClick={comecar}>
         <Play size={17} /> {soMata
@@ -553,16 +576,35 @@ function Bracket({ t, table, canKO, startKO, onOpen, champion, nm }) {
           {sobras > 0 && `, com ${sobras} ${sobras === 1 ? "passando" : "passando"} direto`}.</p>
       </div>);
   }
-  const bySize = {};
-  t.koMatches.forEach(m => { (bySize[m.roundSize] = bySize[m.roundSize] || []).push(m); });
-  const sizes = Object.keys(bySize).map(Number).sort((a, b) => b - a);
+  const bo = t.koBestOf || t.bestOf;
+  const porRodada = agruparTies(t.koMatches);
+  const sizes = Object.keys(porRodada).map(Number).sort((a, b) => b - a);
   return (
     <>
       {champion && <div className="champbox"><Trophy size={22} /><div><div className="cb-l">Campeão</div><div className="cb-n">{nm(champion)}</div></div></div>}
       {sizes.map(sz => (
         <div key={sz}>
           <div className="round-lbl">{KO_SIZES[sz]}</div>
-          {bySize[sz].map(m => <MatchRow key={m.id} match={m} players={t.players} bestOf={t.koBestOf || t.bestOf} onOpen={onOpen} />)}
+          {Object.entries(porRodada[sz]).map(([tie, legs]) => {
+            const r = tieResult(legs, bo);
+            const doisJogos = legs.filter(l => !l.desempate).length > 1;
+            return (
+              <div className={"tie" + (doisJogos ? " tie-duplo" : "")} key={tie}>
+                {doisJogos && (
+                  <div className="tie-top">
+                    <span className="tie-quem">{nm(r.A)} <em>x</em> {nm(r.B)}</span>
+                    <span className="tie-agg">{r.sa}<em>–</em>{r.sb}<i>sets</i></span>
+                  </div>)}
+                {legs.map(m => (
+                  <MatchRow key={m.id} match={m} players={t.players}
+                    bestOf={m.desempate ? 1 : bo} onOpen={onOpen}
+                    etiqueta={doisJogos ? (m.desempate ? "Set de desempate" : (m.leg === 2 ? "Volta" : "Ida")) : null} />))}
+                {r.temDesempate && !r.done && (
+                  <p className="tie-nota"><AlertTriangle size={13} /> Agregado empatado em {r.sa}–{r.sb}. O set de desempate decide.</p>)}
+                {r.viaDesempate && (
+                  <p className="tie-nota"><Check size={13} /> <strong>{nm(r.winner)}</strong> passou no set de desempate.</p>)}
+              </div>);
+          })}
         </div>))}
     </>);
 }

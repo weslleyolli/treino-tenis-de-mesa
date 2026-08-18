@@ -110,7 +110,7 @@ function seedOrder(n) { // ordenamento clássico de chave (1 vs n, 2 vs n-1 espe
    caem nos primeiros cabeças, como num torneio de verdade. */
 const proximaPotencia = (n) => { let p = 2; while (p < n) p *= 2; return p; };
 
-function genBracket(qualifiers, bestOf, tamanho) {
+function genBracket(qualifiers, bestOf, tamanho, idaVolta) {
   // sem potencia de 2 o chaveamento nao fecha e seedOrder entra em recursao infinita
   const n = tamanho || proximaPotencia(Math.max(2, qualifiers.length));
   const order = seedOrder(n);
@@ -120,10 +120,75 @@ function genBracket(qualifiers, bestOf, tamanho) {
     const b = qualifiers[order[i + 1] - 1]?.id ?? null;
     if (a === null && b === null) continue;              // vaga totalmente vazia
     const bye = (a === null) !== (b === null);
-    first.push({ id: uid(), phase: "ko", roundSize: n, a, b, sets: [], done: bye, bye });
+    const tie = "c" + uid();
+    first.push({ id: uid(), phase: "ko", roundSize: n, tie, leg: 1, a, b, sets: [], done: bye, bye });
+    // na volta o mando inverte; quem passou direto não joga duas vezes
+    if (idaVolta && !bye) first.push({ id: uid(), phase: "ko", roundSize: n, tie, leg: 2, a: b, b: a, sets: [], done: false });
   }
   return first;
 }
+
+/* ---- Confronto do mata-mata: pode ter 1 jogo, 2 jogos (ida e volta) e ainda
+   um set de desempate. Quem vence é quem somar mais sets no agregado; se o
+   agregado empatar (2x0 e depois 0x2, por exemplo), decide o set extra. ---- */
+
+const idDoTie = (m) => m.tie || ("m" + m.id);   // partidas antigas não tinham tie
+
+function agruparTies(matches) {
+  const porRodada = {};
+  for (const m of matches || []) {
+    const r = (porRodada[m.roundSize] = porRodada[m.roundSize] || {});
+    (r[idDoTie(m)] = r[idDoTie(m)] || []).push(m);
+  }
+  for (const r of Object.values(porRodada))
+    for (const legs of Object.values(r)) legs.sort((x, y) => (x.leg || 1) - (y.leg || 1));
+  return porRodada;
+}
+
+function tieResult(legs, bestOf) {
+  if (!legs || !legs.length) return { done: false };
+  const A = legs[0].a, B = legs[0].b;
+  const normais = legs.filter(l => !l.desempate);
+  let sa = 0, sb = 0, concluidos = 0;
+
+  for (const l of normais) {
+    const r = matchResult(l, bestOf);
+    if (!r.done) continue;
+    concluidos++;
+    // soma pelo dono do resultado, não pelo lado — na volta os lados trocam
+    sa += (l.a === A ? r.wa : r.wb);
+    sb += (l.a === A ? r.wb : r.wa);
+  }
+  const base = { sa, sb, A, B, jogos: normais.length, concluidos };
+  if (concluidos < normais.length) return { ...base, done: false };
+  if (sa !== sb) return { ...base, done: true, winner: sa > sb ? A : B };
+
+  const d = legs.find(l => l.desempate);
+  if (!d) return { ...base, done: false, precisaDesempate: true };
+  const rd = matchResult(d, 1);
+  return rd.done
+    ? { ...base, done: true, winner: rd.winner, viaDesempate: true }
+    : { ...base, done: false, temDesempate: true };
+}
+
+/* Cria o set de desempate dos confrontos que empataram no agregado. */
+function garantirDesempates(koMatches, bestOf) {
+  const porRodada = agruparTies(koMatches);
+  const novos = [];
+  for (const ties of Object.values(porRodada)) {
+    for (const legs of Object.values(ties)) {
+      const r = tieResult(legs, bestOf);
+      if (!r.precisaDesempate) continue;
+      const base = legs[0];
+      novos.push({
+        id: uid(), phase: "ko", roundSize: base.roundSize, tie: idDoTie(base),
+        leg: 3, desempate: true, a: r.A, b: r.B, sets: [], done: false,
+      });
+    }
+  }
+  return novos.length ? koMatches.concat(novos) : koMatches;
+}
+
 
 /* Quantos jogadores uma chave desse tamanho comporta sem virar só bye.
    Acima de metade garante que nenhum confronto fique vazio dos dois lados. */
@@ -143,7 +208,7 @@ const DEFAULT_TOURNEY = {
   bestOf: 5,
   doubleRound: false,
   koStart: 4,
-  formato: "grupos",        // grupos = fase de grupos + mata-mata | mata = só mata-mata
+  formato: "grupos+mata",   // mata | so-grupos | grupos+mata
   chaveamento: "ordem",     // ordem = pela lista de jogadores | sorteio = aleatório
   phase: "config",          // config | grupo | ko | fim
   players: [],
@@ -154,10 +219,21 @@ const DEFAULT_TOURNEY = {
 /* Houve um campeonato de exemplo embutido aqui, que se autogravava em todo
    aparelho novo e contaminava o ranking. Foi removido; isto só reconhece o que
    ficou gravado para poder descartar. Os ids 201-203 eram dele. */
+/* Torneios salvos antes dos três formatos gravavam "grupos" querendo dizer
+   grupos seguidos de mata-mata. */
+const formatoDe = (t) => {
+  const f = t && t.formato;
+  if (f === "grupos" || !f) return "grupos+mata";
+  return f;
+};
+const temGrupos = (t) => formatoDe(t) !== "mata";
+const temMata = (t) => formatoDe(t) !== "so-grupos";
+
 const ehExemploAntigo = (t) =>
   !!t && Array.isArray(t.koMatches) && t.koMatches.some(m => m.id === 201 || m.id === 202 || m.id === 203);
 
 export {
   uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY,
-  serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia
+  serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia,
+  agruparTies, tieResult, garantirDesempates, idDoTie, formatoDe, temGrupos, temMata
 };
