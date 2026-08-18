@@ -66,6 +66,11 @@ const setDone = (s) => (s.a >= 11 || s.b >= 11) && Math.abs(s.a - s.b) >= 2;
 
 // Resultado de uma partida a partir dos sets: {wa, wb, done}
 function matchResult(m, bestOf) {
+  // vaga vazia no chaveamento: quem tem adversário passa sem jogar
+  if (m && m.bye) {
+    const quem = m.a ?? m.b;
+    return { wa: m.a ? 1 : 0, wb: m.b ? 1 : 0, done: true, winner: quem ?? null };
+  }
   let wa = 0, wb = 0;
   (m.sets || []).forEach(s => { if (s.a > s.b) wa++; else if (s.b > s.a) wb++; });
   const need = Math.ceil(bestOf / 2);
@@ -100,15 +105,34 @@ function seedOrder(n) { // ordenamento clássico de chave (1 vs n, 2 vs n-1 espe
   prev.forEach(s => { out.push(s); out.push(n + 1 - s); });
   return out;
 }
-function genBracket(qualifiers, bestOf) {
-  const n = qualifiers.length;
+/* Monta a primeira rodada. `tamanho` permite uma chave maior que o número de
+   jogadores: as vagas que sobram viram bye, e pela ordem de chaveamento elas
+   caem nos primeiros cabeças, como num torneio de verdade. */
+function genBracket(qualifiers, bestOf, tamanho) {
+  const n = tamanho || qualifiers.length;
   const order = seedOrder(n);
   const first = [];
   for (let i = 0; i < n; i += 2) {
-    const s1 = order[i], s2 = order[i + 1];
-    first.push({ id: uid(), phase: "ko", roundSize: n, a: qualifiers[s1 - 1].id, b: qualifiers[s2 - 1].id, sets: [], done: false });
+    const a = qualifiers[order[i] - 1]?.id ?? null;
+    const b = qualifiers[order[i + 1] - 1]?.id ?? null;
+    if (a === null && b === null) continue;              // vaga totalmente vazia
+    const bye = (a === null) !== (b === null);
+    first.push({ id: uid(), phase: "ko", roundSize: n, a, b, sets: [], done: bye, bye });
   }
   return first;
+}
+
+/* Quantos jogadores uma chave desse tamanho comporta sem virar só bye.
+   Acima de metade garante que nenhum confronto fique vazio dos dois lados. */
+const cabeNaChave = (qtd, tamanho) => qtd > tamanho / 2 && qtd <= tamanho;
+
+function embaralhar(lista) {
+  const a = lista.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 const DEFAULT_TOURNEY = {
@@ -116,7 +140,9 @@ const DEFAULT_TOURNEY = {
   bestOf: 5,
   doubleRound: false,
   koStart: 4,
-  phase: "config", // config | grupo | ko | fim
+  formato: "grupos",        // grupos = fase de grupos + mata-mata | mata = só mata-mata
+  chaveamento: "ordem",     // ordem = pela lista de jogadores | sorteio = aleatório
+  phase: "config",          // config | grupo | ko | fim
   players: [],
   groupMatches: [],
   koMatches: [],
@@ -130,5 +156,5 @@ const ehExemploAntigo = (t) =>
 
 export {
   uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY,
-  serverOf, setStarter, setDone, serveInfo, ehExemploAntigo
+  serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar
 };

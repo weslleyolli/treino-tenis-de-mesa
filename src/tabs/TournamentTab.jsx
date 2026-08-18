@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import {
-  Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Maximize, Minimize
+  Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Maximize, Minimize, ChevronUp
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo } from "../data/tournament.js";
+import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
 /* Fullscreen: no notebook o placar vira telão para a galera acompanhar.
@@ -172,19 +172,20 @@ function MatchRow({ match, players, bestOf, onOpen, readOnly }) {
   const nm = (id) => players.find(p => p.id === id)?.name || "—";
   const r = matchResult(match, bestOf);
   const done = r.done;
+  const bye = !!match.bye;
   const sets = (match.sets || []).map(s => `${s.a}-${s.b}`);
   const emAndamento = sets.length > 0 && !done;  // já tem sets, mas ninguém fechou
-  const Tag = readOnly ? "div" : "button";
+  const Tag = (readOnly || bye) ? "div" : "button";
 
   const lado = (side) => (
-    <div className={"mside" + (done && r.winner === match[side] ? " win" : "")}>
-      <span className="mside-name">{nm(match[side])}</span>
+    <div className={"mside" + (done && r.winner === match[side] ? " win" : "") + (match[side] == null ? " vazio" : "")}>
+      <span className="mside-name">{match[side] == null ? "vaga livre" : nm(match[side])}</span>
       {sets.length > 0 && <span className="mside-sc">{side === "a" ? r.wa : r.wb}</span>}
     </div>);
 
   return (
-    <Tag className={"mrow" + (done ? " mrow-done" : "") + (emAndamento ? " mrow-vivo" : "")}
-      onClick={readOnly ? undefined : () => onOpen(match)}>
+    <Tag className={"mrow" + (done ? " mrow-done" : "") + (emAndamento ? " mrow-vivo" : "") + (bye ? " mrow-bye" : "")}
+      onClick={(readOnly || bye) ? undefined : () => onOpen(match)}>
       <div className="mrow-main">
         {lado("a")}
         <div className="mrow-net" />
@@ -193,10 +194,11 @@ function MatchRow({ match, players, bestOf, onOpen, readOnly }) {
       {/* rodapé sempre presente: sem ele, jogos com e sem sets teriam alturas diferentes */}
       <div className="mrow-foot">
         <div className="mrow-sets">
+          {bye && <span className="ms-bye">passa direto</span>}
           {emAndamento && <span className="ms-vivo">em andamento</span>}
           {sets.map((s, i) => <span key={i}>{s}</span>)}
         </div>
-        {!done && !readOnly && (
+        {!done && !readOnly && !bye && (
           <span className={"mrow-cta" + (emAndamento ? " vivo" : "")}>
             <Play size={12} /> {emAndamento ? "Continuar" : "Registrar"}</span>)}
       </div>
@@ -238,7 +240,25 @@ function TournamentTab() {
   // ---- CONFIG ----
   const addPlayer = () => { const n = nameInput.trim(); if (!n) return; save({ ...t, players: [...t.players, { id: uid(), name: n }] }); setNameInput(""); };
   const rmPlayer = (id) => save({ ...t, players: t.players.filter(p => p.id !== id) });
-  const startGroups = () => {
+  /* Reordenar define o chaveamento quando ele não é sorteado: a posição na
+     lista é a posição de cabeça de chave. */
+  const moverPlayer = (i, d) => {
+    const j = i + d;
+    if (j < 0 || j >= t.players.length) return;
+    const ps = t.players.slice();
+    [ps[i], ps[j]] = [ps[j], ps[i]];
+    save({ ...t, players: ps });
+  };
+
+  const comecar = () => {
+    if (t.formato === "mata") {
+      const ordem = t.chaveamento === "sorteio" ? embaralhar(t.players) : t.players;
+      const bracket = genBracket(ordem, t.koBestOf || t.bestOf, t.koStart);
+      bracket.forEach((m, i) => { m.label = KO_SIZES[t.koStart] + (m.bye ? " · passa direto" : " #" + (i + 1)); });
+      save({ ...t, groupMatches: [], koMatches: bracket, frozen: null, phase: "ko", ordemChave: ordem.map(p => p.id) });
+      setView("chave");
+      return;
+    }
     const gm = genGroupMatches(t.players, t.doubleRound);
     save({ ...t, groupMatches: gm, koMatches: [], frozen: null, phase: "grupo" });
     setView("jogos");
@@ -315,7 +335,9 @@ function TournamentTab() {
     <>
       <Hero tone="green" icon={<Trophy size={13} />} eyebrow={t.name}
         title={champion ? `🏆 Campeão: ${nm(champion)}` : t.phase === "config" ? "Configurar torneio" : t.phase === "ko" ? "Fase eliminatória" : "Fase de grupos"}
-        sub={`${t.players.length} jogadores · grupos ${t.doubleRound ? "ida e volta" : "só ida"} · melhor de ${t.bestOf}`} />
+        sub={t.formato === "mata"
+          ? `${t.players.length} jogadores · mata-mata desde ${KO_SIZES[t.koStart].toLowerCase()} · melhor de ${t.bestOf}`
+          : `${t.players.length} jogadores · grupos ${t.doubleRound ? "ida e volta" : "só ida"} · melhor de ${t.bestOf}`} />
 
       {champion && (
         <div className="nextbox">
@@ -331,18 +353,22 @@ function TournamentTab() {
         <Clock size={13} /> Histórico de campeonatos{history.length > 0 ? ` (${history.length})` : ""}</button>
 
       {t.phase === "config" ? (
-        <TourneyConfig t={t} save={save} nameInput={nameInput} setNameInput={setNameInput} addPlayer={addPlayer} rmPlayer={rmPlayer} startGroups={startGroups} />
+        <TourneyConfig t={t} save={save} nameInput={nameInput} setNameInput={setNameInput}
+          addPlayer={addPlayer} rmPlayer={rmPlayer} moverPlayer={moverPlayer} comecar={comecar} />
       ) : (
         <>
-          <div className="segtabs">
-            <button className={"segtab" + (view === "tabela" ? " on" : "")} onClick={() => setView("tabela")}>Classificação</button>
-            <button className={"segtab" + (view === "jogos" ? " on" : "")} onClick={() => setView("jogos")}>Jogos</button>
-            <button className={"segtab" + (view === "chave" ? " on" : "")} onClick={() => setView("chave")}>Mata-mata</button>
-          </div>
+          {/* sem fase de grupos não há classificação nem rodadas para mostrar */}
+          {t.formato !== "mata" && (
+            <div className="segtabs">
+              <button className={"segtab" + (view === "tabela" ? " on" : "")} onClick={() => setView("tabela")}>Classificação</button>
+              <button className={"segtab" + (view === "jogos" ? " on" : "")} onClick={() => setView("jogos")}>Jogos</button>
+              <button className={"segtab" + (view === "chave" ? " on" : "")} onClick={() => setView("chave")}>Mata-mata</button>
+            </div>)}
 
-          {view === "tabela" && <ClassTable table={table} />}
-          {view === "jogos" && <GroupGames t={t} onOpen={abrirPlacar} />}
-          {view === "chave" && <Bracket t={t} table={table} canKO={canKO} startKO={startKO} onOpen={abrirPlacar} champion={champion} nm={nm} />}
+          {t.formato !== "mata" && view === "tabela" && <ClassTable table={table} />}
+          {t.formato !== "mata" && view === "jogos" && <GroupGames t={t} onOpen={abrirPlacar} />}
+          {(t.formato === "mata" || view === "chave") &&
+            <Bracket t={t} table={table} canKO={canKO} startKO={startKO} onOpen={abrirPlacar} champion={champion} nm={nm} />}
 
           <button className="linkbtn" onClick={() => { if (confirm("Reiniciar o torneio? Isso apaga todos os resultados.")) save({ ...DEFAULT_TOURNEY, players: t.players }); }}>
             <RotateCcw size={13} /> Reconfigurar torneio</button>
@@ -350,7 +376,18 @@ function TournamentTab() {
     </>);
 }
 
-function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, startGroups }) {
+const FASES = [[2, "Final"], [4, "Semis"], [8, "Quartas"], [16, "Oitavas"]];
+
+function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, moverPlayer, comecar }) {
+  const soMata = t.formato === "mata";
+  const qtd = t.players.length;
+  // no mata-mata direto a chave precisa comportar os jogadores sem virar só bye
+  const fasesOk = FASES.filter(([n]) => (soMata ? cabeNaChave(qtd, n) : n <= Math.max(2, qtd)));
+  const chaveServe = !soMata || fasesOk.some(([n]) => n === t.koStart);
+  const byes = soMata && chaveServe ? t.koStart - qtd : 0;
+  const podeComecar = qtd >= 2 && (!soMata || chaveServe);
+  const ordenavel = soMata && t.chaveamento === "ordem";
+
   return (
     <>
       <SecTitle n="1" icon={<Users size={14} />}>Jogadores</SecTitle>
@@ -360,45 +397,90 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
             onKeyDown={e => { if (e.key === "Enter") addPlayer(); }} />
           <button className="addbtn" onClick={addPlayer}><Plus size={18} /></button>
         </div>
-        {t.players.length === 0 && <p className="tm-cap" style={{ textAlign: "left" }}>Adicione ao menos 2 jogadores.</p>}
+        {qtd === 0 && <p className="tm-cap" style={{ textAlign: "left" }}>Adicione ao menos 2 jogadores.</p>}
         <div className="plist">
           {t.players.map((p, i) => (
-            <div className="pchip" key={p.id}><span className="pc-n">{i + 1}</span>{p.name}
-              <button onClick={() => rmPlayer(p.id)}><X size={13} /></button></div>))}
+            <div className="pchip" key={p.id}>
+              <span className="pc-n">{i + 1}</span><span className="pc-nome">{p.name}</span>
+              {ordenavel && (
+                <span className="pc-mover">
+                  <button onClick={() => moverPlayer(i, -1)} disabled={i === 0} aria-label="Subir"><ChevronUp size={14} /></button>
+                  <button onClick={() => moverPlayer(i, 1)} disabled={i === qtd - 1} aria-label="Descer"><ChevronDown size={14} /></button>
+                </span>)}
+              <button className="pc-x" onClick={() => rmPlayer(p.id)} aria-label="Remover"><X size={13} /></button>
+            </div>))}
         </div>
+        {ordenavel && qtd > 1 && (
+          <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
+            A ordem acima é a ordem de cabeça de chave: o 1º enfrenta o último, o 2º o penúltimo, e assim por diante.</p>)}
       </div>
 
-      <SecTitle n="2" icon={<Repeat size={14} />}>Fase de grupos</SecTitle>
+      <SecTitle n="2" icon={<Layers size={14} />}>Formato</SecTitle>
       <div className="block">
-        <div className="optrow">
-          <span className="opt-l">Formato dos confrontos</span>
-          <div className="segs">
-            <button className={"seg" + (!t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: false })}>Só ida</button>
-            <button className={"seg" + (t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: true })}>Ida e volta</button>
-          </div>
+        <div className="segs">
+          <button className={"seg" + (!soMata ? " seg-v" : "")} onClick={() => save({ ...t, formato: "grupos" })}>Grupos + mata-mata</button>
+          <button className={"seg" + (soMata ? " seg-v" : "")} onClick={() => save({ ...t, formato: "mata" })}>Só mata-mata</button>
         </div>
-        <div className="optrow" style={{ marginTop: 14 }}>
-          <span className="opt-l">Sets por partida (grupos)</span>
-          <div className="segs">
-            {[3, 5, 7].map(b => <button key={b} className={"seg" + (t.bestOf === b ? " seg-v" : "")} onClick={() => save({ ...t, bestOf: b })}>Melhor de {b}</button>)}
-          </div>
-        </div>
+        <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
+          {soMata
+            ? "Elimina direto, sem fase de grupos. Quem perde está fora."
+            : "Todos jogam entre si primeiro; os melhores avançam para o mata-mata."}</p>
       </div>
 
-      <SecTitle n="3" icon={<Layers size={14} />}>Fase eliminatória</SecTitle>
+      {!soMata && (
+        <>
+          <SecTitle n="3" icon={<Repeat size={14} />}>Fase de grupos</SecTitle>
+          <div className="block">
+            <div className="optrow">
+              <span className="opt-l">Formato dos confrontos</span>
+              <div className="segs">
+                <button className={"seg" + (!t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: false })}>Só ida</button>
+                <button className={"seg" + (t.doubleRound ? " seg-v" : "")} onClick={() => save({ ...t, doubleRound: true })}>Ida e volta</button>
+              </div>
+            </div>
+          </div>
+        </>)}
+
+      <SecTitle n={soMata ? "3" : "4"} icon={<Trophy size={14} />}>{soMata ? "A chave" : "Fase eliminatória"}</SecTitle>
       <div className="block">
         <div className="optrow">
           <span className="opt-l">Começar em</span>
           <div className="segs wrap">
-            {[[2, "Final"], [4, "Semis"], [8, "Quartas"], [16, "Oitavas"]].filter(([n]) => n <= Math.max(2, t.players.length)).map(([n, lbl]) =>
-              <button key={n} className={"seg" + (t.koStart === n ? " seg-v" : "")} onClick={() => save({ ...t, koStart: n })}>{lbl}</button>)}
+            {fasesOk.length === 0
+              ? <p className="tm-cap" style={{ textAlign: "left", margin: 0 }}>Adicione mais jogadores para montar uma chave.</p>
+              : fasesOk.map(([n, lbl]) =>
+                <button key={n} className={"seg" + (t.koStart === n ? " seg-v" : "")} onClick={() => save({ ...t, koStart: n })}>{lbl}</button>)}
           </div>
         </div>
-        <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>Os {t.koStart} primeiros da classificação avançam. O chaveamento é montado automaticamente (1º x último, e assim por diante).</p>
+
+        {soMata && (
+          <div className="optrow" style={{ marginTop: 14 }}>
+            <span className="opt-l">Chaveamento</span>
+            <div className="segs">
+              <button className={"seg" + (t.chaveamento === "ordem" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "ordem" })}>Eu escolho</button>
+              <button className={"seg" + (t.chaveamento === "sorteio" ? " seg-v" : "")} onClick={() => save({ ...t, chaveamento: "sorteio" })}>Sortear</button>
+            </div>
+          </div>)}
+
+        <div className="optrow" style={{ marginTop: 14 }}>
+          <span className="opt-l">Sets por partida</span>
+          <div className="segs">
+            {[3, 5, 7].map(b => <button key={b} className={"seg" + (t.bestOf === b ? " seg-v" : "")} onClick={() => save({ ...t, bestOf: b })}>Melhor de {b}</button>)}
+          </div>
+        </div>
+
+        <p className="tm-cap" style={{ textAlign: "left", marginTop: 12 }}>
+          {soMata
+            ? (byes > 0
+              ? `Com ${qtd} jogadores numa chave de ${t.koStart}, ${byes} ${byes === 1 ? "passa" : "passam"} direto para a rodada seguinte.`
+              : `Chave cheia: os ${qtd} jogadores se enfrentam já na primeira rodada.`)
+            : `Os ${t.koStart} primeiros da classificação avançam. O chaveamento é montado automaticamente (1º x último, e assim por diante).`}</p>
       </div>
 
-      <button className="bigbtn" disabled={t.players.length < 2} onClick={startGroups}>
-        <Play size={17} /> Gerar partidas e começar</button>
+      <button className="bigbtn" disabled={!podeComecar} onClick={comecar}>
+        <Play size={17} /> {soMata
+          ? (t.chaveamento === "sorteio" ? "Sortear a chave e começar" : "Montar a chave e começar")
+          : "Gerar partidas e começar"}</button>
     </>);
 }
 

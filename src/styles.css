@@ -314,7 +314,7 @@ border-radius:13px;padding:13px;font-size:13.5px;font-weight:700;color:#66756D;c
 .plist{display:flex;flex-direction:column;gap:7px;}
 .pchip{display:flex;align-items:center;gap:9px;background:#F7F9FB;border:1px solid #E2EAE4;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:600;color:#16221D;}
 .pc-n{width:22px;height:22px;border-radius:6px;background:#0F2E27;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;flex:none;}
-.pchip button{margin-left:auto;background:none;border:none;color:#C4CDC5;cursor:pointer;padding:2px;}
+.pchip button{background:none;border:none;color:#C4CDC5;cursor:pointer;padding:2px;}
 .optrow{}
 .opt-l{display:block;font-size:12.5px;font-weight:700;color:#16221D;margin-bottom:8px;}
 .segs.wrap{flex-wrap:wrap;}
@@ -344,9 +344,10 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
 
 .mside{display:flex;align-items:center;gap:10px;padding:3px 0;}
 .mside-name{flex:1;min-width:0;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.02em;
-  font-size:14.5px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  font-size:17.5px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mside.win .mside-name{color:var(--ink);font-weight:600;}
-.mside-sc{font-family:var(--f-mono);font-size:17px;font-weight:700;color:#C4CDC5;flex:none;line-height:1;}
+.mside.vazio .mside-name{font-size:13px;font-style:italic;color:#A9B4AD;text-transform:none;letter-spacing:0;}
+.mside-sc{font-family:var(--f-mono);font-size:19px;font-weight:700;color:#C4CDC5;flex:none;line-height:1;}
 .mside.win .mside-sc{color:var(--green);}
 
 /* a rede, como no placar ao vivo */
@@ -366,7 +367,18 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
 .mrow-cta.vivo{color:#A85A12;background:#FDECD9;border-color:#F3CFA6;}
 .mrow-vivo{border-color:#F0D3AE;}
 .ms-vivo{font-family:var(--f-mono);font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:#A85A12;background:#FDECD9;border-radius:6px;padding:3px 7px;}
+  letter-spacing:.1em;color:#A85A12;background:#FDECD9;border-radius:6px;padding:3px 7px;white-space:nowrap;}
+.ms-bye{font-family:var(--f-mono);font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--teal-600);background:#E3EFEA;border-radius:6px;padding:3px 7px;white-space:nowrap;}
+.mrow-bye{background:#FAFCFB;}
+
+/* reordenar jogadores define o chaveamento */
+.pc-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pc-mover{display:flex;gap:3px;flex:none;}
+.pc-mover button{background:#EDF2EE;border:none;color:var(--teal-600);width:26px;height:26px;
+  border-radius:7px;display:grid;place-items:center;cursor:pointer;padding:0;}
+.pc-mover button:disabled{opacity:.3;}
+.pc-x{flex:none;}
 /* ---- Placar ao vivo: tela dedicada, dois painéis separados pela rede ---- */
 .stage{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:10px;
   background:#F1F5F2;padding:12px;overflow:auto;overscroll-behavior:contain;}
@@ -398,7 +410,7 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
   padding:16px 18px 18px;display:block;-webkit-tap-highlight-color:transparent;}
 .pan-hit:active{background:rgba(255,122,41,.14);}
 .pan-top{display:flex;align-items:center;gap:8px;min-height:22px;padding-right:44px;}
-.pan-name{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.02em;font-size:16px;
+.pan-name{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.02em;font-size:21px;
   font-weight:600;color:#CFE0D7;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pan-lead .pan-name{color:#fff;}
 .pan-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
@@ -409,16 +421,16 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
   color:#E4EDE8;letter-spacing:-.03em;}
 .pan-lead .pan-pts{color:#fff;}
 /* selo de quem saca — o mais importante de ler de longe depois do placar */
-.saca{display:inline-flex;align-items:center;gap:7px;flex:none;
-  background:rgba(255,122,41,.16);border:1px solid rgba(255,122,41,.5);
-  border-radius:99px;padding:4px 10px 4px 8px;}
+.saca{display:inline-flex;align-items:center;gap:8px;flex:none;
+  background:rgba(255,122,41,.16);border:1.5px solid rgba(255,122,41,.5);
+  border-radius:99px;padding:5px 12px 5px 10px;}
 .saca.off{visibility:hidden;}
-.saca-ball{width:11px;height:11px;border-radius:50%;flex:none;
+.saca-ball{width:14px;height:14px;border-radius:50%;flex:none;
   background:radial-gradient(circle at 32% 30%,#FFD9A6,#FF7A29 64%);}
-.saca-txt{font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.14em;
+.saca-txt{font-family:var(--f-mono);font-size:14px;font-weight:700;letter-spacing:.14em;
   text-transform:uppercase;color:#FFB35C;}
-.saca-pips{display:flex;gap:3px;}
-.spip{width:5px;height:5px;border-radius:50%;background:rgba(255,179,92,.32);display:block;}
+.saca-pips{display:flex;gap:4px;}
+.spip{width:7px;height:7px;border-radius:50%;background:rgba(255,179,92,.32);display:block;}
 .spip.on{background:#FF7A29;}
 /* O lado que saca troca de cor por inteiro: de longe você vê o painel âmbar,
    sem precisar caçar a bolinha. A especificidade extra vence o `.pan+.pan`. */
@@ -488,10 +500,10 @@ button.mrow:active{border-color:#C8D6CD;background:#FCFDFC;}
   .pan-sets{padding-bottom:0;gap:10px;}
   .pip{width:16px;height:16px;}
   .pan-undo{width:42px;height:42px;top:18px;right:18px;}
-  .saca{gap:10px;padding:7px 16px 7px 13px;border-width:2px;}
-  .saca-ball{width:16px;height:16px;}
-  .saca-txt{font-size:15px;letter-spacing:.16em;}
-  .spip{width:8px;height:8px;}
+  .saca{gap:12px;padding:9px 20px 9px 16px;border-width:2px;}
+  .saca-ball{width:22px;height:22px;}
+  .saca-txt{font-size:24px;letter-spacing:.16em;}
+  .spip{width:11px;height:11px;}
   .pan-serve{box-shadow:inset 0 0 0 4px rgba(255,122,41,.6);}
 
   /* a rede vira vertical */
