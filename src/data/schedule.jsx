@@ -1,6 +1,6 @@
 import { yt } from "../lib/helpers.jsx";
 import {
-  Bot, GraduationCap, Trophy, Wind, Gauge, Target, Layers, Zap
+  Bot, GraduationCap, Trophy, Wind, Target, Layers, Zap, Users, Activity
 } from "lucide-react";
 
 /* ============================================================
@@ -76,6 +76,28 @@ const PADROES = {
         cue: "Imagine 9-9. Se errar, recomeça do zero. Meta: 25 seguidas. Sem tentar vencedor — é o treino que você usa contra o Caio no deuce." },
     ],
   },
+  P7: {
+    id: "P7", nome: "Footwork com bola — Falkenberg", tag: "o que mais separa nível",
+    dials: { Topspin: 2, Backspin: 0, "Frequência": 3, "Oscilação": "ON" },
+    pos: "Oscilação entre os dois cantos. Você se desloca, o robô não facilita.",
+    total: "≈ 18 min", contador: "voltas limpas",
+    blocks: [
+      { tag: "sem robô", label: "Side-step sem bola", time: "4 min", target: "3 séries × 40 s de side-step entre os cantos", rest: "30 s",
+        cue: "O pé do lado do deslocamento sai primeiro. Nunca cruze os pés." },
+      { tag: "robô · osc ON", label: "Falkenberg", time: "14 min", target: "5 séries × 2 min", rest: "60 s",
+        cue: "BH no canto de BH → contorne e ataque de FH do mesmo canto → FH no canto de FH. Volte ao centro depois de cada bola: a recuperação é o que separa nível, não o golpe." },
+    ],
+  },
+  P8: {
+    id: "P8", nome: "Recepção — decidir antes de tocar", tag: "sair do automático",
+    dials: { Topspin: 0, Backspin: 2, "Frequência": 2, "Oscilação": "OFF" },
+    pos: "Robô mirando curto, bola cortada perto da rede.",
+    total: "≈ 14 min", contador: "decisões certas",
+    blocks: [
+      { tag: "robô · curto", label: "Três respostas, você escolhe", time: "14 min", target: "5 séries × 8 bolas", rest: "45 s",
+        cue: "A cada bola escolha: push curto, push longo no canto, ou flick. Regra: não repita a mesma resposta duas vezes seguidas. A bola é sempre igual — quem varia é você. É o ensaio da decisão, que é o que falta na recepção." },
+    ],
+  },
 };
 
 /* Transforma um padrão em sessão. O `slot` mantém a chave de conclusão única
@@ -131,21 +153,21 @@ function serveSession(week, short) {
 }
 
 /* ============ SESSÕES POR DIA ============ */
-const FISICO_PERNAS = { kind: "fisico", slot: "fisico", title: "Treino Físico", sub: "Footwork e força de pernas", total: "≈ 24 min", robot: false, blocks: [
-  { tag: "físico", label: "Escada de coordenação", time: "10 min", target: "2 pés / in-in-out-out / Icky Shuffle · 3 passadas cada", rest: "30 s", cue: "Ponta dos pés, joelhos flexionados." },
-  { tag: "físico", label: "Cones em X", time: "6 min", target: "4 voltas completas", rest: "30 s", cue: "Side-step sem cruzar os pés, postura de jogo." },
-  { tag: "físico", label: "Força de base", time: "8 min", target: "Agachamento 3×12 · afundo 3×10/perna · panturrilha 3×15", rest: "45 s", cue: "" },
+/* Sem robô e sem parceiro não existe: é o treino que transfere padrão para jogo. */
+const JOGO_TREINO = { kind: "treino", slot: "jogotreino", title: "Jogo com regra", sub: "ensaio do domingo", total: "≈ 25 min", robot: false, blocks: [
+  { tag: "jogo", label: "Sets valendo, com uma regra", time: "25 min", target: "3 sets contra um parceiro", rest: "—",
+    cue: "Escolha UMA regra por set: (1) todo ponto começa com o saque do P1; (2) contra bola cortada, só abertura do P2, nunca push; (3) no 9-9 imaginário, joga o P6. Ganhar é secundário — o que conta é a regra ter sido cumprida." },
 ] };
 
 function sessionsFor(id, week) {
   const P = PADROES;
   switch (id) {
-    case "seg": return [sessaoPadrao(P.P2, true), sessaoPadrao(P.P3), FISICO_PERNAS];
+    case "seg": return [sessaoPadrao(P.P2, true), sessaoPadrao(P.P3), sessaoPadrao(P.P7)];
     case "ter": return [serveSession(week), sessaoPadrao(P.P1)];
-    case "qua": return [sessaoPadrao(P.P4, true), sessaoPadrao(P.P6)];
+    case "qua": return [sessaoPadrao(P.P4, true), sessaoPadrao(P.P6), sessaoPadrao(P.P8)];
     case "qui": return [serveSession(week), sessaoPadrao(P.P5)];
-    case "sex": return [sessaoPadrao(P.P2, true), sessaoPadrao(P.P4), FISICO_PERNAS];
-    case "sab": return [sessaoPadrao(P.P3, true), sessaoPadrao(P.P6), serveSession(week, true)];
+    case "sex": return [sessaoPadrao(P.P2, true), sessaoPadrao(P.P4), sessaoPadrao(P.P7)];
+    case "sab": return [sessaoPadrao(P.P3, true), sessaoPadrao(P.P6), serveSession(week, true), JOGO_TREINO];
     case "dom": return [
       { kind: "robo", slot: "aquecimento", title: "Aquecimento leve", sub: "pré-campeonato", total: "≈ 18 min", robot: true, blocks: [
         { tag: "sem robô", label: "Ativação", time: "6 min", target: "Corda 2 min + mobilidade + 20 sombras leves", rest: "—", cue: "Suar levemente, sem fadiga." },
@@ -163,7 +185,7 @@ function sessionsFor(id, week) {
 const KIND_META = {
   robo: { icon: Bot, color: "#FF7A29", label: "Padrão" },
   saque: { icon: Wind, color: "#2FA36B", label: "Saque" },
-  fisico: { icon: Gauge, color: "#1C6F63", label: "Físico" },
+  treino: { icon: Users, color: "#1C6F63", label: "Jogo-treino" },
   aula: { icon: GraduationCap, color: "#7A4FE0", label: "Aula" },
   jogo: { icon: Trophy, color: "#D6A324", label: "Jogo" },
 };
@@ -183,7 +205,7 @@ const SEM_AULA = [
 
 /* ============ DIAS ============ */
 const DAYS = [
-  { id: "seg", short: "Seg", name: "Segunda", icon: Target, focus: "P2 + P3 · abertura e continuação", total: "≈ 58 min", tint: "#FF7A29", intensity: "Alta",
+  { id: "seg", short: "Seg", name: "Segunda", icon: Target, focus: "P2 + P3 + P7 · abertura, continuação e pés", total: "≈ 52 min", tint: "#FF7A29", intensity: "Alta",
     bio: { title: "Abertura contra bola cortada (P2)", steps: [
       "Base: pés bem afastados, pé direito atrás. Joelhos ~110° — 'sente' no golpe.",
       "Preparação: gire quadril e ombro à direita e deixe a raquete **descer até a altura do joelho direito**. Peso ~70% na perna direita.",
@@ -199,7 +221,7 @@ const DAYS = [
     semAula: SEM_AULA,
     videos: [["No-spin vs backspin serve", yt("no spin serve vs backspin serve table tennis")], ["Como finalizar bola alta", yt("table tennis how to smash high ball")]] },
 
-  { id: "qua", short: "Qua", name: "Quarta", icon: Layers, focus: "P4 + P6 · xadrez e pressão", total: "≈ 36 min", tint: "#7A4FE0", intensity: "Alta",
+  { id: "qua", short: "Qua", name: "Quarta", icon: Layers, focus: "P4 + P6 + P8 · xadrez, pressão e recepção", total: "≈ 50 min", tint: "#7A4FE0", intensity: "Alta",
     bio: { title: "Pressão no backhand e punição na paralela (P4)", steps: [
       "Três bolas seguidas no **mesmo canto**: você está construindo, não atacando ainda.",
       "Repare no momento em que ele **gira o corpo** para cobrir aquele canto — é o gatilho.",
@@ -214,12 +236,12 @@ const DAYS = [
     semAula: SEM_AULA,
     videos: [["Backhand flick", yt("backhand flick table tennis tutorial")], ["Flick em câmera lenta", yt("table tennis banana flick slow motion")]] },
 
-  { id: "sex", short: "Sex", name: "Sexta", icon: Target, focus: "P2 + P4 + físico", total: "≈ 58 min", tint: "#FF7A29", intensity: "Alta",
-    checklist: ["P2 de novo na semana: a abertura é o que resolve o Henrique", "No P4, conte quantas paralelas realmente passaram", "Físico depois dos padrões, nunca antes"],
+  { id: "sex", short: "Sex", name: "Sexta", icon: Target, focus: "P2 + P4 + P7 · padrões e pés", total: "≈ 55 min", tint: "#FF7A29", intensity: "Alta",
+    checklist: ["P2 de novo na semana: a abertura é o que resolve o Henrique", "No P4, conte quantas paralelas realmente passaram", "No P7, o que conta é voltar ao centro, não o golpe"],
     videos: [["Slow loop contra backspin", yt("table tennis slow loop against backspin")]] },
 
-  { id: "sab", short: "Sáb", name: "Sábado", icon: Zap, focus: "P3 + P6 + revisão de saque", total: "≈ 43 min", tint: "#1C6F63", intensity: "Média", serveDay: true,
-    checklist: ["Sábado é ensaio do domingo: nada novo", "No P6, anote o recorde de bolas seguidas", "Revisão de saque só com o que já funciona"],
+  { id: "sab", short: "Sáb", name: "Sábado", icon: Zap, focus: "P3 + P6 + saque + jogo-treino", total: "≈ 68 min", tint: "#1C6F63", intensity: "Média", serveDay: true,
+    checklist: ["Sábado é ensaio do domingo: nada novo", "No P6, anote o recorde de bolas seguidas", "Revisão de saque só com o que já funciona", "No jogo-treino, cumprir a regra vale mais que ganhar o set"],
     videos: [["Consistência sob pressão", yt("table tennis consistency drill under pressure")]] },
 
   { id: "dom", short: "Dom", name: "Domingo", icon: Trophy, focus: "Aquecimento leve + campeonato", total: "≈ 30 min + jogos", tint: "#D6A324", intensity: "Jogo", matchDay: true, serveDay: true,
