@@ -10,9 +10,11 @@ import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO } from "..
 function SessionCard({ session, week, dayId, done, toggle, notes, setNote, records, setRecord, onTimer }) {
   const meta = KIND_META[session.kind];
   const I = meta.icon;
-  const skey = `w${week}-${dayId}-${session.kind}`;
+  // slot separa dois treinos do mesmo tipo no mesmo dia (dois padroes de robo)
+  const skey = `w${week}-${dayId}-${session.slot || session.kind}`;
   const isDone = !!done[skey];
-  const cfg = session.robot ? robotFor(dayId, week) : null;
+  // cada padrao carrega a propria regulagem; robotFor e o padrao antigo por dia
+  const cfg = session.robotCfg || (session.robot ? robotFor(dayId, week) : null);
   return (
     <div className={"sess" + (isDone ? " sess-done" : "")} style={{ "--c": meta.color }}>
       <div className="sess-head">
@@ -76,7 +78,7 @@ function WeekTab(p) {
   const pct = Math.round((weekDone / 7) * 100);
   const info = WEEK_INFO[week - 1];
   const intCls = day.intensity === "Alta" ? "int-high" : day.intensity === "Média" ? "int-mid" : day.intensity === "Jogo" ? "int-match" : "int-low";
-  const doneN = sessions.filter(s => done[`w${week}-${day.id}-${s.kind}`]).length;
+  const doneN = sessions.filter(s => done[`w${week}-${day.id}-${s.slot || s.kind}`]).length;
 
   return (
     <>
@@ -122,19 +124,21 @@ function WeekTab(p) {
 
       <div className="sessbar">
         <span className="sb-lbl">{sessions.length} treinos separados hoje · {doneN} concluído{doneN === 1 ? "" : "s"}</span>
-        <div className="sb-chips">{sessions.map(s => { const m = KIND_META[s.kind]; const on = !!done[`w${week}-${day.id}-${s.kind}`];
-          return <span key={s.kind} className={"sb-chip" + (on ? " on" : "")} style={{ "--c": m.color }}>{m.label}</span>; })}</div>
+        <div className="sb-chips">{sessions.map(s => { const m = KIND_META[s.kind]; const on = !!done[`w${week}-${day.id}-${s.slot || s.kind}`];
+          return <span key={s.slot || s.kind} className={"sb-chip" + (on ? " on" : "")} style={{ "--c": m.color }}>{m.label}</span>; })}</div>
       </div>
 
       {day.matchNotes && <div className="matchbox"><div className="section-eyebrow" style={{ color: "#8A6100" }}><Trophy size={13} /> Protocolo de dia de jogo</div>
         <ul className="clean-list gold">{day.matchNotes.map((m, i) => <li key={i}>{m}</li>)}</ul></div>}
 
       {sessions.map(s => (
-        <SessionCard key={s.kind} session={s} week={week} dayId={day.id} done={done} toggle={toggleSession}
+        <SessionCard key={s.slot || s.kind} session={s} week={week} dayId={day.id} done={done} toggle={toggleSession}
           notes={notes} setNote={setNote} records={records} setRecord={setRecord} onTimer={onTimer} />))}
 
       {day.checklist && <div className="block"><div className="section-eyebrow"><Check size={13} /> Checklist</div>
         <ul className="check-list">{day.checklist.map((c, i) => <li key={i}>{c}</li>)}</ul></div>}
+      {day.semAula && <div className="matchbox"><div className="section-eyebrow" style={{ color: "#7A5A12" }}><GraduationCap size={13} /> Quando a aula voltar</div>
+        <ul className="clean-list gold">{day.semAula.map((m, i) => <li key={i}>{bold(m)}</li>)}</ul></div>}
       {day.bio && <Collapsible title="Biomecânica passo a passo" icon={<Target size={15} />}>
         <ol className="bio-steps">{day.bio.steps.map((x, i) => <li key={i}>{bold(x)}</li>)}</ol>
         {day.bio.note && <div className="bio-note"><Info size={14} /> {day.bio.note}</div>}</Collapsible>}
