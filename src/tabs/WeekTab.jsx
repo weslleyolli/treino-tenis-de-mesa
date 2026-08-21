@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
 } from "lucide-react";
-import { bold, RobotPanel, Session, Counter, tagClass, Collapsible, Vids } from "../components/ui.jsx";
+import { bold, RobotPanel, Session, Counter, tagClass, Collapsible, Vids, GuiaPadrao } from "../components/ui.jsx";
 import { parseMin, parseRest } from "../lib/helpers.jsx";
 import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO } from "../data/schedule.jsx";
 
@@ -27,6 +27,7 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
       </div>
 
       {cfg && <RobotPanel cfg={cfg} />}
+      <GuiaPadrao guia={session.guia} />
       {session.kind === "saque" && (
         <div className="serveonly"><Wind size={15} /><span>Passo a passo de cada saque, zonas e disfarce estão na <strong>aba Saque</strong> — e o registro de acertos também.</span></div>)}
 

@@ -1,4 +1,5 @@
 import { yt } from "../lib/helpers.jsx";
+import { GUIAS } from "./guias.js";
 import {
   Bot, GraduationCap, Trophy, Wind, Target, Layers, Zap, Users, Activity
 } from "lucide-react";
@@ -111,6 +112,7 @@ function sessaoPadrao(p, comAquecimento) {
     kind: "robo", slot: p.id, title: `${p.id} · ${p.nome}`, sub: p.tag,
     total: p.total, robot: true, counter: p.contador,
     robotCfg: { title: `${p.id} · ${p.nome}`, pos: p.pos, dials: p.dials },
+    guia: GUIAS[p.id],
     blocks,
   };
 }
