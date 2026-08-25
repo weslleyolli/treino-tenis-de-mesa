@@ -3,19 +3,23 @@
    ============================================================ */
 import { matchResult } from "./tournament.js";
 
-/* Pontos por posição final. Do 6º em diante, RANK_TAIL. */
-const RANK_POINTS = [1000, 700, 450, 250, 100];
+/* Pontos pela FASE em que o jogador caiu, nao pela posicao final. Quem perde na
+   mesma rodada leva o mesmo, que e como funciona em torneio de verdade: sem
+   disputa de 3o lugar, os dois semifinalistas valem o mesmo. */
+const RANK_POR_FASE = { campeao: 1000, final: 700, 4: 450, 8: 250, 16: 100, 32: 50 };
+const RANK_GRUPOS = 50;                       // caiu antes do mata-mata
+const RANK_POINTS = [1000, 700, 450, 250, 100];  // usado quando so ha fase de grupos
 const RANK_TAIL = 50;
 const pointsFor = (pos) => RANK_POINTS[pos] ?? RANK_TAIL;
 
 /* Rótulo da fase que cada posição representa, para explicar a tabela na tela. */
 const RANK_TABLE = [
-  { pos: "1º", label: "Campeão", pts: 1000 },
-  { pos: "2º", label: "Vice", pts: 700 },
-  { pos: "3º", label: "Semifinal", pts: 450 },
-  { pos: "4º", label: "Semifinal", pts: 250 },
-  { pos: "5º", label: "Fase de grupos", pts: 100 },
-  { pos: "6º+", label: "Fase de grupos", pts: RANK_TAIL },
+  { pos: "Campeão", label: "venceu a final", pts: 1000 },
+  { pos: "Vice", label: "perdeu a final", pts: 700 },
+  { pos: "Semis", label: "os dois semifinalistas", pts: 450 },
+  { pos: "Quartas", label: "os quatro", pts: 250 },
+  { pos: "Oitavas", label: "os oito", pts: 100 },
+  { pos: "Grupos", label: "caiu antes do mata-mata", pts: RANK_GRUPOS },
 ];
 
 /* Saldo herdado: a temporada já estava em andamento quando o app passou a
@@ -73,13 +77,38 @@ function placementsOf(h) {
   return order;
 }
 
-/* Quanto cada jogador somou num campeonato: [{ name, points, title }] */
+/* Quanto cada jogador somou num campeonato: [{ name, points, title }].
+   Sem mata-mata, vale a classificação de grupos. Com mata-mata, vale a fase em
+   que a pessoa caiu — os dois semifinalistas levam o mesmo, e assim por diante. */
 function awardsOf(h) {
   const nameOf = (id) => (h.players || []).find(p => p.id === id)?.name || "—";
-  return placementsOf(h).map((id, i) => ({
-    name: nameOf(id),
-    points: pointsFor(i),
-    title: i === 0,
+  const bo = h.koBestOf || h.bestOf;
+  const ko = h.koMatches || [];
+
+  if (!ko.length) {
+    return (h.table || []).map((r, i) => ({ name: r.name, points: pointsFor(i), title: i === 0 }));
+  }
+
+  const pontos = new Map();   // id -> pontos
+  let campeao = null;
+
+  for (const m of ko) {
+    const r = matchResult(m, bo);
+    if (!r.done || m.bye) continue;
+    const perdedor = r.winner === m.a ? m.b : m.a;
+    if (perdedor == null) continue;
+    // cai na rodada de maior valor que alcançou
+    const vale = m.roundSize === 2 ? RANK_POR_FASE.final : (RANK_POR_FASE[m.roundSize] ?? RANK_GRUPOS);
+    pontos.set(perdedor, Math.max(pontos.get(perdedor) || 0, vale));
+    if (m.roundSize === 2) campeao = r.winner;
+  }
+  if (campeao != null) pontos.set(campeao, RANK_POR_FASE.campeao);
+
+  // quem estava inscrito e nao chegou ao mata-mata
+  for (const r of (h.table || [])) if (!pontos.has(r.id)) pontos.set(r.id, RANK_GRUPOS);
+
+  return [...pontos.entries()].map(([id, points]) => ({
+    name: nameOf(id), points, title: id === campeao,
   }));
 }
 
@@ -118,4 +147,4 @@ const countEvents = (history, { year, month, scope }) =>
     return d.getFullYear() === year && (scope === "ano" || d.getMonth() === month);
   }).length;
 
-export { RANK_POINTS, RANK_TAIL, RANK_TABLE, RANKING_SEED, pointsFor, placementsOf, awardsOf, buildRanking, countEvents };
+export { RANK_POINTS, RANK_TAIL, RANK_POR_FASE, RANK_GRUPOS, RANK_TABLE, RANKING_SEED, pointsFor, placementsOf, awardsOf, buildRanking, countEvents };

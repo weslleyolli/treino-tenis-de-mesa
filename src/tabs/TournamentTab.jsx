@@ -173,7 +173,10 @@ function MatchRow({ match, players, bestOf, onOpen, readOnly, etiqueta }) {
   const r = matchResult(match, bestOf);
   const done = r.done;
   const bye = !!match.bye;
-  const sets = (match.sets || []).map(s => `${s.a}-${s.b}`);
+  // placar lancado so em sets (campeonato jogado fora do app): mostra o agregado
+  const sets = match.semDetalhe && match.placar
+    ? [`${match.placar[0]} × ${match.placar[1]} em sets`]
+    : (match.sets || []).map(s => `${s.a}-${s.b}`);
   const emAndamento = sets.length > 0 && !done;  // já tem sets, mas ninguém fechou
   const Tag = (readOnly || bye) ? "div" : "button";
 

@@ -71,9 +71,16 @@ function matchResult(m, bestOf) {
     const quem = m.a ?? m.b;
     return { wa: m.a ? 1 : 0, wb: m.b ? 1 : 0, done: true, winner: quem ?? null };
   }
+  const need = Math.ceil(bestOf / 2);
+  /* Resultado lancado so em sets, sem os pontos de cada set — e o caso de
+     campeonato jogado fora do app e registrado depois. Melhor guardar o que se
+     sabe do que inventar placar de set. */
+  if (m && m.semDetalhe && Array.isArray(m.placar)) {
+    const [pa, pb] = m.placar;
+    return { wa: pa, wb: pb, done: pa >= need || pb >= need, winner: pa >= need ? m.a : pb >= need ? m.b : null };
+  }
   let wa = 0, wb = 0;
   (m.sets || []).forEach(s => { if (s.a > s.b) wa++; else if (s.b > s.a) wb++; });
-  const need = Math.ceil(bestOf / 2);
   return { wa, wb, done: wa >= need || wb >= need, winner: wa >= need ? m.a : wb >= need ? m.b : null };
 }
 
