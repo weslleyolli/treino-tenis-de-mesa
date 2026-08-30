@@ -44,6 +44,7 @@ src/
     schedule.jsx               # cronograma semanal, sessões, dias
     serves.js                  # 8 saques, zonas, disfarce
     strokes.js                 # acervo técnico: 45 técnicas em 7 categorias
+    analiseVideo.js            # como filmar + prompt de análise por técnica
     tactics.js                 # combos, adversários, regras
     tournament.js              # lógica de campeonato (grupos + mata-mata)
   tabs/                        # uma aba por arquivo

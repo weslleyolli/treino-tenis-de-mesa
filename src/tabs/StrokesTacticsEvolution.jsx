@@ -6,12 +6,37 @@ import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, Exercici
 import { storage as store } from "../lib/db.js";
 import { STROKES, STROKE_CATS } from "../data/strokes.js";
 import { COMBOS, OPPONENTS, GAME_VARIATIONS, LOSING_FIXES, GOLDEN_RULES } from "../data/tactics.js";
+import { COMO_FILMAR, promptDaTecnica } from "../data/analiseVideo.js";
 import { DAYS, isDayDone, sessionsFor } from "../data/schedule.jsx";
 
 /* ============ ABA GOLPES ============ */
 const CAT_COLOR = { Base: "#1E5A8A", Deslocamento: "#0E8B8B", Controle: "#2FA36B", Ataque: "#F26B21",
   Defesa: "#7C5CFC", "Recepção": "#D6A324", Especiais: "#C2477A" };
 
+
+/* Manda o video para uma IA em vez de preencher rubrica na mao. O prompt sai
+   pronto com os passos e os erros DESTA tecnica dentro — e com os exercicios
+   dela, para a resposta vir amarrada no que ele ja tem para treinar. */
+function AnaliseVideo({ t }) {
+  const [copiado, setCopiado] = useState(false);
+  const texto = promptDaTecnica(t);
+  const copiar = async () => {
+    try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2500); }
+    catch { setCopiado(false); }
+  };
+  return (
+    <Collapsible title="Analisar meu vídeo com IA" icon={<Camera size={13} />}
+      sub="como filmar e o prompt pronto para esta técnica">
+      <div className="mini-title">Como filmar</div>
+      <ul className="clean-list">{COMO_FILMAR.map(c => <li key={c.t}><strong>{c.t}. </strong>{bold(c.d)}</li>)}</ul>
+      <div className="mini-title">Prompt pronto</div>
+      <p className="p-lead">Mande o vídeo e cole este texto. Ele já leva os passos e os erros comuns desta técnica, e pede o ajuste amarrado nos exercícios que você tem aqui.</p>
+      <pre className="promptbox">{texto}</pre>
+      <button className={"mastbtn" + (copiado ? " on" : "")} onClick={copiar}>
+        <span className="mb-box">{copiado && <Check size={13} strokeWidth={3} />}</span>
+        {copiado ? "Prompt copiado" : "Copiar prompt"}</button>
+    </Collapsible>);
+}
 
 function StrokesTab() {
   const [cat, setCat] = useState("Todos");
@@ -84,6 +109,7 @@ function StrokesTab() {
                       </li>))}
                   </ol>
                 </Collapsible>
+                <AnaliseVideo t={s} />
                 <Vids videos={s.videos} />
                 <button className={"mastbtn" + (mast[s.id] ? " on" : "")} onClick={() => toggle(s.id)}>
                   <span className="mb-box">{mast[s.id] && <Check size={13} strokeWidth={3} />}</span>
