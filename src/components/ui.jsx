@@ -40,7 +40,7 @@ function RobotPanel({ cfg }) {
 
 /* Um exercicio do acervo. Vive aqui porque aparece em dois lugares: na aba
    Golpes e dentro do card de sessao da semana. O tipo reusa o tagClass abaixo. */
-const TIPO_TAG = { sombra: "sombra", "robô": "robô", parceiro: "jogo", multibola: "robô", jogo: "jogo" };
+const TIPO_TAG = { sombra: "sombra", "robô": "robô", parceiro: "jogo", multibola: "robô", jogo: "jogo", saque: "saque" };
 
 function Exercicio({ e }) {
   return (

@@ -1737,10 +1737,10 @@ const PADRAO_TECNICAS = {
   P8: ["rec-curto", "ler-efeito", "toque-curto", "push-longo"],
 };
 
-const tecnicasDoPadrao = (slot) =>
-  (PADRAO_TECNICAS[slot] || []).map((id) => STROKES.find((t) => t.id === id)).filter(Boolean);
+const tecnicasPorId = (ids) => (ids || []).map((id) => STROKES.find((t) => t.id === id)).filter(Boolean);
+const tecnicasDoPadrao = (slot) => tecnicasPorId(PADRAO_TECNICAS[slot]);
 
 /* A ordem aqui é a ordem das pílulas de filtro na tela. */
 const STROKE_CATS = ["Base", "Deslocamento", "Controle", "Ataque", "Defesa", "Recepção", "Especiais"];
 
-export { STROKES, STROKE_CATS, PADRAO_TECNICAS, tecnicasDoPadrao };
+export { STROKES, STROKE_CATS, PADRAO_TECNICAS, tecnicasDoPadrao, tecnicasPorId };

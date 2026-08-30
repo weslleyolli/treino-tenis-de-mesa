@@ -2,11 +2,33 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
 } from "lucide-react";
-import { bold, Collapsible, Vids, Session, BallClock, Spark, SecTitle, Bars, Notes } from "../components/ui.jsx";
+import { bold, Collapsible, Vids, Session, BallClock, Spark, SecTitle, Bars, Notes, Exercicio } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import { SERVE_RULES, SERVE_FAULTS, SERVE_GRIP, CONTACT_ZONES, TABLE_ZONES, SERVE_SUMMARY, HALF_LONG_WARNING, SERVES, DECEPTION, SERVE_SETUP, SERVE_SESSION, SERVE_PLAN } from "../data/serves.js";
+import { tecnicasPorId } from "../data/strokes.js";
 
 /* ============ ABA SAQUE ============ */
+/* O saque so vale pelo que vem depois dele. Estas sao as tecnicas do acervo que
+   resolvem a terceira bola que ESTE saque produz — treinar o saque sem elas e
+   treinar metade do padrao. */
+function TerceiraBola({ ids }) {
+  const tecnicas = tecnicasPorId(ids);
+  if (!tecnicas.length) return null;
+  const total = tecnicas.reduce((n, t) => n + t.exercicios.length, 0);
+  return (
+    <Collapsible title="Terceira bola — exercícios do acervo" icon={<Layers size={13} />}
+      sub={`${tecnicas.length} técnicas · ${total} exercícios para o que vem depois do saque`}>
+      {tecnicas.map((t) => (
+        <div className="acv-tec" key={t.id}>
+          <div className="acv-top">
+            <span className="acv-nome">{t.name}</span>
+            <span className="acv-cat">{t.cat}</span>
+          </div>
+          {t.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
+        </div>))}
+    </Collapsible>);
+}
+
 function TableMap() {
   const cols = [{ x: 22, l: "FH dele" }, { x: 50, l: "meio" }, { x: 78, l: "BH dele" }];
   return (
@@ -294,8 +316,10 @@ function ServeTab({ onTimer, serveNote, onServeNote }) {
           <div className="len-box"><Info size={14} /><span><strong>Comprimento e alvo: </strong>{bold(s.length)}</span></div>
           <div className="mini-title">Erros comuns e correção</div>
           <ul className="err-list">{s.err.map((x, i) => <li key={i}>{x}</li>)}</ul>
-          <div className="drill-box"><Repeat size={14} /><span><strong>Treino: </strong>{s.drill}</span></div>
-          <div className="third-box"><Eye size={14} /><span><strong>3ª bola — o que esperar: </strong>{s.third}</span></div>
+          <div className="third-box"><Eye size={14} /><span><strong>3ª bola — o que esperar: </strong>{bold(s.third)}</span></div>
+          <div className="mini-title">Exercícios · {s.exercicios.length}</div>
+          {s.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
+          <TerceiraBola ids={s.tecnicas} />
           <Vids videos={s.videos} />
         </Collapsible>))}
 
