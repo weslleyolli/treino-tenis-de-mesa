@@ -9,7 +9,6 @@ import { DAYS, isDayDone } from "./data/schedule.jsx";
 import { WeekTab } from "./tabs/WeekTab.jsx";
 import { ServeTab } from "./tabs/ServeTab.jsx";
 import { StrokesTab, TacticsTab, EvolutionTab } from "./tabs/StrokesTacticsEvolution.jsx";
-import { AnalysisTab } from "./tabs/AnalysisTab.jsx";
 import { TournamentTab } from "./tabs/TournamentTab.jsx";
 import { RankingTab } from "./tabs/RankingTab.jsx";
 import { SyncBadge } from "./components/Sync.jsx";
@@ -24,10 +23,7 @@ const NAV = [
     { id: "saque", label: "Saque" },
     { id: "taticas", label: "Táticas" },
   ] },
-  { id: "progresso", label: "Progresso", icon: TrendingUp, subs: [
-    { id: "evolucao", label: "Evolução" },
-    { id: "analise", label: "Análise" },
-  ] },
+  { id: "progresso", label: "Progresso", icon: TrendingUp },
   { id: "jogos", label: "Jogos", icon: Trophy, subs: [
     { id: "torneio", label: "Torneio" },
     { id: "ranking", label: "Ranking" },
@@ -37,7 +33,7 @@ const NAV = [
 /* ============ APP ============ */
 export default function App() {
   const [group, setGroup] = useState("hoje");
-  const [sub, setSub] = useState({ tecnica: "golpes", progresso: "evolucao", jogos: "torneio" });
+  const [sub, setSub] = useState({ tecnica: "golpes", jogos: "torneio" });
   const [week, setWeek] = useState(1);
   const [activeIdx, setActiveIdx] = useState(0);
   const [done, setDone] = useState({});
@@ -122,8 +118,7 @@ export default function App() {
         {view === "golpes" && <StrokesTab />}
         {view === "saque" && <ServeTab onTimer={onTimer} serveNote={serveNote} onServeNote={saveServeNote} />}
         {view === "taticas" && <TacticsTab />}
-        {view === "analise" && <AnalysisTab />}
-        {view === "evolucao" && <EvolutionTab done={done} records={records} />}
+        {view === "progresso" && <EvolutionTab done={done} records={records} />}
         {view === "torneio" && <TournamentTab />}
         {view === "ranking" && <RankingTab />}
       </main>

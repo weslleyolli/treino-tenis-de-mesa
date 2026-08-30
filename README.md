@@ -45,13 +45,11 @@ src/
     serves.js                  # 8 saques, zonas, disfarce
     strokes.js                 # acervo técnico: 45 técnicas em 7 categorias
     tactics.js                 # combos, adversários, regras
-    analysis.js                # protocolo e rubricas
     tournament.js              # lógica de campeonato (grupos + mata-mata)
   tabs/                        # uma aba por arquivo
     WeekTab.jsx
     ServeTab.jsx
     StrokesTacticsEvolution.jsx
-    AnalysisTab.jsx
     TournamentTab.jsx
 ```
 
@@ -70,7 +68,7 @@ Quatro grupos, por intenção — não por assunto:
 | --- | --- |
 | **Hoje** | o treino do dia |
 | **Técnica** | Golpes · Saque · Táticas |
-| **Progresso** | Evolução · Análise |
+| **Progresso** | Evolução |
 | **Jogos** | campeonato, placar ao vivo e histórico |
 
 ## Acervo técnico (aba Técnica › Golpes)
