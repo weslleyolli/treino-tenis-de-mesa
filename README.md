@@ -105,6 +105,24 @@ campo `robot` diz isso em vez de inventar uma regulagem.
 `netlify.toml` já traz build, redirect de SPA e cache. Basta ligar o repositório
 no Netlify ("Add new site" → "Import an existing project") — ele lê o arquivo e publica.
 
+### Disparar um deploy pela linha de comando
+
+`npm run deploy` inicia um build no Netlify por **build hook** — uma URL que só
+dispara o build, sem ler nem publicar nada, e que pode ser revogada a qualquer
+momento.
+
+1. Netlify → o site → **Site configuration › Build & deploy › Build hooks** →
+   **Add build hook**, branch `main`. Copie a URL.
+2. Guarde em `NETLIFY_BUILD_HOOK`. **Nunca no repositório** — hook commitado é
+   hook público.
+
+```bash
+export NETLIFY_BUILD_HOOK="https://api.netlify.com/build_hooks/xxxxxxxx"
+npm run deploy
+```
+
+O hook só inicia o build. Se ele falhar, o motivo está no log em **Deploys**.
+
 ## Identidade visual
 
 | Token | Hex | Uso |
