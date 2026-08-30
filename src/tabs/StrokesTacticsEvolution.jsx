@@ -1,30 +1,53 @@
 import React, { useState, useEffect } from "react";
 import {
-  Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
+  Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Search
 } from "lucide-react";
-import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars } from "../components/ui.jsx";
+import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, tagClass } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import { STROKES, STROKE_CATS } from "../data/strokes.js";
 import { COMBOS, OPPONENTS, GAME_VARIATIONS, LOSING_FIXES, GOLDEN_RULES } from "../data/tactics.js";
 import { DAYS, isDayDone } from "../data/schedule.jsx";
 
 /* ============ ABA GOLPES ============ */
-const CAT_COLOR = { Base: "#1E5A8A", Controle: "#2FA36B", Ataque: "#F26B21", Defesa: "#7C5CFC" };
+const CAT_COLOR = { Base: "#1E5A8A", Deslocamento: "#0E8B8B", Controle: "#2FA36B", Ataque: "#F26B21",
+  Defesa: "#7C5CFC", "Recepção": "#D6A324", Especiais: "#C2477A" };
+
+/* O tipo do exercício reusa as tags que o tagClass() de ui.jsx já conhece. */
+const TIPO_TAG = { sombra: "sombra", "robô": "robô", parceiro: "jogo", multibola: "robô", jogo: "jogo" };
+
+function Exercicio({ e }) {
+  return (
+    <div className="exc">
+      <div className="exc-top">
+        <span className="exc-n">{String(e.n).padStart(2, "0")}</span>
+        <span className="exc-nome">{e.nome}</span>
+        <span className={"exc-tag " + tagClass(TIPO_TAG[e.tipo] || e.tipo)}>{e.tipo}</span>
+      </div>
+      <div className="exc-dose"><Repeat size={12} /> {e.series} séries × {e.repet}</div>
+      <div className="exc-l"><span>Montagem</span>{e.montagem}</div>
+      <div className="exc-l"><span>Meta</span>{bold(e.meta)}</div>
+      <div className="exc-cue"><Target size={12} /> {e.cue}</div>
+    </div>);
+}
 
 function StrokesTab() {
   const [cat, setCat] = useState("Todos");
+  const [busca, setBusca] = useState("");
   const [openId, setOpenId] = useState(STROKES[0].id);
   const [mast, setMast] = useState({});
   useEffect(() => { (async () => { const m = await store.get("mastery:v1"); if (m) setMast(m); })(); }, []);
   const toggle = (id) => { const nx = { ...mast, [id]: !mast[id] }; setMast(nx); store.set("mastery:v1", nx); };
-  const list = cat === "Todos" ? STROKES : STROKES.filter(s => s.cat === cat);
+  const q = busca.trim().toLowerCase();
+  const list = STROKES.filter(s =>
+    (cat === "Todos" || s.cat === cat) &&
+    (!q || s.name.toLowerCase().includes(q) || (s.aka || "").toLowerCase().includes(q)));
   const doneN = STROKES.filter(s => mast[s.id]).length;
 
   return (
     <>
-      <Hero tone="blue" icon={<Target size={13} />} eyebrow="Biblioteca de Golpes"
-        title={`${doneN} de ${STROKES.length} golpes dominados`}
-        sub="Biomecânica, erros comuns, treino no robô e vídeo de cada fundamento. Marque o que já saiu automático."
+      <Hero tone="blue" icon={<Target size={13} />} eyebrow="Acervo Técnico"
+        title={`${doneN} de ${STROKES.length} técnicas dominadas`}
+        sub="Biomecânica, erros comuns, exercícios e vídeo de cada técnica do jogo. Marque o que já saiu automático."
         pct={Math.round((doneN / STROKES.length) * 100)} />
 
       <div className="catbar">
@@ -34,14 +57,23 @@ function StrokesTab() {
             {c !== "Todos" && <span className="cd" />}{c}</button>))}
       </div>
 
+      <div className="buscabar">
+        <Search size={15} />
+        <input value={busca} onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar técnica — em português ou inglês" />
+        {busca && <button onClick={() => setBusca("")}><X size={15} /></button>}
+      </div>
+      {list.length === 0 && <p className="vazio">Nenhuma técnica com esse nome.</p>}
+
       {list.map((s, i) => {
         const open = openId === s.id;
         return (
           <div className={"scard" + (open ? " open" : "")} key={s.id} style={{ "--c": CAT_COLOR[s.cat] }}>
             <button className="scard-head" onClick={() => setOpenId(open ? null : s.id)}>
-              <span className="sc-num">{String(STROKES.indexOf(s) + 1).padStart(2, "0")}</span>
+              <span className="sc-num">{String(i + 1).padStart(2, "0")}</span>
               <span className="sc-mid">
                 <span className="sc-name">{s.name}</span>
+                {s.aka && <span className="sc-aka">{s.aka}</span>}
                 <span className="sc-meta"><span className="sc-cat">{s.cat}</span><span className="sc-lvl">{s.level}</span>
                   {s.core && <span className="sc-core"><Zap size={9} /> Mês 1</span>}</span>
               </span>
@@ -55,8 +87,20 @@ function StrokesTab() {
                 <ol className="bio-steps">{s.steps.map((x, k) => <li key={k}>{bold(x)}</li>)}</ol>
                 <div className="mini-title">Erros comuns</div>
                 <ul className="err-list">{s.err.map((x, k) => <li key={k}>{x}</li>)}</ul>
-                <div className="drill-box"><Repeat size={14} /><span><strong>Treino: </strong>{s.drill}</span></div>
                 {s.robot && <div className="len-box"><Bot size={14} /><span><strong>No robô: </strong>{s.robot}</span></div>}
+                <div className="mini-title">Exercícios · {s.exercicios.length}</div>
+                {s.exercicios.map(e => <Exercicio key={e.n} e={e} />)}
+                <Collapsible title="Progressão" icon={<TrendingUp size={13} />}
+                  sub="Onde você está e o que falta para o próximo nível">
+                  <ol className="progniv">
+                    {s.progressao.map((p, k) => (
+                      <li key={k}>
+                        <span className="progniv-n">{p.nivel}</span>
+                        <span className="progniv-f">{p.foco}</span>
+                        <span className="progniv-c"><Check size={11} strokeWidth={3} /> {p.criterio}</span>
+                      </li>))}
+                  </ol>
+                </Collapsible>
                 <Vids videos={s.videos} />
                 <button className={"mastbtn" + (mast[s.id] ? " on" : "")} onClick={() => toggle(s.id)}>
                   <span className="mb-box">{mast[s.id] && <Check size={13} strokeWidth={3} />}</span>
