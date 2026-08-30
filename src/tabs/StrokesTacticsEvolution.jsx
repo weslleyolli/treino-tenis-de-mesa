@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Search
 } from "lucide-react";
-import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, Exercicio } from "../components/ui.jsx";
+import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, Exercicio, BlocoAcervo } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import { STROKES, STROKE_CATS } from "../data/strokes.js";
 import { COMBOS, OPPONENTS, GAME_VARIATIONS, LOSING_FIXES, GOLDEN_RULES } from "../data/tactics.js";
@@ -127,7 +127,10 @@ function TacticsTab() {
             {open && (<div className="combo-body">
               <ol className="seq">{c.seq.map((s, i) => <li key={i}>{bold(s)}</li>)}</ol>
               <div className="combo-why"><Info size={13} /><span>{c.why}</span></div>
-              <div className="combo-train"><Repeat size={13} /><span><strong>Como treinar: </strong>{c.train}</span></div>
+              <div className="mini-title">Como treinar · {c.exercicios.length} exercícios</div>
+              {c.exercicios.map(e => <Exercicio key={e.n} e={e} />)}
+              <BlocoAcervo ids={c.tecnicas} titulo="Golpes deste combo"
+                sub="as técnicas que executam a sequência" />
             </div>)}
           </div>);
       })}
@@ -145,6 +148,8 @@ function TacticsTab() {
             {open && (<div className="ocard-body">
               <div className="whenbox"><Target size={14} /><span><strong>Ponto fraco: </strong>{o.weak}</span></div>
               <ul className="clean-list" style={{ marginTop: 12 }}>{o.plan.map((p, i) => <li key={i}>{bold(p)}</li>)}</ul>
+              <BlocoAcervo ids={o.tecnicas} titulo="O que treinar para este plano"
+                sub="as técnicas que o plano acima exige" />
             </div>)}
           </div>);
       })}

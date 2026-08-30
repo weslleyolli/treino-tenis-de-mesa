@@ -5,6 +5,7 @@ import {
 import { parseMin, parseRest, fmt, beep, yt } from "../lib/helpers.jsx";
 import { storage as store } from "../lib/db.js";
 import { robotFor, KIND_META } from "../data/schedule.jsx";
+import { tecnicasPorId } from "../data/strokes.js";
 
 /* ============ COMPONENTES ============ */
 function Dial({ label, value }) {
@@ -55,6 +56,27 @@ function Exercicio({ e }) {
       <div className="exc-l"><span>Meta</span>{bold(e.meta)}</div>
       <div className="exc-cue"><Target size={12} /> {e.cue}</div>
     </div>);
+}
+
+/* As tecnicas do acervo ligadas a alguma coisa — um padrao da semana, a terceira
+   bola de um saque, um combo, um arquetipo de adversario. Vem fechado: o treino
+   e o que esta no card; o acervo e a peca isolada, a um toque de distancia. */
+function BlocoAcervo({ ids, titulo, sub }) {
+  const tecnicas = tecnicasPorId(ids);
+  if (!tecnicas.length) return null;
+  const total = tecnicas.reduce((n, t) => n + t.exercicios.length, 0);
+  return (
+    <Collapsible title={titulo} icon={<Layers size={13} />}
+      sub={sub || `${tecnicas.length} técnicas · ${total} exercícios`}>
+      {tecnicas.map((t) => (
+        <div className="acv-tec" key={t.id}>
+          <div className="acv-top">
+            <span className="acv-nome">{t.name}</span>
+            <span className="acv-cat">{t.cat}</span>
+          </div>
+          {t.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
+        </div>))}
+    </Collapsible>);
 }
 
 function tagClass(t) {
@@ -288,5 +310,5 @@ function GuiaPadrao({ guia }) {
 }
 
 export {
-  bold, GuiaPadrao, Dial, RobotPanel, tagClass, Exercicio, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
+  bold, GuiaPadrao, Dial, RobotPanel, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
 };

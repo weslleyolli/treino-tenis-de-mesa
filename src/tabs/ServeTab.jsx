@@ -2,32 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
 } from "lucide-react";
-import { bold, Collapsible, Vids, Session, BallClock, Spark, SecTitle, Bars, Notes, Exercicio } from "../components/ui.jsx";
+import { bold, Collapsible, Vids, Session, BallClock, Spark, SecTitle, Bars, Notes, Exercicio, BlocoAcervo } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import { SERVE_RULES, SERVE_FAULTS, SERVE_GRIP, CONTACT_ZONES, TABLE_ZONES, SERVE_SUMMARY, HALF_LONG_WARNING, SERVES, DECEPTION, SERVE_SETUP, SERVE_SESSION, SERVE_PLAN } from "../data/serves.js";
-import { tecnicasPorId } from "../data/strokes.js";
 
 /* ============ ABA SAQUE ============ */
-/* O saque so vale pelo que vem depois dele. Estas sao as tecnicas do acervo que
-   resolvem a terceira bola que ESTE saque produz — treinar o saque sem elas e
-   treinar metade do padrao. */
-function TerceiraBola({ ids }) {
-  const tecnicas = tecnicasPorId(ids);
-  if (!tecnicas.length) return null;
-  const total = tecnicas.reduce((n, t) => n + t.exercicios.length, 0);
-  return (
-    <Collapsible title="Terceira bola — exercícios do acervo" icon={<Layers size={13} />}
-      sub={`${tecnicas.length} técnicas · ${total} exercícios para o que vem depois do saque`}>
-      {tecnicas.map((t) => (
-        <div className="acv-tec" key={t.id}>
-          <div className="acv-top">
-            <span className="acv-nome">{t.name}</span>
-            <span className="acv-cat">{t.cat}</span>
-          </div>
-          {t.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
-        </div>))}
-    </Collapsible>);
-}
 
 function TableMap() {
   const cols = [{ x: 22, l: "FH dele" }, { x: 50, l: "meio" }, { x: 78, l: "BH dele" }];
@@ -319,7 +298,8 @@ function ServeTab({ onTimer, serveNote, onServeNote }) {
           <div className="third-box"><Eye size={14} /><span><strong>3ª bola — o que esperar: </strong>{bold(s.third)}</span></div>
           <div className="mini-title">Exercícios · {s.exercicios.length}</div>
           {s.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
-          <TerceiraBola ids={s.tecnicas} />
+          <BlocoAcervo ids={s.tecnicas} titulo="Terceira bola — exercícios do acervo"
+            sub="o que vem depois deste saque" />
           <Vids videos={s.videos} />
         </Collapsible>))}
 
