@@ -38,6 +38,25 @@ function RobotPanel({ cfg }) {
     </div>);
 }
 
+/* Um exercicio do acervo. Vive aqui porque aparece em dois lugares: na aba
+   Golpes e dentro do card de sessao da semana. O tipo reusa o tagClass abaixo. */
+const TIPO_TAG = { sombra: "sombra", "robô": "robô", parceiro: "jogo", multibola: "robô", jogo: "jogo" };
+
+function Exercicio({ e }) {
+  return (
+    <div className="exc">
+      <div className="exc-top">
+        <span className="exc-n">{String(e.n).padStart(2, "0")}</span>
+        <span className="exc-nome">{e.nome}</span>
+        <span className={"exc-tag " + tagClass(TIPO_TAG[e.tipo] || e.tipo)}>{e.tipo}</span>
+      </div>
+      <div className="exc-dose"><Repeat size={12} /> {e.series} séries × {e.repet}</div>
+      <div className="exc-l"><span>Montagem</span>{e.montagem}</div>
+      <div className="exc-l"><span>Meta</span>{bold(e.meta)}</div>
+      <div className="exc-cue"><Target size={12} /> {e.cue}</div>
+    </div>);
+}
+
 function tagClass(t) {
   if (!t) return "t-none";
   if (t.indexOf("robô") >= 0) return "t-robot";
@@ -269,5 +288,5 @@ function GuiaPadrao({ guia }) {
 }
 
 export {
-  bold, GuiaPadrao, Dial, RobotPanel, tagClass, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
+  bold, GuiaPadrao, Dial, RobotPanel, tagClass, Exercicio, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
 };

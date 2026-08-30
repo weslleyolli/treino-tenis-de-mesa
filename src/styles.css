@@ -70,6 +70,14 @@ border-radius:0 0 20px 20px;box-shadow:0 6px 20px rgba(14,46,74,.28);position:st
 .sr-slot{flex:none;font-family:var(--f-mono);font-size:10.5px;font-weight:700;color:var(--teal-600);
   background:#EAF7F0;border-radius:6px;padding:3px 7px;}
 
+.acv-tec{margin-bottom:15px;}
+.acv-tec:last-child{margin-bottom:0;}
+.acv-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--line);}
+.acv-nome{flex:1;min-width:0;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.02em;
+  font-size:13px;font-weight:600;color:var(--ink);}
+.acv-cat{flex:none;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--teal-600);background:#EAF7F0;border-radius:6px;padding:3px 7px;}
+
 /* ---- Sincronização ---- */
 .syncbtn{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);color:#CFE0D7;}

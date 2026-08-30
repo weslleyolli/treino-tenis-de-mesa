@@ -1723,7 +1723,24 @@ const STROKES = [
     videos: [["Penhold block", yt("traditional penhold backhand block tutorial")], ["Penhold style", yt("penhold table tennis backhand block")]] },
 ];
 
+/* Quais tecnicas do acervo cada padrao do cronograma treina. Fica aqui, e nao em
+   schedule.jsx, para o plano de treino nao ser tocado: isto e metadado do acervo,
+   nao muda bloco, regulagem nem meta de nenhum padrao. */
+const PADRAO_TECNICAS = {
+  P1: ["smash", "fh-drive", "timing"],
+  P2: ["fh-loop", "fh-loop-slow", "timing"],
+  P3: ["fh-loop", "fh-loop-power", "fh-drive"],
+  P4: ["bh-drive", "bh-punch", "footwork"],
+  P5: ["flick", "banana", "in-out"],
+  P6: ["fh-drive", "bh-drive", "stance", "split-step"],
+  P7: ["footwork", "split-step", "cross-step", "pivo"],
+  P8: ["rec-curto", "ler-efeito", "toque-curto", "push-longo"],
+};
+
+const tecnicasDoPadrao = (slot) =>
+  (PADRAO_TECNICAS[slot] || []).map((id) => STROKES.find((t) => t.id === id)).filter(Boolean);
+
 /* A ordem aqui é a ordem das pílulas de filtro na tela. */
 const STROKE_CATS = ["Base", "Deslocamento", "Controle", "Ataque", "Defesa", "Recepção", "Especiais"];
 
-export { STROKES, STROKE_CATS };
+export { STROKES, STROKE_CATS, PADRAO_TECNICAS, tecnicasDoPadrao };

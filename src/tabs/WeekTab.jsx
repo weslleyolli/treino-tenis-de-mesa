@@ -2,11 +2,33 @@ import React, { useState, useEffect } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
 } from "lucide-react";
-import { bold, RobotPanel, Session, Counter, tagClass, Collapsible, Vids, GuiaPadrao } from "../components/ui.jsx";
+import { bold, RobotPanel, Session, Counter, tagClass, Collapsible, Vids, GuiaPadrao, Exercicio } from "../components/ui.jsx";
 import { parseMin, parseRest } from "../lib/helpers.jsx";
 import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO } from "../data/schedule.jsx";
+import { tecnicasDoPadrao } from "../data/strokes.js";
 
 /* ============ ABA SEMANA ============ */
+/* Os exercicios do acervo que treinam o mesmo gesto deste padrao. Nao substituem
+   os blocos da sessao: sao o que fazer quando sobrar tempo, ou quando o padrao
+   travar e for preciso voltar para a peca isolada. */
+function AcervoDoPadrao({ slot }) {
+  const tecnicas = tecnicasDoPadrao(slot);
+  if (!tecnicas.length) return null;
+  const total = tecnicas.reduce((n, t) => n + t.exercicios.length, 0);
+  return (
+    <Collapsible title="Exercícios do acervo" icon={<Layers size={13} />}
+      sub={`${tecnicas.length} técnicas · ${total} exercícios que treinam este padrão`}>
+      {tecnicas.map((t) => (
+        <div className="acv-tec" key={t.id}>
+          <div className="acv-top">
+            <span className="acv-nome">{t.name}</span>
+            <span className="acv-cat">{t.cat}</span>
+          </div>
+          {t.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
+        </div>))}
+    </Collapsible>);
+}
+
 function SessionCard({ session, week, dayId, done, toggle, notes, setNote, records, setRecord, onTimer }) {
   const meta = KIND_META[session.kind];
   const I = meta.icon;
@@ -50,6 +72,8 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
             </div>);
         })}
       </div>
+
+      {session.slot && <AcervoDoPadrao slot={session.slot} />}
 
       {session.counter && <Counter label={session.counter} record={records[skey]} onRecord={(v) => setRecord(skey, v)} />}
 

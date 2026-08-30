@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Search
 } from "lucide-react";
-import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, tagClass } from "../components/ui.jsx";
+import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, Exercicio } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import { STROKES, STROKE_CATS } from "../data/strokes.js";
 import { COMBOS, OPPONENTS, GAME_VARIATIONS, LOSING_FIXES, GOLDEN_RULES } from "../data/tactics.js";
@@ -12,23 +12,6 @@ import { DAYS, isDayDone, sessionsFor } from "../data/schedule.jsx";
 const CAT_COLOR = { Base: "#1E5A8A", Deslocamento: "#0E8B8B", Controle: "#2FA36B", Ataque: "#F26B21",
   Defesa: "#7C5CFC", "Recepção": "#D6A324", Especiais: "#C2477A" };
 
-/* O tipo do exercício reusa as tags que o tagClass() de ui.jsx já conhece. */
-const TIPO_TAG = { sombra: "sombra", "robô": "robô", parceiro: "jogo", multibola: "robô", jogo: "jogo" };
-
-function Exercicio({ e }) {
-  return (
-    <div className="exc">
-      <div className="exc-top">
-        <span className="exc-n">{String(e.n).padStart(2, "0")}</span>
-        <span className="exc-nome">{e.nome}</span>
-        <span className={"exc-tag " + tagClass(TIPO_TAG[e.tipo] || e.tipo)}>{e.tipo}</span>
-      </div>
-      <div className="exc-dose"><Repeat size={12} /> {e.series} séries × {e.repet}</div>
-      <div className="exc-l"><span>Montagem</span>{e.montagem}</div>
-      <div className="exc-l"><span>Meta</span>{bold(e.meta)}</div>
-      <div className="exc-cue"><Target size={12} /> {e.cue}</div>
-    </div>);
-}
 
 function StrokesTab() {
   const [cat, setCat] = useState("Todos");
