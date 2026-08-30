@@ -43,7 +43,7 @@ src/
   data/                        # conteúdo estático (sem lógica de tela)
     schedule.jsx               # cronograma semanal, sessões, dias
     serves.js                  # 8 saques, zonas, disfarce
-    strokes.js                 # biblioteca de golpes
+    strokes.js                 # acervo técnico: 45 técnicas em 7 categorias
     tactics.js                 # combos, adversários, regras
     analysis.js                # protocolo e rubricas
     tournament.js              # lógica de campeonato (grupos + mata-mata)
@@ -72,6 +72,34 @@ Quatro grupos, por intenção — não por assunto:
 | **Técnica** | Golpes · Saque · Táticas |
 | **Progresso** | Evolução · Análise |
 | **Jogos** | campeonato, placar ao vivo e histórico |
+
+## Acervo técnico (aba Técnica › Golpes)
+
+45 técnicas em 7 categorias — Base, Deslocamento, Controle, Ataque, Defesa,
+Recepção e Especiais/material. Cada uma traz biomecânica passo a passo, erros
+comuns, **exercícios de 3 séries** (168 no total) e uma progressão de três níveis
+com critério objetivo para avançar.
+
+Cada técnica em `src/data/strokes.js` tem esta forma:
+
+```js
+{
+  id, name, level, cat,
+  aka,               // nome em inglês — a busca procura nos dois idiomas
+  idea, when,        // o que é / quando usar
+  steps: [],         // biomecânica passo a passo
+  err: [],           // erros comuns
+  robot,             // regulagem do iPong V300, ou null quando não dá para simular
+  exercicios: [      // { n, nome, tipo, series: 3, repet, montagem, meta, cue }
+  ],                 // tipo: sombra | robô | parceiro | multibola | jogo
+  progressao: [],    // { nivel, foco, criterio } × 3
+  videos: []
+}
+```
+
+O `id` é a chave do progresso em `mastery:v1` — **não renomeie ids existentes**.
+Quando o robô não consegue produzir a bola (efeito lateral, borracha longa), o
+campo `robot` diz isso em vez de inventar uma regulagem.
 
 ## Publicar no Netlify
 
