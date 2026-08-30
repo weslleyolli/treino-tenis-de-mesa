@@ -77,7 +77,6 @@ export default function App() {
     setTimer(t => (t ? { ...t, running: false } : t)); beep(); try { navigator.vibrate && navigator.vibrate(250); } catch {} } },
     [timer && timer.left, timer && timer.running]);
 
-  const keyOf = (w, id) => `w${w}-${id}`;
   const day = DAYS[activeIdx];
 
   const toggleSession = (skey) => { const nx = { ...done, [skey]: !done[skey] }; setDone(nx); store.set("progress:v4", nx); };
@@ -124,7 +123,7 @@ export default function App() {
         {view === "saque" && <ServeTab onTimer={onTimer} serveNote={serveNote} onServeNote={saveServeNote} />}
         {view === "taticas" && <TacticsTab />}
         {view === "analise" && <AnalysisTab />}
-        {view === "evolucao" && <EvolutionTab done={done} records={records} keyOf={keyOf} />}
+        {view === "evolucao" && <EvolutionTab done={done} records={records} />}
         {view === "torneio" && <TournamentTab />}
         {view === "ranking" && <RankingTab />}
       </main>

@@ -6,7 +6,7 @@ import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, tagClass
 import { storage as store } from "../lib/db.js";
 import { STROKES, STROKE_CATS } from "../data/strokes.js";
 import { COMBOS, OPPONENTS, GAME_VARIATIONS, LOSING_FIXES, GOLDEN_RULES } from "../data/tactics.js";
-import { DAYS, isDayDone } from "../data/schedule.jsx";
+import { DAYS, isDayDone, sessionsFor } from "../data/schedule.jsx";
 
 /* ============ ABA GOLPES ============ */
 const CAT_COLOR = { Base: "#1E5A8A", Deslocamento: "#0E8B8B", Controle: "#2FA36B", Ataque: "#F26B21",
@@ -182,44 +182,73 @@ function TacticsTab() {
 }
 
 /* ============ ABA EVOLUÇÃO ============ */
-function EvolutionTab({ done, records, keyOf }) {
+/* As chaves de recorde vem do proprio cronograma. Antes elas eram escritas a mao
+   ("w1-seg-robo") e pararam de existir quando os padroes ganharam slot proprio —
+   os graficos ficaram vazios sem ninguem perceber. Derivando de sessionsFor(),
+   remanejar o cronograma nao quebra mais a Evolucao. */
+function padroesComContador() {
+  const m = new Map();
+  for (const d of DAYS) {
+    for (const sess of sessionsFor(d.id, 1)) {
+      if (!sess.counter || !sess.slot) continue;
+      if (!m.has(sess.slot)) m.set(sess.slot, { slot: sess.slot, titulo: sess.title, contador: sess.counter, dias: [] });
+      m.get(sess.slot).dias.push(d.id);
+    }
+  }
+  return [...m.values()];
+}
+
+const CORES_PADRAO = ["#F26B21", "#1E5A8A", "#7C5CFC", "#2FA36B", "#D6A324", "#0E8B8B", "#C2477A", "#D14A32"];
+const minutosDoDia = (d) => { const m = String(d.total).match(/(\d+)/); return m ? Number(m[1]) : 0; };
+
+function EvolutionTab({ done, records }) {
   const [best, setBest] = useState(null);
   const [mast, setMast] = useState({});
   useEffect(() => { (async () => {
     const b = await store.get("servebest:v1"); if (b) setBest(b);
     const m = await store.get("mastery:v1"); if (m) setMast(m);
   })(); }, []);
+
   const weeks = [1, 2, 3, 4];
   const total = (() => { let n = 0; for (let w = 1; w <= 4; w++) DAYS.forEach(d => { if (isDayDone(done, w, d.id)) n++; }); return n; })();
   const pct = Math.round((total / 28) * 100);
   const byWeek = weeks.map(w => DAYS.filter(d => isDayDone(done, w, d.id)).length);
-  const series = (dayId) => weeks.map(w => ({ l: "S" + w, v: records[`w${w}-${dayId}-robo`] || 0 }));
-  const fh = series("seg"), bh = series("sex"), ts = series("qua");
+  const minutes = (() => { let n = 0; for (let w = 1; w <= 4; w++) DAYS.forEach(d => { if (isDayDone(done, w, d.id)) n += minutosDoDia(d); }); return n; })();
+
+  const padroes = padroesComContador();
+  /* Um padrao pode rodar em mais de um dia (P2 na segunda e na sexta):
+     o recorde da semana e o melhor entre os dias em que ele aparece. */
+  const serieDe = (p) => weeks.map(w => ({
+    l: "S" + w,
+    v: Math.max(0, ...p.dias.map(d => records[`w${w}-${d}-${p.slot}`] || 0)),
+  }));
   const mx = (a) => Math.max(0, ...a.map(x => x.v));
+
+  const curvas = padroes.map((p, i) => ({ ...p, dados: serieDe(p), cor: CORES_PADRAO[i % CORES_PADRAO.length] }));
+  const comDado = curvas.filter(c => mx(c.dados) > 0);
+  const semDado = curvas.filter(c => mx(c.dados) === 0);
   const mastN = STROKES.filter(s => mast[s.id]).length;
-  const minutes = total * 50;
-  const charts = [
-    { t: "Forehand — bolas seguidas", d: fh, c: "#F26B21", day: "segunda" },
-    { t: "Backhand — bolas seguidas", d: bh, c: "#1E5A8A", day: "sexta" },
-    { t: "Topspin vs backspin — bolas boas", d: ts, c: "#7C5CFC", day: "quarta" },
-  ];
-  const nextStep = mx(fh) < 40 ? "Foco em regularidade de forehand na segunda — meta de 40 bolas seguidas."
-    : mx(bh) < 30 ? "Forehand no ponto. Agora puxe o backhand na sexta até 30 seguidas."
-    : mx(ts) < 15 ? "Base sólida. O gargalo agora é o topspin contra backspin, na quarta."
-    : "Fundamentos do Mês 1 batidos. Hora de abrir o Mês 2: topspin de backhand e saques invertidos.";
+
+  /* Da para ter recorde sem nenhum DIA inteiro concluido — isDayDone exige todas
+     as sessoes do dia. So mande marcar treino quando nao houver nada dos dois. */
+  const nextStep = (total === 0 && comDado.length === 0)
+    ? "Marque um treino como concluído na aba Hoje para começar a preencher os gráficos."
+    : semDado.length
+      ? `Você ainda não registrou nada em ${semDado[0].slot} · ${semDado[0].contador}. Use o contador +1 durante o treino e a curva aparece aqui.`
+      : "Todos os padrões têm registro. Onde a curva está plana há duas semanas, é ali que o treino parou de render — suba a frequência do robô em 1.";
 
   return (
     <>
       <Hero tone="green" icon={<TrendingUp size={13} />} eyebrow="Evolução"
         title={`${total} de 28 treinos · ${pct}%`}
-        sub={total === 0 ? "Marque um treino como concluído na aba Semana para começar a preencher os gráficos."
+        sub={total === 0 ? "Marque um treino como concluído na aba Hoje para começar a preencher os gráficos."
           : `Cerca de ${Math.round(minutes / 60)}h de treino acumuladas neste mês.`}
         pct={pct} />
 
       <div className="statgrid">
         <div className="stat"><span className="stat-v">{total}</span><span className="stat-l">treinos feitos</span></div>
-        <div className="stat"><span className="stat-v">{mx(fh) || "—"}</span><span className="stat-l">recorde forehand</span></div>
-        <div className="stat"><span className="stat-v">{mx(bh) || "—"}</span><span className="stat-l">recorde backhand</span></div>
+        <div className="stat"><span className="stat-v">{comDado.length}/{curvas.length}</span><span className="stat-l">padrões medidos</span></div>
+        <div className="stat"><span className="stat-v">{mastN}</span><span className="stat-l">técnicas dominadas</span></div>
         <div className="stat"><span className="stat-v">{best ? best.pct + "%" : "—"}</span><span className="stat-l">saque no alvo</span></div>
       </div>
 
@@ -239,22 +268,32 @@ function EvolutionTab({ done, records, keyOf }) {
       </div>
 
       <SecTitle n="2" icon={<Award size={14} />}>Curva dos recordes</SecTitle>
-      {charts.map(c => (
-        <div className="block" key={c.t}>
-          <div className="chart-head"><span className="ch-t">{c.t}</span><span className="ch-max">máx {Math.max(0, ...c.d.map(x => x.v)) || 0}</span></div>
-          {c.d.some(x => x.v > 0)
-            ? <Spark data={c.d} color={c.c} />
-            : <div className="emptymini"><Info size={14} /><span>Use o contador <strong>+1</strong> no treino de {c.day} — a curva aparece aqui.</span></div>}
-        </div>))}
+      {comDado.length === 0
+        ? <div className="block"><div className="emptymini"><Info size={14} />
+            <span>Nenhum recorde ainda. Use o contador <strong>+1</strong> em qualquer padrão da aba Hoje — cada padrão vira uma curva aqui.</span></div></div>
+        : comDado.map(c => (
+          <div className="block" key={c.slot}>
+            <div className="chart-head">
+              <span className="ch-t">{c.slot} · {c.contador}</span>
+              <span className="ch-max">máx {mx(c.dados)}</span>
+            </div>
+            <Spark data={c.dados} color={c.cor} />
+          </div>))}
 
-      <SecTitle n="3" icon={<Target size={14} />}>Metas do Mês 1</SecTitle>
+      {semDado.length > 0 && comDado.length > 0 && (
+        <div className="block">
+          <div className="mini-title">Ainda sem registro</div>
+          <ul className="semreg">
+            {semDado.map(c => <li key={c.slot}><span className="sr-slot">{c.slot}</span>{c.contador}</li>)}
+          </ul>
+        </div>)}
+
+      <SecTitle n="3" icon={<Target size={14} />}>Metas do mês</SecTitle>
       <div className="block">
-        <GoalBar label="Forehands seguidos" cur={mx(fh)} target={40} />
-        <GoalBar label="Backhands seguidos" cur={mx(bh)} target={30} />
-        <GoalBar label="Topspins bons vs backspin" cur={mx(ts)} target={15} />
-        <GoalBar label="Saque no alvo" cur={best ? best.pct : 0} target={70} unit="%" />
-        <GoalBar label="Golpes dominados" cur={mastN} target={STROKES.length} />
         <GoalBar label="Treinos do mês" cur={total} target={28} />
+        <GoalBar label="Padrões medidos" cur={comDado.length} target={curvas.length} />
+        <GoalBar label="Saque no alvo" cur={best ? best.pct : 0} target={70} unit="%" />
+        <GoalBar label="Técnicas dominadas" cur={mastN} target={STROKES.length} />
       </div>
 
       <div className="nextbox"><TrendingUp size={16} /><div><div className="nb-t">Próximo passo</div><div className="nb-d">{nextStep}</div></div></div>
