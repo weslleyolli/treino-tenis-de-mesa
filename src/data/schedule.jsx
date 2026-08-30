@@ -1,7 +1,8 @@
 import { yt } from "../lib/helpers.jsx";
 import { GUIAS } from "./guias.js";
+import { STROKES } from "./strokes.js";
 import {
-  Bot, GraduationCap, Trophy, Wind, Target, Layers, Zap, Users, Activity
+  Bot, GraduationCap, Trophy, Wind, Target, Layers, Zap, Users, Activity, Dumbbell
 } from "lucide-react";
 
 /* ============================================================
@@ -117,6 +118,78 @@ function sessaoPadrao(p, comAquecimento) {
   };
 }
 
+/* ============ TÉCNICA DO ACERVO COMO SESSÃO ============
+   O acervo já traz exercícios estruturados; aqui eles viram blocos da linha do
+   tempo, iguais aos de um padrão. Assim a técnica ganha cronômetro, contador e
+   anotação sem nenhum componente novo de tela. */
+
+/* O campo `robot` das técnicas é prosa ("Topspin 0 / Backspin 3-4 / Freq 2 /
+   Oscilação OFF"). Onde ela casa com esse formato, vira painel do robô. Onde
+   não casa — as técnicas em que está escrito que o robô NÃO produz aquela bola —
+   devolve null, e o painel simplesmente não aparece. */
+function dialsDaTecnica(texto) {
+  if (!texto) return null;
+  const num = (rot) => {
+    const m = new RegExp(rot + "\\s+(\\d+)", "i").exec(texto);
+    return m ? Number(m[1]) : null;
+  };
+  const ts = num("Topspin"), bs = num("Backspin"), fq = num("Freq");
+  if (ts === null && bs === null) return null;
+  const osc = /Oscila(?:ção|cao)\s+ON/i.test(texto) ? "ON" : "OFF";
+  return { Topspin: ts ?? 0, Backspin: bs ?? 0, "Frequência": fq ?? 2, "Oscilação": osc };
+}
+
+/* Quanto dura um exercício, em segundos.
+   "3 séries × 90 segundos" é exato. "3 séries × 10 bolas" não é: estimo 4 s por
+   repetição (lançar, jogar, recuperar), que é o ritmo real de série no robô.
+   "1 set" não tem duração previsível e fica sem cronômetro. */
+function segundosDoExercicio(e) {
+  const tempo = /(\d+)\s*(segundos?|s\b|minutos?|min)/i.exec(e.repet);
+  if (tempo) {
+    const n = Number(tempo[1]);
+    return e.series * (/^s/i.test(tempo[2]) ? n : n * 60);
+  }
+  if (/\bsets?\b/i.test(e.repet)) return 0;
+  const cont = /(\d+)/.exec(e.repet);
+  return cont ? e.series * Number(cont[1]) * 4 : 0;
+}
+
+const emMinutos = (seg) => (seg >= 60 ? `${Math.round(seg / 60)} min` : `${seg} s`);
+
+function sessaoTecnica(id, opcoes = {}) {
+  const t = STROKES.find((x) => x.id === id);
+  if (!t) return null;
+  const escolhidos = opcoes.exercicios
+    ? t.exercicios.filter((e) => opcoes.exercicios.includes(e.n))
+    : t.exercicios;
+  let segundos = 0;
+  const blocks = escolhidos.map((e) => {
+    const seg = segundosDoExercicio(e);
+    segundos += seg + (seg ? e.series * 45 : 0);   // as pausas entre séries contam
+    return {
+      tag: e.tipo,
+      label: e.nome,
+      time: seg ? emMinutos(seg) : "—",
+      target: `${e.series} séries × ${e.repet} — ${e.montagem}`,
+      rest: "45 s",
+      cue: `${e.cue} Meta: ${e.meta}`,
+    };
+  });
+  const dials = dialsDaTecnica(t.robot);
+  return {
+    kind: "tecnica",
+    slot: "T-" + t.id,
+    title: t.name,
+    sub: opcoes.sub || t.aka || t.cat,
+    total: segundos ? `≈ ${Math.round(segundos / 60)} min` : "—",
+    robot: !!dials,
+    robotCfg: dials ? { title: t.name, pos: t.robot, dials } : null,
+    counter: "acertos",
+    tecnicaId: t.id,
+    blocks,
+  };
+}
+
 /* ============ ROBÔ — fallback por dia ============
    Cada padrão já traz a própria regulagem em `robotCfg`. Isto cobre as sessões
    que não são padrão (aquecimento de domingo). */
@@ -130,13 +203,24 @@ function robotFor(id) {
 }
 
 /* ============ SAQUE ============
-   Fase de manutenção, não de aprendizado: o repertório já está em 78%. O foco
-   rotaciona pelo que decide jogo — disfarce, comprimento e os pares. */
+   Um dia por semana, no sábado — o único dia com parceiro. Saque sozinho no
+   balde é metade do treino; a outra metade é alguém devolvendo, e é isso que
+   diz se o disfarce funciona. O foco acompanha o bloco: no bloco 1 se constrói
+   o par principal, no 2 o comprimento e a terceira bola, no 3 o disfarce e a
+   variação sob pressão. */
 const SERVE_FOCUS = {
   1: "Par no-spin × backspin — o mesmo gesto, efeitos opostos",
-  2: "Comprimento: curto que não sobra, longo rasante",
-  3: "Pendular lateral e o reverso — abrir os dois lados",
-  4: "Disfarce completo + conferência na câmera",
+  2: "Backspin curto: 1º quique no meio da sua metade",
+  3: "No-spin: contato às 9h e a finalização falsa",
+  4: "Teste do par — o parceiro canta o efeito antes de devolver",
+  5: "Comprimento: curto que não sobra, longo rasante",
+  6: "Saque + 3ª bola: o combo inteiro, não o saque solto",
+  7: "Pendular lateral — e para onde a devolução volta",
+  8: "Teste de terceira bola: quantas chegam ao ataque",
+  9: "Disfarce: mesma altura, mesmo ritmo, contato diferente",
+  10: "Variação de comprimento sem mudar o gesto",
+  11: "Longo rápido como surpresa — duas vezes por set",
+  12: "Teste final: repertório de jogo, só o que você usaria hoje",
 };
 
 function serveSession(week, short) {
@@ -161,31 +245,164 @@ const JOGO_TREINO = { kind: "treino", slot: "jogotreino", title: "Jogo com regra
     cue: "Escolha UMA regra por set: (1) todo ponto começa com o saque do P1; (2) contra bola cortada, só abertura do P2, nunca push; (3) no 9-9 imaginário, joga o P6. Ganhar é secundário — o que conta é a regra ter sido cumprida." },
 ] };
 
+/* Domingo. Sete dias por semana só funciona se um deles for leve de propósito —
+   sem isso a semana 6 em diante vira arrasto e a técnica piora junto. Carga
+   quase zero, aprendizado alto: sombra do que foi treinado e o vídeo que
+   alimenta o prompt de análise da aba Golpes. */
+function sessaoLeve(tecnicas) {
+  const nomes = tecnicas.map((t) => t.name).join(" · ");
+  return {
+    kind: "tecnica", slot: "leve", title: "Sombra e vídeo", sub: "dia leve — o que fecha o ciclo",
+    total: "≈ 25 min", robot: false, blocks: [
+      { tag: "sombra", label: "Mobilidade e soltura", time: "5 min", target: "Corda 2 min + mobilidade de ombro e quadril", rest: "—",
+        cue: "Soltar, não cansar. Se suou muito, passou do ponto." },
+      { tag: "sombra", label: "Sombra das técnicas da semana", time: "12 min", target: `3 × 2 min alternando: ${nomes}`, rest: "30 s",
+        cue: "Devagar e correto vale mais que rápido. Sombra é onde o gesto se corrige sem a pressa da bola." },
+      { tag: "estudo", label: "Gravar e mandar para análise", time: "8 min", target: "6 a 8 repetições de UMA técnica, slow motion, câmera lateral", rest: "—",
+        cue: "Abra a técnica na aba Golpes, copie o prompt em 'Analisar meu vídeo com IA' e mande o vídeo. Escolha a repetição mais representativa, não a melhor." },
+    ],
+  };
+}
+
+/* A bateria de teste, na sexta das semanas 4, 8 e 12. Sempre a mesma, sempre na
+   mesma ordem — comparar só funciona se a medida não mudar. É ela que responde
+   "estou evoluindo?" com número em vez de sensação. */
+function sessaoTeste(week) {
+  return {
+    kind: "tecnica", slot: "teste", title: `Bateria de teste · semana ${week}`, sub: "a mesma medida das outras semanas de teste",
+    total: "≈ 40 min", robot: true,
+    robotCfg: { title: "Bateria de teste", pos: "Ajuste conforme cada item — as regulagens estão em cada bloco.",
+      dials: { Topspin: 0, Backspin: 3, "Frequência": 2, "Oscilação": "OFF" } },
+    counter: "itens acima da linha de corte",
+    blocks: [
+      { tag: "saque", label: "1 · Saque curto backspin", time: "6 min", target: "20 saques na zona 1", rest: "—",
+        cue: "Conte quantos ficam curtos E baixos. Linha de corte: 12 de 20." },
+      { tag: "robô", label: "2 · Abertura contra cortada", time: "10 min", target: "6 séries × 8 bolas · Backspin 3-4, Freq 2", rest: "45 s",
+        cue: "Conte as que passam com efeito. Linha de corte: 24 de 48." },
+      { tag: "robô", label: "3 · Consistência (P6)", time: "8 min", target: "Melhor sequência · Topspin 3, Freq 4, Oscilação ON", rest: "60 s",
+        cue: "Errou, recomeça do zero. Linha de corte: 25 seguidas." },
+      { tag: "robô", label: "4 · Falkenberg (P7)", time: "6 min", target: "Voltas limpas em 2 min · Freq 3-4, Oscilação ON", rest: "60 s",
+        cue: "Conta só o que voltou ao centro entre as bolas." },
+      { tag: "robô", label: "5 · Forehand drive seguidas", time: "6 min", target: "Série livre · Topspin 3, Freq 3-4", rest: "—",
+        cue: "O recorde da série. Linha de corte: 40." },
+      { tag: "estudo", label: "Anotar e comparar", time: "4 min", target: "Os 5 números, no campo de anotações abaixo", rest: "—",
+        cue: "Compare com a última semana de teste. O que não subiu vira o foco do bloco seguinte." },
+    ],
+  };
+}
+
+/* ============ O CICLO DE 12 SEMANAS ============
+   Três blocos de quatro semanas. Cada bloco tem os padrões que sustentam o seu
+   tema e uma lista de técnicas do acervo por semana; o esqueleto dos dias é o
+   mesmo nas 12, o que muda é o conteúdo.
+
+   Na lista de cada dia: {p} é padrão, {t} é índice na lista de técnicas daquela
+   semana, `ex` recorta quais exercícios entram (revisita curta em vez da técnica
+   inteira). A quarta semana de cada bloco é de teste: volume menor e re-medição.
+
+   Cada técnica aparece DUAS vezes na semana, em dias separados — repetição
+   espaçada grava melhor que uma dose só. */
+const BLOCOS = [
+  {
+    n: 1, nome: "Base", cor: "#1E5A8A",
+    lema: "Consertar o que sustenta o resto",
+    semanas: {
+      1: { titulo: "Os fundamentos invisíveis", nota: "Pegada, base e timing. Nada de arma ainda — arma sobre base torta grava o erro.", tecnicas: ["grip", "stance", "timing", "split-step"] },
+      2: { titulo: "Os pés antes do golpe", nota: "Deslocamento em todas as direções. O golpe perfeito com os pés errados não existe.", tecnicas: ["footwork", "cross-step", "in-out", "pivo"] },
+      /* Esta semana carrega as três técnicas mais longas do acervo (28, 28 e 30
+         min). No template do bloco, a segunda ficaria com 74 min. Aqui a semana
+         sobrescreve o template: uma batida por dia, em vez de duas empilhadas. */
+      3: { titulo: "As duas batidas", nota: "Forehand e backhand drive até virarem automáticos, mais o bloqueio.", tecnicas: ["fh-drive", "bh-drive", "block"],
+        dias: {
+          seg: [{ t: 0 }, { p: "P7" }],
+          ter: [{ p: "P6" }, { t: 0, ex: [2, 3] }],
+          qua: [{ t: 1 }, { p: "P8" }],
+          qui: [{ t: 2, ex: [1, 2, 3] }, { t: 1, ex: [2, 3] }],
+          sex: [{ p: "P6" }, { p: "P8" }],
+        } },
+      4: { titulo: "Jogo curto · semana de teste", nota: "Push e toque curto. Volume menor: re-meça a bateria e compare com a semana 1.", teste: true, tecnicas: ["push-bh", "push-fh", "toque-curto", "push-longo"] },
+    },
+    dias: {
+      seg: [{ t: 0 }, { t: 1 }, { p: "P7" }],
+      ter: [{ p: "P6" }, { t: 0, ex: [2, 3] }],
+      qua: [{ t: 2 }, { t: 3 }, { p: "P8" }],
+      qui: [{ t: 1, ex: [2, 3] }, { t: 2, ex: [1, 2] }, { p: "P7" }],
+      sex: [{ p: "P6" }, { p: "P8" }],
+    },
+  },
+  {
+    n: 2, nome: "Armas", cor: "#FF7A29",
+    lema: "O que ganha ponto",
+    semanas: {
+      5: { titulo: "A abertura", nota: "Topspin contra bola cortada. É o golpe que transforma defesa em ataque.", tecnicas: ["fh-loop", "fh-loop-slow"] },
+      6: { titulo: "As marchas do ataque", nota: "Abrir é uma coisa, acelerar é outra. Aqui entram as duas e o efeito lateral.", tecnicas: ["fh-loop-power", "loop-lateral", "smash"] },
+      7: { titulo: "O backhand ataca", nota: "O lado esquerdo deixa de só bloquear.", tecnicas: ["bh-loop", "bh-punch"] },
+      8: { titulo: "Recepção agressiva · semana de teste", nota: "Flick e banana. Re-meça: abertura, smash e o combo do no-spin.", teste: true, tecnicas: ["flick", "banana", "flick-fh"] },
+    },
+    dias: {
+      seg: [{ t: 0 }, { p: "P2" }],
+      ter: [{ p: "P1" }, { t: 1 }],
+      qua: [{ t: 0, ex: [2, 3] }, { t: 1, ex: [2, 3] }, { p: "P3" }],
+      qui: [{ t: 2 }, { p: "P5" }],
+      sex: [{ p: "P2" }, { p: "P3" }],
+    },
+  },
+  {
+    n: 3, nome: "Jogo", cor: "#7A4FE0",
+    lema: "Integrar e aguentar pressão",
+    semanas: {
+      9: { titulo: "Ler antes de tocar", nota: "Leitura de efeito e devolução. Em torneio, todo ponto começa com um saque que você nunca viu.", tecnicas: ["ler-efeito", "rec-curto", "rec-longo"] },
+      10: { titulo: "Contra quem ataca primeiro", nota: "Contra-topspin e bloqueio ativo — parar de só sobreviver quando ele abre.", tecnicas: ["fh-counterloop", "bh-counterloop", "block-ativo"] },
+      11: { titulo: "Quando o ponto foge", nota: "As bolas que te mantêm vivo longe da mesa, e como devolver o efeito invertido.", tecnicas: ["block-lateral", "chop-block", "lob", "fish"] },
+      12: { titulo: "Material estranho · semana de teste", nota: "Borracha longa e anti — os estilos que decidem estreia. Re-meça a bateria inteira.", teste: true, tecnicas: ["pips-contra", "anti", "rec-lateral", "rec-meio"] },
+    },
+    dias: {
+      seg: [{ t: 0 }, { t: 1 }, { p: "P4" }],
+      ter: [{ p: "P6" }, { t: 0, ex: [2, 3] }],
+      qua: [{ t: 2 }, { p: "P8" }, { p: "P4" }],
+      qui: [{ t: 1, ex: [2, 3] }, { t: 2, ex: [1, 2] }, { p: "P6" }],
+      sex: [{ p: "P4" }, { p: "P8" }],
+    },
+  },
+];
+
+const blocoDaSemana = (week) => BLOCOS.find((b) => b.semanas[week]) || BLOCOS[0];
+const semanaInfo = (week) => blocoDaSemana(week).semanas[week] || BLOCOS[0].semanas[1];
+
 function sessionsFor(id, week) {
-  const P = PADROES;
-  switch (id) {
-    case "seg": return [sessaoPadrao(P.P2, true), sessaoPadrao(P.P3), sessaoPadrao(P.P7)];
-    case "ter": return [serveSession(week), sessaoPadrao(P.P1)];
-    case "qua": return [sessaoPadrao(P.P4, true), sessaoPadrao(P.P6), sessaoPadrao(P.P8)];
-    case "qui": return [serveSession(week), sessaoPadrao(P.P5)];
-    case "sex": return [sessaoPadrao(P.P2, true), sessaoPadrao(P.P4), sessaoPadrao(P.P7)];
-    case "sab": return [sessaoPadrao(P.P3, true), sessaoPadrao(P.P6), serveSession(week, true), JOGO_TREINO];
-    case "dom": return [
-      { kind: "robo", slot: "aquecimento", title: "Aquecimento leve", sub: "pré-campeonato", total: "≈ 18 min", robot: true, blocks: [
-        { tag: "sem robô", label: "Ativação", time: "6 min", target: "Corda 2 min + mobilidade + 20 sombras leves", rest: "—", cue: "Suar levemente, sem fadiga." },
-        { tag: "robô", label: "Aquecimento de jogo", time: "12 min", target: "FH 2 × 2 min + BH 2 × 2 min + oscilação 2 × 2 min", rest: "45 s", cue: "Ritmo de partida. Pare enquanto ainda está bom." },
-      ] },
-      serveSession(week, true),
-      { kind: "jogo", slot: "jogo", title: "Campeonato", sub: "dia de jogo", total: "—", robot: false, blocks: [
-        { tag: "jogo", label: "Partidas", time: "—", target: "Jogue! Depois registre cada partida na aba Jogos", rest: "—", cue: "Anote qual saque rendeu ponto e onde você errou mais." },
-      ] },
-    ];
-    default: return [];
+  const bloco = blocoDaSemana(week);
+  const info = semanaInfo(week);
+  const tecs = info.tecnicas;
+
+  if (id === "sab") return [serveSession(week), JOGO_TREINO];
+  if (id === "dom") return [sessaoLeve(tecs.map((t) => STROKES.find((s) => s.id === t)).filter(Boolean))];
+
+  /* Semana de teste: a sexta vira a bateria, e os dias longos perdem o último
+     item. Sem essa queda de volume, "semana de teste" seria só um rótulo — e
+     medir cansado mede o cansaço, não a técnica. */
+  /* Uma semana pode sobrescrever o template do bloco quando o conteúdo dela não
+     cabe nele — ver a semana 3. */
+  const receita = (info.dias && info.dias[id]) || bloco.dias[id] || [];
+
+  if (info.teste) {
+    if (id === "sex") return [sessaoTeste(week)];
+    return montar(receita.slice(0, 2), tecs);
   }
+
+  return montar(receita, tecs);
+}
+
+function montar(receita, tecs) {
+  return receita.map((item, i) => {
+    if (item.p) return sessaoPadrao(PADROES[item.p], i === 0);
+    const tecId = tecs[item.t % tecs.length];
+    return sessaoTecnica(tecId, item.ex ? { exercicios: item.ex, sub: "revisita" } : {});
+  }).filter(Boolean);
 }
 
 const KIND_META = {
   robo: { icon: Bot, color: "#FF7A29", label: "Padrão" },
+  tecnica: { icon: Dumbbell, color: "#1E5A8A", label: "Técnica" },
   saque: { icon: Wind, color: "#2FA36B", label: "Saque" },
   treino: { icon: Users, color: "#1C6F63", label: "Jogo-treino" },
   aula: { icon: GraduationCap, color: "#7A4FE0", label: "Aula" },
@@ -197,73 +414,55 @@ function isDayDone(done, week, id) {
   return ss.length > 0 && ss.every(s => done[`w${week}-${id}-${s.slot || s.kind}`]);
 }
 
-/* Nota que aparece em terça e quinta: hoje esses dias são saque + padrão
-   porque você está sem aula. Quando a aula voltar, eles mudam. */
+/* Aparece no sábado, o único dia com outra pessoa. O ciclo inteiro depende de
+   usar bem essas duas horas, porque é o que o robô não entrega. */
 const SEM_AULA = [
-  "Enquanto você está sem aula, terça e quinta ficam com saque + um padrão.",
-  "Quando a aula voltar, esses dois dias viram **aula + 15 min de aquecimento** no robô, e o padrão do dia sai.",
-  "O pedido para o professor é específico: **“me manda cortada e topspin alternados sem avisar”** — é a única coisa que o robô não faz e que você precisa.",
+  "Sábado é o único dia com parceiro — gaste ele no que o robô não faz.",
+  "**Peça para ele sacar variando e cantar o efeito depois que você devolveu.** Ler efeito de gente é a habilidade que mais decide jogo e a que menos dá para treinar sozinho.",
+  "Se a aula voltar, ela entra aqui ou substitui um dia de técnica. O pedido para o professor continua o mesmo: **“me manda cortada e topspin alternados sem avisar”**.",
 ];
 
 /* ============ DIAS ============ */
 const DAYS = [
-  { id: "seg", short: "Seg", name: "Segunda", icon: Target, focus: "P2 + P3 + P7 · abertura, continuação e pés", total: "≈ 52 min", tint: "#FF7A29", intensity: "Alta",
-    bio: { title: "Abertura contra bola cortada (P2)", steps: [
-      "Base: pés bem afastados, pé direito atrás. Joelhos ~110° — 'sente' no golpe.",
-      "Preparação: gire quadril e ombro à direita e deixe a raquete **descer até a altura do joelho direito**. Peso ~70% na perna direita.",
-      "Timing: bata no topo do quique ou no início da descida — nunca na subida.",
-      "Ângulo: raquete **aberta 70–80°**, quase vertical. É o que levanta a bola cortada.",
-      "Contato **fino**, pincelada na traseira/superior. Muita rotação, pouca velocidade.",
-      "Finalização: raquete acima da cabeça. Recupere a base em 1 s — o P3 começa aqui." ],
-      note: "Abertura não é winner. A bola que decide é a seguinte, quando o bloqueio dele volta." },
-    videos: [["Topspin vs backspin — PingSkills", yt("forehand topspin against backspin PingSkills")], ["Slow loop contra backspin", yt("table tennis slow loop against backspin")]] },
+  { id: "seg", short: "Seg", name: "Segunda", icon: Target, focus: "Técnicas novas da semana + padrão", total: "≈ 50 min", tint: "#1E5A8A", intensity: "Alta",
+    checklist: ["É o dia da técnica nova — cabeça descansada, gesto devagar", "Cada exercício tem meta: anote quantos saíram, não só que você fez", "A biomecânica completa está na aba Golpes, dentro da técnica"],
+    videos: [["Como treinar técnica nova", yt("table tennis how to learn new technique deliberate practice")]] },
 
-  { id: "ter", short: "Ter", name: "Terça", icon: Wind, focus: "Saque (30 min) + P1", total: "≈ 46 min", tint: "#2FA36B", intensity: "Alta", serveDay: true, star: true,
-    checklist: ["Balde montado antes de começar", "O no-spin do P1 é o mesmo gesto do backspin", "Filme 1 série de saque para conferir o disfarce"],
-    semAula: SEM_AULA,
-    videos: [["No-spin vs backspin serve", yt("no spin serve vs backspin serve table tennis")], ["Como finalizar bola alta", yt("table tennis how to smash high ball")]] },
-
-  { id: "qua", short: "Qua", name: "Quarta", icon: Layers, focus: "P4 + P6 + P8 · xadrez, pressão e recepção", total: "≈ 50 min", tint: "#7A4FE0", intensity: "Alta",
-    bio: { title: "Pressão no backhand e punição na paralela (P4)", steps: [
-      "Três bolas seguidas no **mesmo canto**: você está construindo, não atacando ainda.",
-      "Repare no momento em que ele **gira o corpo** para cobrir aquele canto — é o gatilho.",
-      "A quarta bola vai **rápida na paralela oposta**, no espaço que ele acabou de abrir.",
-      "Direção vem do **ângulo da raquete no contato**, não de um movimento diferente. Se o gesto mudar, ele lê.",
-      "Volte ao centro imediatamente: se ele alcançar, a bola volta no seu lado aberto." ],
-      note: "É exatamente o xadrez que abre o Caio e o Aleykson. Os dois giram cedo demais." },
-    videos: [["Padrão de jogo — canto e paralela", yt("table tennis playing patterns wide backhand then down the line")]] },
-
-  { id: "qui", short: "Qui", name: "Quinta", icon: Wind, focus: "Saque + P5 · flick", total: "≈ 44 min", tint: "#2FA36B", intensity: "Média", serveDay: true,
-    checklist: ["O flick é prioridade 4 — um dia por semana basta", "Entrada de pé direito antes do punho", "Se estiver errando muito, volte ao push e tente na próxima série"],
-    semAula: SEM_AULA,
-    videos: [["Backhand flick", yt("backhand flick table tennis tutorial")], ["Flick em câmera lenta", yt("table tennis banana flick slow motion")]] },
-
-  { id: "sex", short: "Sex", name: "Sexta", icon: Target, focus: "P2 + P4 + P7 · padrões e pés", total: "≈ 55 min", tint: "#FF7A29", intensity: "Alta",
-    checklist: ["P2 de novo na semana: a abertura é o que resolve o Henrique", "No P4, conte quantas paralelas realmente passaram", "No P7, o que conta é voltar ao centro, não o golpe"],
-    videos: [["Slow loop contra backspin", yt("table tennis slow loop against backspin")]] },
-
-  { id: "sab", short: "Sáb", name: "Sábado", icon: Zap, focus: "P3 + P6 + saque + jogo-treino", total: "≈ 68 min", tint: "#1C6F63", intensity: "Média", serveDay: true,
-    checklist: ["Sábado é ensaio do domingo: nada novo", "No P6, anote o recorde de bolas seguidas", "Revisão de saque só com o que já funciona", "No jogo-treino, cumprir a regra vale mais que ganhar o set"],
+  { id: "ter", short: "Ter", name: "Terça", icon: Bot, focus: "Padrão do bloco + revisita da técnica", total: "≈ 40 min", tint: "#FF7A29", intensity: "Alta",
+    checklist: ["O padrão vem primeiro, com a cabeça descansada", "A revisita é curta de propósito — dois exercícios, não a técnica inteira", "Se o gesto da segunda-feira não saiu, hoje é o dia de consertar"],
     videos: [["Consistência sob pressão", yt("table tennis consistency drill under pressure")]] },
 
-  { id: "dom", short: "Dom", name: "Domingo", icon: Trophy, focus: "Aquecimento leve + campeonato", total: "≈ 30 min + jogos", tint: "#D6A324", intensity: "Jogo", matchDay: true, serveDay: true,
-    matchNotes: [
-      "Aqueça de leve e pare ANTES de cansar — o campeonato é o esforço do dia.",
-      "Escolha 2 saques confiáveis e um terceiro só como surpresa. Não estreie saque novo em jogo.",
-      "Contra o Henrique: backspin e abra (P2). Contra Caio e Aleykson: pressão no BH e pune a paralela (P4).",
-      "No deuce, jogue o P6: bola na mesa, sem tentar vencedor.",
-      "Depois dos jogos, registre a partida na aba Jogos: saque que rendeu ponto e onde errou mais.",
-    ],
-    videos: [["Táticas simples de jogo", yt("table tennis basic tactics for beginners")]] },
+  { id: "qua", short: "Qua", name: "Quarta", icon: Layers, focus: "Segunda leva de técnicas + padrão", total: "≈ 50 min", tint: "#1E5A8A", intensity: "Alta",
+    checklist: ["As técnicas de hoje são diferentes das de segunda — a semana cobre quatro frentes", "Meta por exercício, sempre: sem denominador não há evolução", "Errou muito numa série? Baixe a frequência do robô em 1 antes de insistir"],
+    videos: [["Como treinar técnica nova", yt("table tennis how to learn new technique deliberate practice")]] },
+
+  { id: "qui", short: "Qui", name: "Quinta", icon: Activity, focus: "Revisitas + padrão · segunda dose da semana", total: "≈ 45 min", tint: "#0E8B8B", intensity: "Média",
+    checklist: ["É a segunda dose das técnicas de segunda e quarta — repetição espaçada grava melhor que dose única", "Recortes curtos: o objetivo é lembrar o gesto, não cansar", "Se uma técnica já saiu automática, troque o tempo dela por mais padrão"],
+    videos: [["Aprendizado motor e repetição espaçada", yt("motor learning spaced practice table tennis")]] },
+
+  { id: "sex", short: "Sex", name: "Sexta", icon: Zap, focus: "Integração · os padrões do bloco, sem técnica nova", total: "≈ 35 min", tint: "#FF7A29", intensity: "Alta",
+    checklist: ["Nada novo hoje: é o dia de usar a técnica da semana dentro do padrão", "Se o gesto novo sumir sob pressão do padrão, ele ainda não está pronto — volte a ele na segunda", "Anote o contador dos dois padrões: é o número que a aba Evolução desenha"],
+    videos: [["Transferir técnica para o jogo", yt("table tennis transfer drills to match play")]] },
+
+  { id: "sab", short: "Sáb", name: "Sábado", icon: Users, focus: "Saque + jogo-treino · o único dia com parceiro", total: "≈ 55 min", tint: "#2FA36B", intensity: "Alta", serveDay: true, star: true,
+    checklist: ["Balde montado antes de começar", "Peça para ele cantar o efeito do seu saque — é o teste que o balde sozinho não faz", "No jogo-treino, cumprir a regra vale mais que ganhar o set", "Registre a partida na aba Jogos"],
+    semAula: SEM_AULA,
+    videos: [["No-spin vs backspin serve", yt("no spin serve vs backspin serve table tennis")], ["Jogo com restrição", yt("table tennis constraint based training games")]] },
+
+  { id: "dom", short: "Dom", name: "Domingo", icon: Activity, focus: "Sombra e vídeo · dia leve", total: "≈ 25 min", tint: "#D6A324", intensity: "Leve",
+    checklist: ["Leve é planejado, não é folga: sem ele a semana 6 em diante vira arrasto", "Sombra devagar e correto — é onde o gesto se conserta sem a pressa da bola", "Grave UMA técnica e mande para análise; a resposta guia a semana seguinte"],
+    videos: [["Shadow play", yt("table tennis shadow practice technique")]] },
 ];
 
-const WEEK_INFO = [
-  { n: 1, title: "Instalar os padrões", note: "Acerte a sequência antes da velocidade. Saque: par no-spin × backspin." },
-  { n: 2, title: "Velocidade na continuação", note: "P3 mais reto e rápido a partir da 2ª bola. Saque: comprimento." },
-  { n: 3, title: "Xadrez sob pressão", note: "P4 com o gesto idêntico nas duas direções. Saque: lateral e reverso." },
-  { n: 4, title: "Ensaio de campeonato", note: "P6 valendo, meta de 25 seguidas. Saque: disfarce completo." },
-];
+/* Uma entrada por semana do ciclo, derivada dos blocos — não há duas listas de
+   semanas para sair de sincronia. */
+const WEEK_INFO = BLOCOS.flatMap((b) =>
+  Object.entries(b.semanas).map(([n, s]) => ({
+    n: Number(n), title: s.titulo, note: s.nota, bloco: b.n, blocoNome: b.nome, cor: b.cor, teste: !!s.teste,
+  }))
+).sort((a, b) => a.n - b.n);
 
 export {
   robotFor, SERVE_FOCUS, serveSession, sessionsFor, KIND_META, isDayDone, DAYS, WEEK_INFO, PADROES,
+  sessaoTecnica, BLOCOS, blocoDaSemana, semanaInfo,
 };

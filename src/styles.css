@@ -74,6 +74,20 @@ exercícios e progressão ---- */
   color:#37473D;background:#F7FAF8;border:1px solid var(--line);border-radius:12px;padding:12px;
   max-height:280px;overflow-y:auto;margin:0 0 12px;}
 
+.blocobar{display:flex;gap:6px;margin-top:9px;}
+.bloco-pill{flex:1;min-width:0;background:#F1F4F7;border:1.5px solid transparent;border-radius:10px;
+  padding:6px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;}
+.bloco-pill.active{background:var(--c);border-color:var(--c);}
+.bl-n{font-family:var(--f-mono);font-size:8.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);}
+.bloco-pill.active .bl-n{color:rgba(255,255,255,.75);}
+.bl-nome{font-size:12px;font-weight:800;color:var(--ink);line-height:1.1;}
+.bloco-pill.active .bl-nome{color:#fff;}
+
+.heat-bloco{font-family:var(--f-mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--c,var(--teal-600));margin:10px 0 5px;display:flex;align-items:center;gap:7px;}
+.heat-bloco::after{content:"";flex:1;height:1px;background:var(--line);}
+
 /* ---- Sincronização ---- */
 .syncbtn{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);color:#CFE0D7;}

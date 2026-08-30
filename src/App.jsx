@@ -5,7 +5,7 @@ import {
 import "./styles.css";
 import { fmt, beep } from "./lib/helpers.jsx";
 import { storage as store } from "./lib/db.js";
-import { DAYS, isDayDone } from "./data/schedule.jsx";
+import { DAYS, isDayDone, WEEK_INFO } from "./data/schedule.jsx";
 import { WeekTab } from "./tabs/WeekTab.jsx";
 import { ServeTab } from "./tabs/ServeTab.jsx";
 import { StrokesTab, TacticsTab, EvolutionTab } from "./tabs/StrokesTacticsEvolution.jsx";
@@ -82,7 +82,7 @@ export default function App() {
   const setNote = (skey, v) => { const nx = { ...notes, [skey]: v }; setNotes(nx); store.set("notes:v4", nx); };
   const saveServeNote = (v) => { setServeNote(v); store.set("servenote:v3", v); };
   const onTimer = (label, sec) => setTimer({ label, total: sec, left: sec, running: true });
-  const monthDone = useMemo(() => { let n = 0; for (let w = 1; w <= 4; w++) DAYS.forEach(d => { if (isDayDone(done, w, d.id)) n++; }); return n; }, [done]);
+  const monthDone = useMemo(() => { let n = 0; WEEK_INFO.forEach(({ n: w }) => DAYS.forEach(d => { if (isDayDone(done, w, d.id)) n++; })); return n; }, [done]);
 
   const cur = NAV.find(g => g.id === group);
   const view = cur.subs ? sub[group] : group;
@@ -95,7 +95,7 @@ export default function App() {
       <header className="hdr">
         <div className="brand"><span className="ball" />
           <div><div className="brand-name">MESA<span>1</span></div>
-            <div className="brand-sub">Robô 7 dias · 2 aulas · campeonato</div></div>
+            <div className="brand-sub">Ciclo 12 semanas · robô + 1 dia com parceiro</div></div>
           <SyncBadge onSynced={recarregarTudo} /></div>
         <div className="tabs">
           {NAV.map(g => { const I = g.icon;

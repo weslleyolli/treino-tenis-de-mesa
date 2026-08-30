@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { bold, RobotPanel, Session, Counter, tagClass, Collapsible, Vids, GuiaPadrao, BlocoAcervo } from "../components/ui.jsx";
 import { parseMin, parseRest } from "../lib/helpers.jsx";
-import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO } from "../data/schedule.jsx";
+import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO, BLOCOS } from "../data/schedule.jsx";
 import { PADRAO_TECNICAS } from "../data/strokes.js";
 
 /* ============ ABA SEMANA ============ */
@@ -82,6 +82,7 @@ function WeekTab(p) {
   const weekDone = DAYS.filter(d => isDayDone(done, week, d.id)).length;
   const pct = Math.round((weekDone / 7) * 100);
   const info = WEEK_INFO[week - 1];
+  const semanasDoBloco = WEEK_INFO.filter(w => w.bloco === info.bloco);
   const intCls = day.intensity === "Alta" ? "int-high" : day.intensity === "Média" ? "int-mid" : day.intensity === "Jogo" ? "int-match" : "int-low";
   const doneN = sessions.filter(s => done[`w${week}-${day.id}-${s.slot || s.kind}`]).length;
 
@@ -90,15 +91,24 @@ function WeekTab(p) {
       <div className="subhdr">
         <div className="week-row">
           <button className="wk-arrow" disabled={week === 1} onClick={() => setWeek(week - 1)}><ChevronLeft size={18} /></button>
-          <div className="wk-pills">{WEEK_INFO.map(w => (
+          {/* Só as 4 semanas do bloco atual: 12 pílulas não cabem em 430 px, e
+              ver o bloco em que você está vale mais que ver as 12 de uma vez. */}
+          <div className="wk-pills">{semanasDoBloco.map(w => (
             <button key={w.n} className={"wk-pill" + (w.n === week ? " active" : "")} onClick={() => setWeek(w.n)}>
-              <span className="wk-lbl">Sem</span><span className="wk-num">{w.n}</span></button>))}</div>
-          <button className="wk-arrow" disabled={week === 4} onClick={() => setWeek(week + 1)}><ChevronRight size={18} /></button>
+              <span className="wk-lbl">{w.teste ? "Teste" : "Sem"}</span><span className="wk-num">{w.n}</span></button>))}</div>
+          <button className="wk-arrow" disabled={week === WEEK_INFO.length} onClick={() => setWeek(week + 1)}><ChevronRight size={18} /></button>
         </div>
+        <div className="blocobar">{BLOCOS.map(b => {
+          const primeira = Number(Object.keys(b.semanas)[0]);
+          return (
+            <button key={b.n} className={"bloco-pill" + (b.n === info.bloco ? " active" : "")}
+              style={{ "--c": b.cor }} onClick={() => setWeek(primeira)}>
+              <span className="bl-n">Bloco {b.n}</span><span className="bl-nome">{b.nome}</span>
+            </button>); })}</div>
         <div className="wk-focus"><div className="wk-focus-title">{info.title}</div><div className="wk-focus-note">{info.note}</div></div>
         <div className="prog">
           <div className="prog-bar"><div className="prog-fill" style={{ width: pct + "%" }} /></div>
-          <div className="prog-lbl">{weekDone}/7 · mês {monthDone}/28</div>
+          <div className="prog-lbl">{weekDone}/7 · ciclo {monthDone}/{WEEK_INFO.length * 7}</div>
           <button className="reset" onClick={resetWeek} title="Zerar semana"><RotateCcw size={15} /></button>
         </div>
       </div>
@@ -114,7 +124,7 @@ function WeekTab(p) {
 
       <div className="day-head" style={{ "--tint": day.tint }}>
         <div className="badges">
-          {day.star && <span className="star-badge"><Zap size={11} /> Golpe-assinatura</span>}
+          {day.star && <span className="star-badge"><Users size={11} /> Dia com parceiro</span>}
           {day.lesson && <span className="lesson-badge"><GraduationCap size={11} /> Dia de aula</span>}
           {day.matchDay && <span className="match-badge"><Trophy size={11} /> Dia de jogo</span>}
           {day.serveDay && <span className="serve-badge"><Wind size={11} /> Saque</span>}

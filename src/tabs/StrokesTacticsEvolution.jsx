@@ -7,7 +7,7 @@ import { storage as store } from "../lib/db.js";
 import { STROKES, STROKE_CATS } from "../data/strokes.js";
 import { COMBOS, OPPONENTS, GAME_VARIATIONS, LOSING_FIXES, GOLDEN_RULES } from "../data/tactics.js";
 import { COMO_FILMAR, promptDaTecnica } from "../data/analiseVideo.js";
-import { DAYS, isDayDone, sessionsFor } from "../data/schedule.jsx";
+import { DAYS, isDayDone, sessionsFor, WEEK_INFO } from "../data/schedule.jsx";
 
 /* ============ ABA GOLPES ============ */
 const CAT_COLOR = { Base: "#1E5A8A", Deslocamento: "#0E8B8B", Controle: "#2FA36B", Ataque: "#F26B21",
@@ -200,16 +200,24 @@ function TacticsTab() {
    ("w1-seg-robo") e pararam de existir quando os padroes ganharam slot proprio —
    os graficos ficaram vazios sem ninguem perceber. Derivando de sessionsFor(),
    remanejar o cronograma nao quebra mais a Evolucao. */
+/* Varre o ciclo INTEIRO, não só a primeira semana: com blocos, cada semana traz
+   técnicas diferentes, e olhar só a semana 1 esconderia dois terços do que se
+   mede. Guarda em que semanas e dias cada coisa aparece, porque o recorde da
+   semana é o melhor entre os dias em que ela rodou. */
 function padroesComContador() {
   const m = new Map();
-  for (const d of DAYS) {
-    for (const sess of sessionsFor(d.id, 1)) {
-      if (!sess.counter || !sess.slot) continue;
-      if (!m.has(sess.slot)) m.set(sess.slot, { slot: sess.slot, titulo: sess.title, contador: sess.counter, dias: [] });
-      m.get(sess.slot).dias.push(d.id);
+  for (const { n: w } of WEEK_INFO) {
+    for (const d of DAYS) {
+      for (const sess of sessionsFor(d.id, w)) {
+        if (!sess.counter || !sess.slot) continue;
+        if (!m.has(sess.slot)) m.set(sess.slot, { slot: sess.slot, titulo: sess.title, contador: sess.counter, dias: new Set(), semanas: new Set() });
+        const e = m.get(sess.slot);
+        e.dias.add(d.id);
+        e.semanas.add(w);
+      }
     }
   }
-  return [...m.values()];
+  return [...m.values()].map(e => ({ ...e, dias: [...e.dias], semanas: [...e.semanas] }));
 }
 
 const CORES_PADRAO = ["#F26B21", "#1E5A8A", "#7C5CFC", "#2FA36B", "#D6A324", "#0E8B8B", "#C2477A", "#D14A32"];
@@ -223,89 +231,113 @@ function EvolutionTab({ done, records }) {
     const m = await store.get("mastery:v1"); if (m) setMast(m);
   })(); }, []);
 
-  const weeks = [1, 2, 3, 4];
-  const total = (() => { let n = 0; for (let w = 1; w <= 4; w++) DAYS.forEach(d => { if (isDayDone(done, w, d.id)) n++; }); return n; })();
-  const pct = Math.round((total / 28) * 100);
+  const weeks = WEEK_INFO.map(w => w.n);
+  const meta = weeks.length * DAYS.length;
+  const total = weeks.reduce((n, w) => n + DAYS.filter(d => isDayDone(done, w, d.id)).length, 0);
+  const pct = Math.round((total / meta) * 100);
   const byWeek = weeks.map(w => DAYS.filter(d => isDayDone(done, w, d.id)).length);
-  const minutes = (() => { let n = 0; for (let w = 1; w <= 4; w++) DAYS.forEach(d => { if (isDayDone(done, w, d.id)) n += minutosDoDia(d); }); return n; })();
+  const minutes = weeks.reduce((n, w) => n + DAYS.reduce((m, d) => m + (isDayDone(done, w, d.id) ? minutosDoDia(d) : 0), 0), 0);
 
-  const padroes = padroesComContador();
-  /* Um padrao pode rodar em mais de um dia (P2 na segunda e na sexta):
-     o recorde da semana e o melhor entre os dias em que ele aparece. */
-  const serieDe = (p) => weeks.map(w => ({
+  const medidos = padroesComContador();
+  /* A série cobre só as semanas em que aquilo roda. Um padrão volta nas quatro
+     semanas do bloco e vira curva; uma técnica aparece numa semana só e vira
+     marca única — desenhar 11 zeros e um pico seria mentira gráfica. */
+  const serieDe = (p) => p.semanas.map(w => ({
     l: "S" + w,
     v: Math.max(0, ...p.dias.map(d => records[`w${w}-${d}-${p.slot}`] || 0)),
   }));
   const mx = (a) => Math.max(0, ...a.map(x => x.v));
 
-  const curvas = padroes.map((p, i) => ({ ...p, dados: serieDe(p), cor: CORES_PADRAO[i % CORES_PADRAO.length] }));
+  const todos = medidos.map((p, i) => ({ ...p, dados: serieDe(p), cor: CORES_PADRAO[i % CORES_PADRAO.length] }));
+  const curvas = todos.filter(c => c.semanas.length > 1);
   const comDado = curvas.filter(c => mx(c.dados) > 0);
-  const semDado = curvas.filter(c => mx(c.dados) === 0);
+  const semDado = todos.filter(c => mx(c.dados) === 0);
+  const marcas = todos.filter(c => c.semanas.length === 1 && mx(c.dados) > 0);
   const mastN = STROKES.filter(s => mast[s.id]).length;
 
   /* Da para ter recorde sem nenhum DIA inteiro concluido — isDayDone exige todas
      as sessoes do dia. So mande marcar treino quando nao houver nada dos dois. */
-  const nextStep = (total === 0 && comDado.length === 0)
+  const nextStep = (total === 0 && comDado.length === 0 && marcas.length === 0)
     ? "Marque um treino como concluído na aba Hoje para começar a preencher os gráficos."
     : semDado.length
-      ? `Você ainda não registrou nada em ${semDado[0].slot} · ${semDado[0].contador}. Use o contador +1 durante o treino e a curva aparece aqui.`
-      : "Todos os padrões têm registro. Onde a curva está plana há duas semanas, é ali que o treino parou de render — suba a frequência do robô em 1.";
+      ? `Você ainda não registrou nada em ${semDado[0].titulo}. Use o contador +1 durante o treino e o número aparece aqui.`
+      : "Tudo com registro. Onde a curva está plana há duas semanas, é ali que o treino parou de render — suba a frequência do robô em 1.";
 
   return (
     <>
       <Hero tone="green" icon={<TrendingUp size={13} />} eyebrow="Evolução"
-        title={`${total} de 28 treinos · ${pct}%`}
+        title={`${total} de ${meta} treinos · ${pct}%`}
         sub={total === 0 ? "Marque um treino como concluído na aba Hoje para começar a preencher os gráficos."
           : `Cerca de ${Math.round(minutes / 60)}h de treino acumuladas neste mês.`}
         pct={pct} />
 
       <div className="statgrid">
         <div className="stat"><span className="stat-v">{total}</span><span className="stat-l">treinos feitos</span></div>
-        <div className="stat"><span className="stat-v">{comDado.length}/{curvas.length}</span><span className="stat-l">padrões medidos</span></div>
+        <div className="stat"><span className="stat-v">{comDado.length + marcas.length}/{todos.length}</span><span className="stat-l">itens medidos</span></div>
         <div className="stat"><span className="stat-v">{mastN}</span><span className="stat-l">técnicas dominadas</span></div>
         <div className="stat"><span className="stat-v">{best ? best.pct + "%" : "—"}</span><span className="stat-l">saque no alvo</span></div>
       </div>
 
-      <SecTitle n="1" icon={<CalendarDays size={14} />}>Mapa do mês</SecTitle>
+      <SecTitle n="1" icon={<CalendarDays size={14} />}>Mapa do ciclo</SecTitle>
       <div className="block">
         <div className="heat">
           <div className="heat-row heat-head"><span className="heat-w" /> {DAYS.map(d => <span className="heat-c hc-lbl" key={d.id}>{d.short[0]}</span>)}</div>
-          {weeks.map(w => (
-            <div className="heat-row" key={w}>
-              <span className="heat-w">S{w}</span>
-              {DAYS.map(d => { const on = isDayDone(done, w, d.id);
-                return <span className={"heat-c" + (on ? " on" : "")} key={d.id} title={d.name}>{on && <Check size={10} strokeWidth={4} />}</span>; })}
-              <span className="heat-n">{byWeek[w - 1]}/7</span>
-            </div>))}
+          {WEEK_INFO.map((wi, i) => (
+            <React.Fragment key={wi.n}>
+              {/* Cabeçalho a cada troca de bloco: 12 linhas soltas não dizem
+                  onde uma fase termina e a outra começa. */}
+              {(i === 0 || wi.bloco !== WEEK_INFO[i - 1].bloco) && (
+                <div className="heat-bloco" style={{ "--c": wi.cor }}>Bloco {wi.bloco} · {wi.blocoNome}</div>)}
+              <div className="heat-row">
+                <span className="heat-w">S{wi.n}</span>
+                {DAYS.map(d => { const on = isDayDone(done, wi.n, d.id);
+                  return <span className={"heat-c" + (on ? " on" : "")} key={d.id} title={d.name}>{on && <Check size={10} strokeWidth={4} />}</span>; })}
+                <span className="heat-n">{byWeek[wi.n - 1]}/7</span>
+              </div>
+            </React.Fragment>))}
         </div>
-        <p className="tm-cap" style={{ textAlign: "left" }}>Cada quadrado é um treino. Quatro linhas cheias = Mês 1 completo.</p>
+        <p className="tm-cap" style={{ textAlign: "left" }}>Cada quadrado é um treino. Doze linhas cheias = ciclo completo.</p>
       </div>
 
       <SecTitle n="2" icon={<Award size={14} />}>Curva dos recordes</SecTitle>
-      {comDado.length === 0
+      {comDado.length === 0 && marcas.length === 0
         ? <div className="block"><div className="emptymini"><Info size={14} />
-            <span>Nenhum recorde ainda. Use o contador <strong>+1</strong> em qualquer padrão da aba Hoje — cada padrão vira uma curva aqui.</span></div></div>
+            <span>Nenhum recorde ainda. Use o contador <strong>+1</strong> durante o treino — os padrões viram curva ao longo do bloco, e as técnicas viram marca.</span></div></div>
         : comDado.map(c => (
           <div className="block" key={c.slot}>
             <div className="chart-head">
-              <span className="ch-t">{c.slot} · {c.contador}</span>
+              <span className="ch-t">{c.titulo}</span>
               <span className="ch-max">máx {mx(c.dados)}</span>
             </div>
             <Spark data={c.dados} color={c.cor} />
           </div>))}
 
-      {semDado.length > 0 && comDado.length > 0 && (
+      {marcas.length > 0 && (
         <div className="block">
-          <div className="mini-title">Ainda sem registro</div>
+          <div className="mini-title">Marcas das técnicas</div>
+          <p className="tm-cap" style={{ textAlign: "left", marginTop: 0 }}>
+            Cada técnica roda numa semana do ciclo, então aqui vale o número, não a curva.</p>
           <ul className="semreg">
-            {semDado.map(c => <li key={c.slot}><span className="sr-slot">{c.slot}</span>{c.contador}</li>)}
+            {marcas.map(c => (
+              <li key={c.slot}>
+                <span className="sr-slot">S{c.semanas[0]}</span>{c.titulo}
+                <strong style={{ marginLeft: "auto", color: "var(--ink)" }}>{mx(c.dados)}</strong>
+              </li>))}
           </ul>
         </div>)}
 
-      <SecTitle n="3" icon={<Target size={14} />}>Metas do mês</SecTitle>
+      {semDado.length > 0 && (comDado.length > 0 || marcas.length > 0) && (
+        <div className="block">
+          <div className="mini-title">Ainda sem registro</div>
+          <ul className="semreg">
+            {semDado.slice(0, 8).map(c => <li key={c.slot}><span className="sr-slot">S{c.semanas[0]}</span>{c.titulo}</li>)}
+          </ul>
+        </div>)}
+
+      <SecTitle n="3" icon={<Target size={14} />}>Metas do ciclo</SecTitle>
       <div className="block">
-        <GoalBar label="Treinos do mês" cur={total} target={28} />
-        <GoalBar label="Padrões medidos" cur={comDado.length} target={curvas.length} />
+        <GoalBar label="Treinos do ciclo" cur={total} target={meta} />
+        <GoalBar label="Itens medidos" cur={comDado.length + marcas.length} target={todos.length} />
         <GoalBar label="Saque no alvo" cur={best ? best.pct : 0} target={70} unit="%" />
         <GoalBar label="Técnicas dominadas" cur={mastN} target={STROKES.length} />
       </div>
