@@ -11,6 +11,7 @@ import { ServeTab } from "./tabs/ServeTab.jsx";
 import { StrokesTab, TacticsTab, EvolutionTab } from "./tabs/StrokesTacticsEvolution.jsx";
 import { TournamentTab } from "./tabs/TournamentTab.jsx";
 import { RankingTab } from "./tabs/RankingTab.jsx";
+import { ConfrontosTab } from "./tabs/ConfrontosTab.jsx";
 import { SyncBadge } from "./components/Sync.jsx";
 import { sincronizar } from "./lib/sync.js";
 
@@ -27,6 +28,7 @@ const NAV = [
   { id: "jogos", label: "Jogos", icon: Trophy, subs: [
     { id: "torneio", label: "Torneio" },
     { id: "ranking", label: "Ranking" },
+    { id: "confrontos", label: "Confrontos" },
   ] },
 ];
 
@@ -121,6 +123,7 @@ export default function App() {
         {view === "progresso" && <EvolutionTab done={done} records={records} />}
         {view === "torneio" && <TournamentTab />}
         {view === "ranking" && <RankingTab />}
+        {view === "confrontos" && <ConfrontosTab />}
       </main>
 
       {timer && (
