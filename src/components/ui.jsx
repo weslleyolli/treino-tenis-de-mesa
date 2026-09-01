@@ -74,7 +74,7 @@ function BlocoAcervo({ ids, titulo, sub }) {
             <span className="acv-nome">{t.name}</span>
             <span className="acv-cat">{t.cat}</span>
           </div>
-          {t.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
+          <div className="exc-lista">{t.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}</div>
         </div>))}
     </Collapsible>);
 }

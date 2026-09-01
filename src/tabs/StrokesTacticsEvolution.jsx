@@ -73,6 +73,7 @@ function StrokesTab() {
       </div>
       {list.length === 0 && <p className="vazio">Nenhuma técnica com esse nome.</p>}
 
+      <div className="acervo-grade">
       {list.map((s, i) => {
         const open = openId === s.id;
         return (
@@ -97,7 +98,7 @@ function StrokesTab() {
                 <ul className="err-list">{s.err.map((x, k) => <li key={k}>{x}</li>)}</ul>
                 {s.robot && <div className="len-box"><Bot size={14} /><span><strong>No robô: </strong>{s.robot}</span></div>}
                 <div className="mini-title">Exercícios · {s.exercicios.length}</div>
-                {s.exercicios.map(e => <Exercicio key={e.n} e={e} />)}
+                <div className="exc-lista">{s.exercicios.map(e => <Exercicio key={e.n} e={e} />)}</div>
                 <Collapsible title="Progressão" icon={<TrendingUp size={13} />}
                   sub="Onde você está e o que falta para o próximo nível">
                   <ol className="progniv">
@@ -117,6 +118,7 @@ function StrokesTab() {
               </div>)}
           </div>);
       })}
+      </div>
     </>);
 }
 
@@ -154,7 +156,7 @@ function TacticsTab() {
               <ol className="seq">{c.seq.map((s, i) => <li key={i}>{bold(s)}</li>)}</ol>
               <div className="combo-why"><Info size={13} /><span>{c.why}</span></div>
               <div className="mini-title">Como treinar · {c.exercicios.length} exercícios</div>
-              {c.exercicios.map(e => <Exercicio key={e.n} e={e} />)}
+              <div className="exc-lista">{c.exercicios.map(e => <Exercicio key={e.n} e={e} />)}</div>
               <BlocoAcervo ids={c.tecnicas} titulo="Golpes deste combo"
                 sub="as técnicas que executam a sequência" />
             </div>)}

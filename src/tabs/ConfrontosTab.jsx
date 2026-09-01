@@ -71,6 +71,7 @@ function ConfrontosTab() {
         </div>
 
         <div className="mini-title" style={{ marginTop: 20 }}>Partida a partida · da mais recente</div>
+        <div className="duelo-grade">
         {r.jogos.map(j => (
           <div className={"duelo-jogo" + (j.venceuA ? " venceu-a" : " venceu-b")} key={j.id}>
             <div className="dj-topo">
@@ -89,6 +90,7 @@ function ConfrontosTab() {
               </div>)}
             <div className="dj-torneio"><Trophy size={10} /> {j.torneio}</div>
           </div>))}
+        </div>
       </>}
     </>);
 }

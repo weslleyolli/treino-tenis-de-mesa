@@ -297,7 +297,7 @@ function ServeTab({ onTimer, serveNote, onServeNote }) {
           <ul className="err-list">{s.err.map((x, i) => <li key={i}>{x}</li>)}</ul>
           <div className="third-box"><Eye size={14} /><span><strong>3ª bola — o que esperar: </strong>{bold(s.third)}</span></div>
           <div className="mini-title">Exercícios · {s.exercicios.length}</div>
-          {s.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}
+          <div className="exc-lista">{s.exercicios.map((e) => <Exercicio key={e.n} e={e} />)}</div>
           <BlocoAcervo ids={s.tecnicas} titulo="Terceira bola — exercícios do acervo"
             sub="o que vem depois deste saque" />
           <Vids videos={s.videos} />

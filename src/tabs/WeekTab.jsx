@@ -87,7 +87,8 @@ function WeekTab(p) {
   const doneN = sessions.filter(s => done[`w${week}-${day.id}-${s.slot || s.kind}`]).length;
 
   return (
-    <>
+    <div className="wk-layout">
+      <div className="wk-rail">
       <div className="subhdr">
         <div className="week-row">
           <button className="wk-arrow" disabled={week === 1} onClick={() => setWeek(week - 1)}><ChevronLeft size={18} /></button>
@@ -137,6 +138,9 @@ function WeekTab(p) {
         </div>
       </div>
 
+      </div>
+
+      <div className="wk-main">
       <div className="sessbar">
         <span className="sb-lbl">{sessions.length} treinos separados hoje · {doneN} concluído{doneN === 1 ? "" : "s"}</span>
         <div className="sb-chips">{sessions.map(s => { const m = KIND_META[s.kind]; const on = !!done[`w${week}-${day.id}-${s.slot || s.kind}`];
@@ -158,7 +162,8 @@ function WeekTab(p) {
         <ol className="bio-steps">{day.bio.steps.map((x, i) => <li key={i}>{bold(x)}</li>)}</ol>
         {day.bio.note && <div className="bio-note"><Info size={14} /> {day.bio.note}</div>}</Collapsible>}
       <Vids videos={day.videos} />
-    </>);
+    </div>
+    </div>);
 }
 
 

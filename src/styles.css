@@ -998,3 +998,70 @@ court texture ============ */
   line-height:1.55;color:#A03F2A;margin-top:16px;}
 .guia-erro svg{flex:none;margin-top:1px;color:var(--red);}
 @media (min-width:520px){.gfix-row{grid-template-columns:150px 1fr;gap:12px;align-items:baseline;}}
+
+/* ============================================================
+   TELAS LARGAS
+   O app nasceu para o celular ao lado da mesa e ficou uma tira de 520 px no
+   meio do notebook. Aqui ele passa a usar a largura: o container abre, o que
+   é navegação vira trilho fixo à esquerda, e o que é lista vira grade.
+   Tudo em min-width, então o celular não vê nada disto.
+   ============================================================ */
+@media (min-width:1000px){
+  .app{max-width:1180px;}
+  .hdr{padding:18px 28px 0;border-radius:0 0 24px 24px;}
+  .content{padding:0 28px;}
+
+  /* A navegação principal deixa de esticar por 1180 px: fica à esquerda, no
+     tamanho do texto, como barra de aplicativo de verdade. */
+  .tabs{gap:4px;}
+  .tab{flex:none;padding:12px 20px;font-size:14px;}
+  .segtabs{max-width:520px;}
+
+  /* ---- Hoje: trilho de navegação + sessões ---- */
+  .wk-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start;}
+  /* O cabeçalho não é fixo (a textura pontilhada precisa de overflow:hidden,
+     que anula o sticky), então o trilho gruda no topo da tela mesmo.
+     Em notebook baixo (720 px) ele é mais alto que a tela: rola por dentro
+     em vez de ficar com o domingo cortado. */
+  .wk-rail{position:sticky;top:14px;display:flex;flex-direction:column;gap:12px;
+    max-height:calc(100vh - 28px);overflow-y:auto;scrollbar-width:thin;}
+  .wk-rail .subhdr{margin:0;}
+  .wk-main{min-width:0;}
+
+  /* Os sete dias empilham no trilho em vez de rolarem na horizontal. */
+  .day-strip{display:grid;grid-template-columns:1fr;gap:5px;padding:0;overflow:visible;}
+  .day-tab{flex-direction:row;justify-content:flex-start;gap:10px;padding:9px 12px;}
+  .day-short{font-size:13.5px;}
+  .day-dot{margin-left:auto;}
+
+  /* ---- listas que viram grade ---- */
+  .statgrid{grid-template-columns:repeat(4,1fr);}
+  /* Os exercícios de uma técnica lado a lado: são cartões curtos, e em
+     coluna única sobrava metade da tela em branco. */
+  .exc-lista{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;}
+  .exc-lista .exc,.duelo-grade .duelo-jogo{margin-bottom:0;}
+
+  /* O acervo em duas colunas; a técnica aberta ocupa a linha inteira, porque
+     ela vira leitura longa e não cabe em meia largura. */
+  .acervo-grade{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
+  .acervo-grade .scard{margin-bottom:0;}
+  .acervo-grade .scard.open{grid-column:1 / -1;}
+
+  /* Confrontos: as partidas lado a lado. */
+  .duelo-grade{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* O mapa do ciclo tem 7 colunas fixas: esticado por 1120 px vira uma
+     fileira de pílulas gigantes. Fica no tamanho de calendário. */
+  .heat{max-width:640px;}
+
+  /* Texto corrido não passa de ~70 caracteres nem em tela larga. */
+  .p-lead,.wk-focus-note,.porque p{max-width:68ch;}
+  .zones,.vargrid{grid-template-columns:1fr 1fr;}
+}
+
+@media (min-width:1360px){
+  .app{max-width:1320px;}
+  .wk-layout{grid-template-columns:340px minmax(0,1fr);gap:26px;}
+  .acervo-grade,.duelo-grade{grid-template-columns:1fr 1fr 1fr;}
+  .acervo-grade .scard.open{grid-column:1 / -1;}
+}
