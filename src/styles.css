@@ -88,6 +88,22 @@ exercícios e progressão ---- */
   color:var(--c,var(--teal-600));margin:10px 0 5px;display:flex;align-items:center;gap:7px;}
 .heat-bloco::after{content:"";flex:1;height:1px;background:var(--line);}
 
+.corrigir{margin-top:13px;border-top:1px solid var(--line);padding-top:12px;}
+.cor-linha{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.cor-linha:last-of-type{border-bottom:none;}
+.cor-mid{flex:1;min-width:120px;}
+.cor-nome{display:block;font-size:13.5px;font-weight:700;color:var(--ink);}
+.cor-pts{display:block;font-family:var(--f-mono);font-size:10.5px;font-weight:700;color:var(--muted);margin-top:2px;}
+.cor-btns{display:flex;gap:6px;flex:none;}
+.cor-btns button{background:#F1F4F7;border:1px solid var(--line);color:var(--teal-600);
+  border-radius:8px;padding:6px 9px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
+.cor-btns button:hover{border-color:var(--teal-600);}
+.cor-btns button.perigo{color:var(--red);}
+.cor-btns button.perigo:hover{border-color:var(--red);}
+.pchip.on{background:var(--court-900);border-color:var(--court-900);}
+.pchip.on .pc-nome{color:#fff;}
+.pchip.on .pc-voltar{color:#A6D4C5;}
+
 /* ---- Sincronização ---- */
 .syncbtn{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);color:#CFE0D7;}
