@@ -24,7 +24,7 @@ function promptDaTecnica(t) {
   return `Analise minha execução de ${t.name}${t.aka ? ` (${t.aka})` : ""} no tênis de mesa.
 
 CONTEXTO
-Sou destro e estou em transição da empunhadura caneta para a clássica (shakehand). Os vícios de caneta ainda aparecem, principalmente punho quebrado e golpe feito só com o braço. Treino com robô iPong V300, que regula topspin, backspin, frequência e oscilação.
+Sou destro e jogo de empunhadura clássica (shakehand). Vim da caneta, mas a transição está feita: a memória muscular já está na clássica. Não parta do princípio de que o que você vir é resíduo de caneta — julgue o gesto pelo que ele é. Treino com robô iPong V300, que regula topspin, backspin, frequência e oscilação.
 
 O VÍDEO
 Slow motion, câmera lateral, corpo inteiro no quadro, 6 a 8 repetições do mesmo golpe. Mandei a repetição mais representativa, não a melhor.

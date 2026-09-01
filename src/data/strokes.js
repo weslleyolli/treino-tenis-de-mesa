@@ -11,8 +11,8 @@ const STROKES = [
   /* ---------------- BASE ---------------- */
   { id: "grip", name: "Empunhadura Clássica (shakehand)", level: "Fundamento zero", cat: "Base",
     aka: "shakehand grip",
-    idea: "Antes de qualquer golpe. Vindo da caneta, é aqui que seus vícios moram — 10 minutos por dia checando isso valem mais que uma hora batendo bola errado.",
-    when: "Sempre. Confira antes de cada treino e depois de cada pausa.",
+    idea: "Antes de qualquer golpe. A pegada já é automática — o que ela ainda perde é sob pressão: no ponto importante a mão aperta, e o efeito some junto. É isso que estes minutos conferem.",
+    when: "Confira antes de cada treino, depois de cada pausa longa, e sempre que a bola começar a sair sem ângulo.",
     steps: [
       "Segure o cabo como um **aperto de mão**: ele encaixa na dobra entre polegar e indicador.",
       "**Indicador esticado** na borda inferior da borracha do backhand.",
@@ -20,7 +20,7 @@ const STROKES = [
       "A raquete deve ser uma **extensão do antebraço** — sem quebrar o punho para cima ou para baixo.",
       "Pressão **3/10** nos golpes e **2/10** nos saques. Mão apertada mata o efeito.",
     ],
-    err: ["Punho quebrado para baixo (vício de caneta) → a bola sai sem controle de ângulo.", "Polegar rígido apontando para a frente → trava a rotação do antebraço no BH.", "Apertar mais quando o ponto fica importante → o efeito some justo na hora que você precisa."],
+    err: ["Punho quebrado para baixo → a bola sai sem controle de ângulo.", "Polegar rígido apontando para a frente → trava a rotação do antebraço no BH.", "Apertar mais quando o ponto fica importante → o efeito some justo na hora que você precisa."],
     exercicios: [
       { n: 1, nome: "Pegada cega", tipo: "sombra", series: 3, repet: "20 pegadas",
         montagem: "Em pé, raquete na mesa à sua frente.",
@@ -87,8 +87,8 @@ const STROKES = [
 
   { id: "grip-caneta", name: "Empunhadura Caneta (penholder)", level: "Estilo alternativo", cat: "Base",
     aka: "penhold grip",
-    idea: "A empunhadura de onde você veio. Entender como ela funciona explica de onde vêm seus vícios na clássica — e o que esperar do adversário que ainda joga assim, que você vai encontrar em clube e em torneio.",
-    when: "Como estudo do próprio histórico, e para prever o jogo de quem usa caneta.",
+    idea: "A empunhadura de onde você veio — e hoje isto aqui é estudo de adversário, não de você mesmo: o que esperar de quem joga assim, onde está o buraco do estilo e por que ele ataca topspin tão bem. Você vai encontrar caneta em clube e em torneio.",
+    when: "Para prever o jogo de quem usa caneta — e, de vez em quando, para entender uma bola que você mesmo sente diferente.",
     steps: [
       "**Polegar e indicador formam um anel** em volta do cabo, na frente da raquete, como se segurasse uma caneta.",
       "**Estilo chinês:** os três dedos de trás ficam **curvados e agrupados**, apoiados na madeira. Dá mais liberdade de pulso — é o que permite o RPB.",
@@ -97,25 +97,25 @@ const STROKES = [
       "**A vantagem estrutural:** não existe ponto de virada FH/BH no cotovelo. A mesma face cobre o corpo inteiro.",
       "**A desvantagem estrutural:** sem RPB, o backhand só bloqueia — e a bola longa no lado esquerdo é o buraco do estilo.",
     ],
-    err: ["Levar o pulso quebrado da caneta para a clássica → é o vício nº 1 de quem migra, e a causa da bola sem controle de ângulo.", "Achar que caneta é empunhadura ultrapassada → Xu Xin e Wang Hao dizem o contrário.", "Contra caneta, insistir no forehand dele → é o lado forte. O jogo é na bola longa no backhand."],
+    err: ["Levar o pulso quebrado da caneta para a clássica → é o que mais atrasa quem está migrando; se você já passou dessa fase, é só conferir de vez em quando.", "Achar que caneta é empunhadura ultrapassada → Xu Xin e Wang Hao dizem o contrário.", "Contra caneta, insistir no forehand dele → é o lado forte. O jogo é na bola longa no backhand."],
     exercicios: [
       { n: 1, nome: "Sentir a diferença", tipo: "sombra", series: 3, repet: "20 repetições",
         montagem: "Com uma raquete qualquer, alterne a pegada de caneta e a clássica.",
         meta: "Perceber o quanto o pulso fica mais livre na caneta.",
-        cue: "É essa liberdade que você trocou por um backhand de verdade." },
+        cue: "É essa liberdade que a caneta tem e que ela paga com o backhand." },
       { n: 2, nome: "Onde está o buraco", tipo: "jogo", series: 3, repet: "1 set",
         montagem: "Contra alguém de caneta, se houver no clube.",
         meta: "Contar quantos pontos saem de bola longa no backhand dele.",
         cue: "Bola longa no lado esquerdo. É quase sempre ali." },
-      { n: 3, nome: "Checar o próprio vício", tipo: "sombra", series: 3, repet: "15 repetições",
+      { n: 3, nome: "Conferência no espelho", tipo: "sombra", series: 3, repet: "15 repetições",
         montagem: "Sua raquete, empunhadura clássica, de frente para um espelho.",
         meta: "15 golpes com a raquete alinhada ao antebraço, sem quebrar o punho.",
-        cue: "O punho quebrado é a caneta tentando voltar." },
+        cue: "Se o punho quebrar, quase sempre é cansaço ou mão apertada — não a caneta voltando." },
     ],
     progressao: [
       { nivel: "Aprendendo", foco: "Entender as duas variantes.", criterio: "Saber distinguir chinesa de japonesa de vista." },
       { nivel: "Consolidando", foco: "Reconhecer a fraqueza do estilo.", criterio: "Identificar o buraco em jogo." },
-      { nivel: "Dominado", foco: "Não levar o vício para a clássica.", criterio: "15 golpes sem quebrar o punho." },
+      { nivel: "Dominado", foco: "Ler o estilo do adversário em dois pontos.", criterio: "Dizer se é chinesa ou japonesa e onde atacar." },
     ],
     robot: null,
     videos: [["Penhold grip explained", yt("penhold grip table tennis explained")], ["Chinese vs Japanese penhold", yt("chinese vs japanese penhold grip")]] },
@@ -354,7 +354,7 @@ const STROKES = [
 
   { id: "bh-drive", name: "Backhand Drive", level: "Semana 2", cat: "Ataque", core: true,
     aka: "backhand drive",
-    idea: "Movimento curto e compacto, com o cotovelo como eixo. Quem vem da caneta costuma exagerar o braço aqui — o segredo é o oposto: menos é mais.",
+    idea: "Movimento curto e compacto, com o cotovelo como eixo. O erro quase universal aqui é exagerar o braço, procurando potência onde ela não está — o segredo é o oposto: menos é mais.",
     when: "Bola sem efeito ou topspin leve no lado esquerdo do corpo.",
     steps: [
       "Corpo **de frente para a mesa**, pés quase paralelos, joelhos flexionados.",
