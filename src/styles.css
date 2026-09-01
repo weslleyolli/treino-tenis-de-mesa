@@ -889,10 +889,14 @@ court texture ============ */
 .sess-time,
 .session-total{
   font-family:var(--f-mono);}
-.hdr,
 .tab-hero,
 .serve-hero,
 .champbox{position:relative;z-index:0;overflow:hidden;}
+/* O cabeçalho leva a mesma textura pontilhada, mas não pode entrar na regra
+   acima: ela trocaria o position:sticky por relative e ele deixaria de grudar
+   no topo. Só o overflow, para recortar o ::before no canto arredondado —
+   o stacking context que o ::before precisa já vem do z-index do sticky. */
+.hdr{overflow:hidden;}
 .hdr::before,.tab-hero::before,.serve-hero::before,.champbox::before{
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background-image:radial-gradient(circle,rgba(255,255,255,.09) 1.1px,transparent 1.6px);
@@ -1019,12 +1023,11 @@ court texture ============ */
 
   /* ---- Hoje: trilho de navegação + sessões ---- */
   .wk-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start;}
-  /* O cabeçalho não é fixo (a textura pontilhada precisa de overflow:hidden,
-     que anula o sticky), então o trilho gruda no topo da tela mesmo.
-     Em notebook baixo (720 px) ele é mais alto que a tela: rola por dentro
-     em vez de ficar com o domingo cortado. */
-  .wk-rail{position:sticky;top:14px;display:flex;flex-direction:column;gap:12px;
-    max-height:calc(100vh - 28px);overflow-y:auto;scrollbar-width:thin;}
+  /* O trilho para logo abaixo do cabeçalho fixo (111 px). Em notebook baixo
+     (720 px) ele é mais alto que a tela: rola por dentro em vez de ficar
+     com o domingo cortado. */
+  .wk-rail{position:sticky;top:119px;display:flex;flex-direction:column;gap:12px;
+    max-height:calc(100vh - 133px);overflow-y:auto;scrollbar-width:thin;}
   .wk-rail .subhdr{margin:0;}
   .wk-main{min-width:0;}
 
