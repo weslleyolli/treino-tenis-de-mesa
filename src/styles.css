@@ -88,7 +88,7 @@ exercícios e progressão ---- */
   color:var(--c,var(--teal-600));margin:10px 0 5px;display:flex;align-items:center;gap:7px;}
 .heat-bloco::after{content:"";flex:1;height:1px;background:var(--line);}
 
-.corrigir{margin-top:13px;border-top:1px solid var(--line);padding-top:12px;}
+.corrigir-cx{margin-top:13px;border-top:1px solid var(--line);padding-top:10px;}
 .cor-linha{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
 .cor-linha:last-of-type{border-bottom:none;}
 .cor-mid{flex:1;min-width:120px;}

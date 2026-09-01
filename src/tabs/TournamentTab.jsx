@@ -4,6 +4,8 @@ import {
 } from "lucide-react";
 import { Hero, SecTitle, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
+import { fundirJogadores, renomearJogador, removerJogador } from "../lib/corrigirTorneio.js";
+import { awardsOf } from "../data/ranking.js";
 import { uid, roundRobin, genGroupMatches, matchResult, standings, KO_SIZES, seedOrder, genBracket, DEFAULT_TOURNEY, serverOf, setStarter, setDone, serveInfo, ehExemploAntigo, cabeNaChave, embaralhar, proximaPotencia, agruparTies, tieResult, garantirDesempates, formatoDe, temGrupos, temMata, ordemInicial, ordemValida, confrontosDe, escolherStarter, resumoSaques, koIdaVoltaDe, koBestOfDe } from "../data/tournament.js";
 
 /* ============ ABA TORNEIO — UII ============ */
@@ -355,7 +357,15 @@ function TournamentTab() {
     save({ ...DEFAULT_TOURNEY, players: t.players });
   };
 
-  if (showHistory) return <TourneyHistory history={history} onBack={() => setShowHistory(false)} onRemove={removeHistory} />;
+  /* Substitui um torneio arquivado inteiro. O ranking e derivado do historico,
+     entao ele se recalcula sozinho na proxima leitura. */
+  const corrigirHistorico = (id, fn) => {
+    const nh = history.map(h => h.id === id ? fn(h) : h);
+    setHistory(nh); store.set("tourney:history", nh);
+  };
+
+  if (showHistory) return <TourneyHistory history={history} onBack={() => setShowHistory(false)}
+    onRemove={removeHistory} onCorrigir={corrigirHistorico} />;
 
   // o pedido de fullscreen precisa sair de dentro do gesto do usuário
   const abrirPlacar = (m) => {
@@ -682,7 +692,7 @@ function Bracket({ t, table, canKO, startKO, onOpen, champion, nm }) {
 }
 
 
-function HistoryCard({ h, onRemove }) {
+function HistoryCard({ h, onRemove, onCorrigir }) {
   const nm = (id) => h.players.find(p => p.id === id)?.name || "—";
   const date = new Date(h.finishedAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
   const koDone = (h.koMatches || []).filter(m => matchResult(m, h.koBestOf || h.bestOf).done);
@@ -696,20 +706,79 @@ function HistoryCard({ h, onRemove }) {
         <div className="round-lbl">Mata-mata</div>
         {koDone.map(m => <MatchRow key={m.id} match={m} players={h.players} bestOf={h.koBestOf || h.bestOf} readOnly />)}
       </>}
+      <CorrigirJogadores h={h} onCorrigir={onCorrigir} />
       <button className="linkbtn" style={{ color: "#D14A32" }}
         onClick={() => { if (confirm("Remover este campeonato do histórico?")) onRemove(h.id); }}>
         <Trash2 size={13} /> Remover do histórico</button>
     </Collapsible>);
 }
 
-function TourneyHistory({ history, onBack, onRemove }) {
+/* Conserto de inscricao depois do torneio arquivado. O caso que motivou isto:
+   alguem nao apareceu, os jogos dele ficaram 0-0-0 sem W.O., o empate em tudo o
+   colocou a frente de quem jogou, e no mata-mata outra pessoa entrou na vaga
+   dele com o nome errado. */
+function CorrigirJogadores({ h, onCorrigir }) {
+  const [aberto, setAberto] = useState(false);
+  if (!onCorrigir) return null;
+  const pontos = Object.fromEntries(awardsOf(h).map(a => [a.name, a.points]));
+
+  const quemJogou = (jog) => {
+    const outros = h.players.filter(p => p.id !== jog.id);
+    if (!outros.length) return;
+    const lista = outros.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
+    const esc = prompt(`Quem jogou de verdade no lugar de ${jog.name}?\n\n${lista}\n\nDigite o número:`);
+    const alvo = outros[Number(esc) - 1];
+    if (!alvo) return;
+    if (!confirm(`${alvo.name} herda as partidas que ${jog.name} realmente disputou, e ${jog.name} sai deste campeonato.\n\n`
+      + `Os jogos que nunca aconteceram (0-0-0) são apagados em vez de irem para ${alvo.name}.\n\nConfirmar?`)) return;
+    onCorrigir(h.id, t => fundirJogadores(t, jog.id, alvo.id));
+  };
+  const renomear = (jog) => {
+    const nome = prompt(`Novo nome para ${jog.name} neste campeonato:`, jog.name);
+    if (nome && nome.trim() && nome.trim() !== jog.name) onCorrigir(h.id, t => renomearJogador(t, jog.id, nome));
+  };
+  const apagar = (jog) => {
+    if (!confirm(`Apagar ${jog.name} deste campeonato, junto com todas as partidas dele?\n\n`
+      + `Se alguém jogou na vaga dele, use "quem jogou" — assim os pontos não se perdem.`)) return;
+    onCorrigir(h.id, t => removerJogador(t, jog.id));
+  };
+
+  return (
+    <div className="corrigir-cx">
+      <button className="linkbtn" onClick={() => setAberto(a => !a)}>
+        <Users size={13} /> {aberto ? "Fechar correção" : "Corrigir jogadores"}</button>
+      {aberto && (<>
+        <p className="tm-cap" style={{ textAlign: "left", margin: "2px 0 10px" }}>
+          Para quando alguém foi inscrito e não apareceu, jogou com o nome trocado, ou entrou na vaga de outro.
+        </p>
+        {h.players.map(jog => (
+          <div className="cor-linha" key={jog.id}>
+            <div className="cor-mid">
+              <span className="cor-nome">{jog.name}</span>
+              <span className="cor-pts">{pontos[jog.name] != null ? `${pontos[jog.name]} pts` : "sem pontos"}</span>
+            </div>
+            <div className="cor-btns">
+              <button onClick={() => quemJogou(jog)}>Quem jogou</button>
+              <button onClick={() => renomear(jog)}>Renomear</button>
+              <button className="perigo" onClick={() => apagar(jog)}>Apagar</button>
+            </div>
+          </div>))}
+        <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
+          <strong>Quem jogou</strong> passa as partidas para quem realmente esteve lá e tira o ausente —
+          os pontos vão junto e ninguém conta duas vezes.
+        </p>
+      </>)}
+    </div>);
+}
+
+function TourneyHistory({ history, onBack, onRemove, onCorrigir }) {
   return (
     <>
       <Hero tone="green" icon={<Clock size={13} />} eyebrow="Torneio" title="Histórico de campeonatos"
         sub={history.length > 0 ? `${history.length} campeonato${history.length === 1 ? "" : "s"} arquivado${history.length === 1 ? "" : "s"}` : "Nenhum campeonato arquivado ainda"} />
       <button className="linkbtn" onClick={onBack}><ChevronLeft size={14} /> Voltar ao torneio atual</button>
       {history.length === 0 && <div className="emptybox"><Info size={16} /><span>Quando um campeonato terminar, arquive-o para vê-lo aqui depois.</span></div>}
-      {history.map(h => <HistoryCard key={h.id} h={h} onRemove={onRemove} />)}
+      {history.map(h => <HistoryCard key={h.id} h={h} onRemove={onRemove} onCorrigir={onCorrigir} />)}
     </>);
 }
 

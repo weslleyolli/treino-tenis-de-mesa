@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, Info, Award, Layers, X, Trash2, Check, Undo2, Users } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, Info, Award, Layers, X, Trash2, Check, Undo2 } from "lucide-react";
 import { Hero, Collapsible } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
-import { buildRanking, countEvents, RANK_TABLE, RANKING_SEED, awardsOf } from "../data/ranking.js";
-import { fundirJogadores, renomearJogador, removerJogador } from "../lib/corrigirTorneio.js";
+import { buildRanking, countEvents, RANK_TABLE, RANKING_SEED } from "../data/ranking.js";
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -39,7 +38,6 @@ function RankingTab() {
   const [history, setHistory] = useState(null);
   const [removidos, setRemovidos] = useState([]);
   const [editando, setEditando] = useState(false);
-  const [corrigindo, setCorrigindo] = useState(null);
   const [scope, setScope] = useState("ano");
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -57,35 +55,6 @@ function RankingTab() {
     gravarRemovidos([...removidos.filter(r => r.nome !== nome), { nome, em: Date.now() }]);
   };
   const restaurar = (nome) => gravarRemovidos(removidos.filter(r => r.nome !== nome));
-
-  /* Correção de campeonato já arquivado. Toda edição reescreve o torneio inteiro
-     no histórico — o ranking é derivado, então ele se recalcula sozinho. */
-  const gravarHistorico = (nh) => { setHistory(nh); store.set("tourney:history", nh); };
-  const corrigir = (torneioId, fn) =>
-    gravarHistorico(history.map(h => h.id === torneioId ? fn(h) : h));
-
-  const pedirFusao = (h, jog) => {
-    const outros = h.players.filter(p => p.id !== jog.id);
-    const lista = outros.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
-    const esc = prompt(
-      `Quem jogou de verdade no lugar de ${jog.name}?\n\n${lista}\n\nDigite o número:`);
-    const alvo = outros[Number(esc) - 1];
-    if (!alvo) return;
-    if (!confirm(
-      `${alvo.name} herda as partidas que ${jog.name} realmente disputou, e ${jog.name} deixa de existir neste campeonato.\n\n` +
-      `Os jogos que nunca aconteceram (0-0-0) são apagados em vez de irem para ${alvo.name}.\n\nConfirmar?`)) return;
-    corrigir(h.id, t => fundirJogadores(t, jog.id, alvo.id));
-  };
-  const pedirRenome = (h, jog) => {
-    const nome = prompt(`Novo nome para ${jog.name} neste campeonato:`, jog.name);
-    if (nome && nome.trim() && nome.trim() !== jog.name) corrigir(h.id, t => renomearJogador(t, jog.id, nome));
-  };
-  const pedirRemocao = (h, jog) => {
-    if (!confirm(
-      `Apagar ${jog.name} deste campeonato, junto com todas as partidas dele?\n\n` +
-      `Se alguém jogou no lugar dele, use "quem jogou" — assim os pontos não se perdem.`)) return;
-    corrigir(h.id, t => removerJogador(t, jog.id));
-  };
 
   const rank = buildRanking(history, { scope, year, month, removidos });
   const events = countEvents(history, { scope, year, month });
@@ -152,48 +121,6 @@ function RankingTab() {
           </div>
           <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
             Os campeonatos deles continuam no histórico — só não entram na contagem do ranking.</p>
-        </div>)}
-
-      {editando && history.length > 0 && (
-        <div className="block">
-          <div className="section-eyebrow"><Users size={13} /> Corrigir um campeonato</div>
-          <p className="tm-cap" style={{ textAlign: "left", margin: "0 0 11px" }}>
-            Para quando alguém foi inscrito e não apareceu, jogou com o nome trocado, ou entrou na vaga de outro.
-          </p>
-          <div className="plist">
-            {history.map(h => (
-              <button key={h.id} className={"pchip" + (corrigindo === h.id ? " on" : "")}
-                onClick={() => setCorrigindo(corrigindo === h.id ? null : h.id)}
-                style={{ cursor: "pointer", textAlign: "left" }}>
-                <span className="pc-nome">{h.championName ? `${h.name} · ${h.championName}` : h.name}</span>
-                <span className="pc-voltar">{new Date(h.finishedAt).toLocaleDateString("pt-BR")}</span>
-              </button>))}
-          </div>
-
-          {corrigindo && (() => {
-            const h = history.find(x => x.id === corrigindo);
-            if (!h) return null;
-            const pontos = Object.fromEntries(awardsOf(h).map(a => [a.name, a.points]));
-            return (
-              <div className="corrigir">
-                {h.players.map(jog => (
-                  <div className="cor-linha" key={jog.id}>
-                    <div className="cor-mid">
-                      <span className="cor-nome">{jog.name}</span>
-                      <span className="cor-pts">{pontos[jog.name] != null ? `${fmtPts(pontos[jog.name])} pts` : "sem pontos"}</span>
-                    </div>
-                    <div className="cor-btns">
-                      <button onClick={() => pedirFusao(h, jog)}>Quem jogou</button>
-                      <button onClick={() => pedirRenome(h, jog)}>Renomear</button>
-                      <button className="perigo" onClick={() => pedirRemocao(h, jog)}>Apagar</button>
-                    </div>
-                  </div>))}
-                <p className="tm-cap" style={{ textAlign: "left", marginTop: 10 }}>
-                  <strong>Quem jogou</strong> transfere as partidas para quem realmente esteve lá e apaga o inscrito ausente —
-                  é o certo quando alguém entrou na vaga de outro, porque os pontos vão junto e ninguém conta duas vezes.
-                </p>
-              </div>);
-          })()}
         </div>)}
 
       {temSaldo && (
