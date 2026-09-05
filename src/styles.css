@@ -1068,3 +1068,44 @@ court texture ============ */
   .acervo-grade,.duelo-grade{grid-template-columns:1fr 1fr 1fr;}
   .acervo-grade .scard.open{grid-column:1 / -1;}
 }
+
+/* ============================================================
+   PEÇAS NOVAS DO CICLO
+   A sessão deixou de ser lista de exercícios e virou arco, então ela troca de
+   regulagem no meio, tem ciclos numerados e tem uma nota honesta sobre o que o
+   robô não consegue fazer. Estilos das três coisas.
+   ============================================================ */
+.minidials{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 2px;}
+.md{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:10.5px;
+  font-weight:700;color:var(--ink);background:#EFF4F1;border:1px solid var(--line);
+  border-radius:7px;padding:3px 7px;}
+.md em{font-style:normal;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.md-on{background:#E4F5EC;border-color:#B7E3CC;color:#166F4A;}
+.md-on em{color:#3E9B72;}
+.md-off{background:#F4F5F6;color:var(--muted);}
+
+/* Os ciclos de um sistema (saque → volta → 3ª bola) e as regras de um jogo
+   pontuado. Numerados porque a ordem é o conteúdo. */
+.tl-passos{list-style:none;counter-reset:pss;margin:8px 0 2px;padding:0;}
+.tl-passos li{counter-increment:pss;position:relative;padding-left:24px;margin-bottom:6px;
+  font-size:12.5px;line-height:1.5;color:#37473D;}
+.tl-passos li::before{content:counter(pss);position:absolute;left:0;top:1px;width:17px;height:17px;
+  border-radius:6px;background:var(--ink);color:#fff;font-family:var(--f-mono);font-size:9.5px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+/* A honestidade sobre o iPong: onde o bloco esbarra no que a máquina não faz,
+   está escrito no próprio bloco em vez de escondido. */
+.tl-limite{display:flex;gap:7px;align-items:flex-start;margin-top:8px;padding:8px 10px;
+  background:#FFF6E8;border:1px solid #F0DCB8;border-radius:10px;
+  font-size:11.5px;line-height:1.45;color:#7A5A12;}
+.tl-limite svg{flex:none;margin-top:2px;}
+.tl-limite strong{color:#5E4409;}
+
+/* Card de academia: por que a sessão existe e a regra de carga da fase. */
+.porque{margin:10px 0 2px;padding:10px 12px;background:#F4F7F5;border-left:3px solid var(--line);
+  border-radius:0 10px 10px 0;}
+.porque p{margin:0;font-size:12.5px;line-height:1.55;color:#37473D;}
+.fasebox{display:flex;gap:8px;align-items:flex-start;margin:10px 0 2px;padding:10px 12px;
+  background:#FBEEEA;border:1px solid #EFD3CA;border-radius:12px;
+  font-size:12.5px;line-height:1.5;color:#7A3B28;}
+.fasebox svg{flex:none;margin-top:2px;color:#B4472F;}

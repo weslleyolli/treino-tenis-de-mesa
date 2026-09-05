@@ -19,6 +19,20 @@ function Dial({ label, value }) {
     </div>);
 }
 
+/* Regulagem compacta dentro de um bloco da linha do tempo. As sessões agora
+   trocam de regulagem no meio (regular com oscilação OFF, irregular com ON), e
+   um painel inteiro por bloco ocuparia a tela toda. */
+const MD_CURTO = { Topspin: "Top", Backspin: "Back", "Frequência": "Freq", "Oscilação": "Osc" };
+function MiniDials({ dials }) {
+  if (!dials) return null;
+  return (
+    <div className="minidials">
+      {Object.entries(dials).map(([k, v]) => (
+        <span key={k} className={"md" + (v === "ON" ? " md-on" : v === "OFF" ? " md-off" : "")}>
+          <em>{MD_CURTO[k] || k}</em>{v}</span>))}
+    </div>);
+}
+
 function RobotPanel({ cfg }) {
   if (!cfg) return null;
   if (cfg.shadow) return (
@@ -84,7 +98,7 @@ function tagClass(t) {
   if (t.indexOf("robô") >= 0) return "t-robot";
   if (t === "saque") return "t-serve";
   if (t === "aula") return "t-lesson";
-  if (t === "jogo") return "t-match";
+  if (t === "jogo" || t === "parceiro") return "t-match";
   if (t === "físico") return "t-phys";
   if (t === "sombra" || t === "estudo") return "t-shadow";
   return "t-none";
@@ -310,5 +324,5 @@ function GuiaPadrao({ guia }) {
 }
 
 export {
-  bold, GuiaPadrao, Dial, RobotPanel, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
+  bold, GuiaPadrao, Dial, RobotPanel, MiniDials, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
 };

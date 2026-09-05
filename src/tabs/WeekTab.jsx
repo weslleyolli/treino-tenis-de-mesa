@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
 } from "lucide-react";
-import { bold, RobotPanel, Session, Counter, tagClass, Collapsible, Vids, GuiaPadrao, BlocoAcervo } from "../components/ui.jsx";
+import { bold, RobotPanel, MiniDials, Session, Counter, tagClass, Collapsible, Vids, GuiaPadrao, BlocoAcervo } from "../components/ui.jsx";
 import { parseMin, parseRest } from "../lib/helpers.jsx";
 import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO, BLOCOS } from "../data/schedule.jsx";
 import { PADRAO_TECNICAS } from "../data/strokes.js";
@@ -29,6 +29,8 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
 
       {cfg && <RobotPanel cfg={cfg} />}
       <GuiaPadrao guia={session.guia} />
+      {session.porque && <div className="porque"><p>{session.porque}</p></div>}
+      {session.regraFase && <div className="fasebox"><Gauge size={14} /><span>{bold(session.regraFase)}</span></div>}
       {session.kind === "saque" && (
         <div className="serveonly"><Wind size={15} /><span>Passo a passo de cada saque, zonas e disfarce estão na <strong>aba Saque</strong> — e o registro de acertos também.</span></div>)}
 
@@ -42,6 +44,9 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
                 <div className="tl-top"><span className="tl-label">{b.label}</span><span className="tl-time"><Clock size={11} /> {b.time}</span></div>
                 {b.tag && <span className={"tl-tag " + tagClass(b.tag)}>{b.tag}</span>}
                 <div className="tl-target"><Repeat size={13} /><span>{b.target}</span></div>
+                <MiniDials dials={b.dials} />
+                {b.passos && <ol className="tl-passos">{b.passos.map((x, k) => <li key={k}>{bold(x)}</li>)}</ol>}
+                {b.limite && <div className="tl-limite"><AlertTriangle size={12} /><span><strong>O que o robô não faz: </strong>{b.limite}</span></div>}
                 <div className="tl-actions">
                   {sec && <button className="mini-btn" style={{ background: meta.color }} onClick={() => onTimer(b.label, sec)}><Play size={12} /> {b.time}</button>}
                   {rest && <button className="mini-btn ghost" onClick={() => onTimer("Descanso", rest)}><Timer size={12} /> {b.rest}</button>}
@@ -52,15 +57,23 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
         })}
       </div>
 
-      {session.slot && <BlocoAcervo ids={PADRAO_TECNICAS[session.slot]} titulo="Exercícios do acervo"
-        sub="técnicas que treinam este mesmo padrão" />}
+      {/* A sessão diz o que abrir: a técnica do dia, ou as técnicas dos padrões
+          da sexta. BlocoAcervo já devolve null com lista vazia. */}
+      <BlocoAcervo titulo="A técnica por dentro" sub="biomecânica, erros comuns e exercícios isolados"
+        ids={session.tecnicas || (session.padroes || []).flatMap(p => PADRAO_TECNICAS[p] || [])} />
+
+      {session.regras && <ul className="clean-list">{session.regras.map((r, i) => <li key={i}>{bold(r)}</li>)}</ul>}
 
       {session.counter && <Counter label={session.counter} record={records[skey]} onRecord={(v) => setRecord(skey, v)} />}
 
       <div className="sess-notes">
         <label className="sn-label"><StickyNote size={12} /> Anotações · {session.title}</label>
         <textarea className="notes-ta" value={notes[skey] || ""} placeholder={
-          session.kind === "saque" ? "Acertos por série, qual efeito saiu melhor, ajustes de lançamento…"
+          session.kind === "mesa" ? "Recordes das séries, o que saiu no regular e sumiu no irregular…"
+          : session.kind === "fisico" ? "Cargas de hoje, o que subiu, o que doeu…"
+          : session.kind === "pontos" ? "Placar final, em que altura do set você errou mais…"
+          : session.kind === "sistema" ? "Quantas 3ªs bolas você chegou a atacar, o que atrapalhou a volta à posição…"
+          : session.kind === "saque" ? "Acertos por série, qual efeito saiu melhor, ajustes de lançamento…"
           : session.kind === "robo" ? "Recordes, sensações, o que ajustar no gesto…"
           : session.kind === "aula" ? "O que o professor corrigiu, o que treinar em casa…"
           : session.kind === "jogo" ? "Qual saque rendeu ponto, onde errei mais…"
