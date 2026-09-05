@@ -1,124 +1,11 @@
 import { yt, parseMin } from "../lib/helpers.jsx";
-import { GUIAS } from "./guias.js";
 import { STROKES } from "./strokes.js";
 import { FISICO, FASES, REGRAS_FISICO } from "./fisico.js";
-import { d, ativacao, regular, IRREGULARES, SISTEMAS, JOGOS_SOLO, saqueDiario } from "./blocos.js";
+import { d, ativacao, regular, IRREGULARES, SISTEMAS, JOGOS_SOLO, saqueDiario,
+  ADVERSARIOS, SETS_COMPLETOS, ROTINA_PREJOGO } from "./blocos.js";
 import {
   Bot, GraduationCap, Trophy, Wind, Target, Layers, Zap, Users, Activity, Dumbbell, Flame
 } from "lucide-react";
-
-/* ============================================================
-   OS 6 PADRÕES
-   Substituem os antigos blocos de regularidade solta. A ideia é treinar a
-   sequência como ela aparece no jogo — saque, resposta esperada do adversário
-   e a bola que você tem de resolver — em vez de 80 bolas no mesmo lugar.
-   ============================================================ */
-const PADROES = {
-  P1: {
-    id: "P1", nome: "No-spin → bola alta → finaliza", tag: "seu combo principal",
-    dials: { Topspin: 2, Backspin: 0, "Frequência": 2, "Oscilação": "OFF" },
-    pos: "Robô ajustado para bola mais alta e mole — é a sobra que o no-spin provoca.",
-    total: "≈ 16 min", contador: "finalizações boas",
-    blocks: [
-      { tag: "saque", label: "Saque de verdade no balde", time: "4 min", target: "15 no-spins curtos no balde ao lado", rest: "—",
-        cue: "É o saque que gera a bola alta. Treine o gesto real antes de virar para o robô." },
-      { tag: "robô", label: "Finalização da bola alta", time: "12 min", target: "4 séries × 10 bolas", rest: "45 s",
-        cue: "Finalize com 80%. A meta não é força: é acertar 8 de 10." },
-    ],
-  },
-  P2: {
-    id: "P2", nome: "Backspin → ele empurra → abertura", tag: "resolve o Henrique",
-    dials: { Topspin: 0, Backspin: 3, "Frequência": 2, "Oscilação": "OFF" },
-    pos: "Bola cortada caindo no meio da sua metade, diagonal de forehand.",
-    total: "≈ 18 min", contador: "aberturas com efeito",
-    blocks: [
-      { tag: "sem robô", label: "Aquecimento e gesto", time: "4 min", target: "Corda 2 min + 10 sombras do slow loop", rest: "—",
-        cue: "Raquete desce ao joelho direito, sobe em diagonal." },
-      { tag: "robô · freq 2", label: "Slow loop — abertura", time: "14 min", target: "6 séries × 8 bolas", rest: "45 s",
-        cue: "Raquete aberta 70–80°, arco alto, muita rotação e pouca velocidade. É abertura, não winner." },
-    ],
-  },
-  P3: {
-    id: "P3", nome: "Abertura → bloqueio dele volta → continuação", tag: "troca de marcha",
-    dials: { Topspin: 4, Backspin: 0, "Frequência": 4, "Oscilação": "OFF" },
-    pos: "Bola de bloqueio voltando rápida e baixa, na sua diagonal.",
-    total: "≈ 16 min", contador: "sequências completas",
-    blocks: [
-      { tag: "robô · freq 4", label: "Abrir e continuar", time: "16 min", target: "5 séries × 2 min", rest: "60 s",
-        cue: "A primeira bola você abre com arco; as seguintes ataca mais reto e rápido. Treina a troca de marcha entre abrir e continuar — o que mais falta no amador." },
-    ],
-  },
-  P4: {
-    id: "P4", nome: "Pressão no backhand → ele gira → pune a paralela", tag: "Caio e Aleykson",
-    dials: { Topspin: 2, Backspin: 0, "Frequência": 4, "Oscilação": "ON" },
-    pos: "Oscilação ligada: o robô alterna os cantos e você escolhe a direção.",
-    total: "≈ 16 min", contador: "paralelas certeiras",
-    blocks: [
-      { tag: "robô · osc ON", label: "3 no canto + 1 na paralela", time: "16 min", target: "5 séries × 2 min", rest: "60 s",
-        cue: "Regra: 3 bolas seguidas no mesmo canto, depois 1 rápida na paralela oposta. Repete. É exatamente o xadrez que abre os dois." },
-    ],
-  },
-  P5: {
-    id: "P5", nome: "Recepção agressiva — flick", tag: "sai da recepção passiva",
-    dials: { Topspin: 0, Backspin: 2, "Frequência": 2, "Oscilação": "OFF" },
-    pos: "Robô mirando curto, bola caindo perto da rede na sua metade.",
-    total: "≈ 14 min", contador: "flicks na mesa",
-    blocks: [
-      { tag: "sem robô", label: "Gesto do flick", time: "3 min", target: "15 sombras: entrada de pé direito + punho", rest: "—",
-        cue: "Movimento curto. O punho é quem gera, não o braço." },
-      { tag: "robô · curto", label: "Flick de recepção", time: "11 min", target: "4 séries × 10 bolas", rest: "45 s",
-        cue: "Entra com o pé direito, punho carregado, movimento curto." },
-    ],
-  },
-  P6: {
-    id: "P6", nome: "Ponto decisivo", tag: "consistência sob pressão",
-    dials: { Topspin: 3, Backspin: 0, "Frequência": 4, "Oscilação": "ON" },
-    pos: "Ritmo de jogo com oscilação. Você não sabe o lado — como no 9-9.",
-    total: "≈ 15 min", contador: "recorde de bolas seguidas",
-    blocks: [
-      { tag: "robô · osc ON", label: "Série do 9-9", time: "15 min", target: "5 séries · conte bolas seguidas na mesa", rest: "60 s",
-        cue: "Imagine 9-9. Se errar, recomeça do zero. Meta: 25 seguidas. Sem tentar vencedor — é o treino que você usa contra o Caio no deuce." },
-    ],
-  },
-  P7: {
-    id: "P7", nome: "Footwork com bola — Falkenberg", tag: "o que mais separa nível",
-    dials: { Topspin: 2, Backspin: 0, "Frequência": 3, "Oscilação": "ON" },
-    pos: "Oscilação entre os dois cantos. Você se desloca, o robô não facilita.",
-    total: "≈ 18 min", contador: "voltas limpas",
-    blocks: [
-      { tag: "sem robô", label: "Side-step sem bola", time: "4 min", target: "3 séries × 40 s de side-step entre os cantos", rest: "30 s",
-        cue: "O pé do lado do deslocamento sai primeiro. Nunca cruze os pés." },
-      { tag: "robô · osc ON", label: "Falkenberg", time: "14 min", target: "5 séries × 2 min", rest: "60 s",
-        cue: "BH no canto de BH → contorne e ataque de FH do mesmo canto → FH no canto de FH. Volte ao centro depois de cada bola: a recuperação é o que separa nível, não o golpe." },
-    ],
-  },
-  P8: {
-    id: "P8", nome: "Recepção — decidir antes de tocar", tag: "sair do automático",
-    dials: { Topspin: 0, Backspin: 2, "Frequência": 2, "Oscilação": "OFF" },
-    pos: "Robô mirando curto, bola cortada perto da rede.",
-    total: "≈ 14 min", contador: "decisões certas",
-    blocks: [
-      { tag: "robô · curto", label: "Três respostas, você escolhe", time: "14 min", target: "5 séries × 8 bolas", rest: "45 s",
-        cue: "A cada bola escolha: push curto, push longo no canto, ou flick. Regra: não repita a mesma resposta duas vezes seguidas. A bola é sempre igual — quem varia é você. É o ensaio da decisão, que é o que falta na recepção." },
-    ],
-  },
-};
-
-/* Transforma um padrão em sessão. O `slot` mantém a chave de conclusão única
-   quando o dia tem dois padrões — sem ele, marcar um marcaria o outro. */
-function sessaoPadrao(p, comAquecimento) {
-  const blocks = comAquecimento && p.blocks[0].tag !== "sem robô"
-    ? [{ tag: "sem robô", label: "Aquecimento", time: "5 min", target: "Corda 2 min + sombra 3 × 1 min", rest: "20 s",
-        cue: "Sinta a cadeia perna → quadril → braço." }, ...p.blocks]
-    : p.blocks;
-  return {
-    kind: "robo", slot: p.id, title: `${p.id} · ${p.nome}`, sub: p.tag,
-    total: p.total, robot: true, counter: p.contador,
-    robotCfg: { title: `${p.id} · ${p.nome}`, pos: p.pos, dials: p.dials },
-    guia: GUIAS[p.id],
-    blocks,
-  };
-}
 
 /* ============ TÉCNICA DO ACERVO COMO SESSÃO ============
    O acervo já traz exercícios estruturados; aqui eles viram blocos da linha do
@@ -459,7 +346,7 @@ const BLOCOS = [
       ter: { t: 1, irr: "irr-fh", jogo: "js-set5", curto: true },
       qua: { t: 2, irr: "irr-bh", sist: "sist-rec4", fis: "B" },
       qui: { correcao: [0, 1, 2] },
-      sex: { pad: ["P6", "P7"], jogo: "js-deuce", fis: "C" },
+      sex: { advs: { 1: "adv-empurra", 2: "adv-previsivel", 3: "adv-bh" }, fis: "C" },
     },
   },
   {
@@ -476,7 +363,7 @@ const BLOCOS = [
       ter: { t: 1, irr: "irr-final", jogo: "js-prazo", curto: true },
       qua: { t: 2, irr: "irr-bh", sist: "sist-saque3", fis: "B" },
       qui: { correcao: [0, 1, 2] },
-      sex: { pad: ["P2", "P3"], jogo: "js-set5", fis: "C" },
+      sex: { advs: { 5: "adv-ataca", 6: "adv-empurra", 7: "adv-canhoto" }, fis: "C" },
     },
   },
   {
@@ -493,7 +380,7 @@ const BLOCOS = [
       ter: { t: 1, irr: "irr-sobrevive", jogo: "js-prazo", curto: true },
       qua: { t: 2, irr: "irr-bh", sist: "sist-rec4", fis: "B" },
       qui: { correcao: [0, 1, 2] },
-      sex: { pad: ["P4", "P8"], jogo: "js-deuce", fis: "C" },
+      sex: { advs: { 9: "adv-ataca", 10: "adv-bh", 11: "adv-canhoto" }, fis: "C" },
     },
   },
 ];
@@ -513,6 +400,9 @@ function sessionsFor(id, week) {
 
   const r = (info.dias && info.dias[id]) || bloco.dias[id];
   if (!r) return [];
+  /* A sexta gira os cinco arquétipos ao longo do ciclo: cada semana enfrenta um
+     adversário diferente, e nenhum aparece duas vezes no mesmo bloco. */
+  if (r.advs) r.adv = r.advs[week];
 
   /* Semana de teste: a sexta vira a bateria e a academia sai da semana — medir
      cansado mede o cansaço. Nos outros dias sai o bloco irregular, que é o mais
@@ -523,7 +413,7 @@ function sessionsFor(id, week) {
 
   if (id === "sex") {
     if (teste) return [sessaoTeste(week)];
-    const out = [sessaoPadraoDia(r.pad, week), sessaoPontos({ jogo: r.jogo, week })];
+    const out = [sessaoAdversario(r.adv), sessaoSets(week)];
     if (r.fis) out.push(sessaoFisico(r.fis, bloco.n));
     return out;
   }
@@ -540,23 +430,43 @@ function sessionsFor(id, week) {
   return out;
 }
 
-/* Sexta: os padrões de jogo, que são as situações inteiras — saque, resposta
-   esperada e a bola que você tem de resolver. É o dia em que a técnica da
-   semana precisa aparecer dentro de uma situação, não isolada. */
-function sessaoPadraoDia(pads, week) {
-  const ss = pads.map((p, i) => sessaoPadrao(PADROES[p], i === 0));
-  const blocos = ss.flatMap((s) => s.blocks);
+/* Sexta é véspera de sábado, então é o dia de jogo simulado — não mais um dia
+   de exercício. Dois cards: o adversário da semana (arquétipo da aba Táticas
+   virando regulagem e regra de execução) e sets completos com placar. */
+function sessaoAdversario(advId) {
+  const A = ADVERSARIOS[advId];
+  const blocos = [
+    ...ROTINA_PREJOGO,
+    { tag: "robô", label: `Contra: ${A.tipo}`, time: A.time, rest: A.rest,
+      target: `${A.target} — REGRA: ${A.regra}`, dials: A.dials, passos: A.plano, cue: A.cue },
+  ];
   return {
-    kind: "robo", slot: "simulacao", title: "Simulação · " + pads.join(" + "),
-    sub: ss.map((s) => s.sub).join(" · "), total: totalDe(blocos), robot: true,
-    robotCfg: ss[0].robotCfg, guia: ss[0].guia, counter: ss[0].counter,
-    padroes: pads, blocks: blocos,
+    kind: "adversario", slot: advId, title: "O adversário da semana", sub: A.tipo,
+    total: totalDe(blocos), robot: true,
+    robotCfg: { title: A.tipo, pos: A.pos, dials: A.dials },
+    porque: `A fraqueza dele: ${A.fraqueza}`,
+    counter: A.contador, tecnicas: A.tecnicas, blocks: blocos,
+  };
+}
+
+function sessaoSets(week) {
+  const S = SETS_COMPLETOS;
+  const blocos = [
+    { tag: "jogo", label: S.nome, time: S.time, rest: S.rest,
+      target: S.target, dials: S.dials, passos: S.regras, cue: S.cue },
+    saqueDiario(SERVE_FOCUS[week]),
+  ];
+  return {
+    kind: "pontos", slot: "sets", title: S.nome, sub: S.sub,
+    total: totalDe(blocos), robot: true,
+    robotCfg: { title: S.nome, pos: S.pos, dials: S.dials },
+    counter: S.contador, blocks: blocos,
   };
 }
 
 const KIND_META = {
   mesa: { icon: Bot, color: "#FF7A29", label: "Mesa" },
-  robo: { icon: Bot, color: "#FF7A29", label: "Simulação" },
+  adversario: { icon: Users, color: "#7A4FE0", label: "Adversário" },
   sistema: { icon: Zap, color: "#0E8B8B", label: "Sistema" },
   pontos: { icon: Trophy, color: "#D6A324", label: "Pontos" },
   fisico: { icon: Dumbbell, color: "#B4472F", label: "Físico" },
@@ -621,6 +531,6 @@ const WEEK_INFO = BLOCOS.flatMap((b) =>
 ).sort((a, b) => a.n - b.n);
 
 export {
-  robotFor, SERVE_FOCUS, serveSession, sessionsFor, KIND_META, isDayDone, DAYS, WEEK_INFO, PADROES,
-  sessaoTecnica, BLOCOS, blocoDaSemana, semanaInfo, IRREGULARES, SISTEMAS, JOGOS_SOLO,
+  robotFor, SERVE_FOCUS, serveSession, sessionsFor, KIND_META, isDayDone, DAYS, WEEK_INFO,
+  sessaoTecnica, BLOCOS, blocoDaSemana, semanaInfo, IRREGULARES, SISTEMAS, JOGOS_SOLO, ADVERSARIOS,
 };

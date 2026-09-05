@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
 } from "lucide-react";
-import { bold, RobotPanel, MiniDials, Session, Counter, tagClass, Collapsible, Vids, GuiaPadrao, BlocoAcervo } from "../components/ui.jsx";
+import { bold, RobotPanel, MiniDials, Session, Counter, tagClass, Collapsible, Vids, BlocoAcervo } from "../components/ui.jsx";
 import { parseMin, parseRest } from "../lib/helpers.jsx";
 import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO, BLOCOS } from "../data/schedule.jsx";
-import { PADRAO_TECNICAS } from "../data/strokes.js";
 
 /* ============ ABA SEMANA ============ */
 function SessionCard({ session, week, dayId, done, toggle, notes, setNote, records, setRecord, onTimer }) {
@@ -28,7 +27,6 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
       </div>
 
       {cfg && <RobotPanel cfg={cfg} />}
-      <GuiaPadrao guia={session.guia} />
       {session.porque && <div className="porque"><p>{session.porque}</p></div>}
       {session.regraFase && <div className="fasebox"><Gauge size={14} /><span>{bold(session.regraFase)}</span></div>}
       {session.kind === "saque" && (
@@ -57,10 +55,10 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
         })}
       </div>
 
-      {/* A sessão diz o que abrir: a técnica do dia, ou as técnicas dos padrões
-          da sexta. BlocoAcervo já devolve null com lista vazia. */}
+      {/* A sessão diz quais técnicas do acervo abrir — a do dia, ou as que
+          resolvem o adversário da sexta. BlocoAcervo devolve null se vazio. */}
       <BlocoAcervo titulo="A técnica por dentro" sub="biomecânica, erros comuns e exercícios isolados"
-        ids={session.tecnicas || (session.padroes || []).flatMap(p => PADRAO_TECNICAS[p] || [])} />
+        ids={session.tecnicas} />
 
       {session.regras && <ul className="clean-list">{session.regras.map((r, i) => <li key={i}>{bold(r)}</li>)}</ul>}
 
@@ -69,7 +67,8 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
       <div className="sess-notes">
         <label className="sn-label"><StickyNote size={12} /> Anotações · {session.title}</label>
         <textarea className="notes-ta" value={notes[skey] || ""} placeholder={
-          session.kind === "mesa" ? "Recordes das séries, o que saiu no regular e sumiu no irregular…"
+          session.kind === "adversario" ? "A regra segurou? Onde a mão quis voltar ao automático…"
+          : session.kind === "mesa" ? "Recordes das séries, o que saiu no regular e sumiu no irregular…"
           : session.kind === "fisico" ? "Cargas de hoje, o que subiu, o que doeu…"
           : session.kind === "pontos" ? "Placar final, em que altura do set você errou mais…"
           : session.kind === "sistema" ? "Quantas 3ªs bolas você chegou a atacar, o que atrapalhou a volta à posição…"

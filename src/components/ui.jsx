@@ -276,53 +276,7 @@ function Bars({ data, unit }) {
 
 /* Guia de execução de um padrão. Fica aberto por padrão: a dúvida "como eu faço
    isso" aparece na mesa, e um toque a mais nessa hora é atrito. */
-function GuiaPadrao({ guia }) {
-  const [aberto, setAberto] = useState(true);
-  if (!guia) return null;
-  return (
-    <div className="guia">
-      <button className="guia-head" onClick={() => setAberto(o => !o)}>
-        <span className="guia-t"><Info size={14} /> Como fazer</span>
-        <ChevronDown size={17} className={"chev" + (aberto ? " open" : "")} />
-      </button>
-
-      {aberto && (
-        <div className="guia-body">
-          <div className="guia-sec">
-            <div className="mini-title">Montagem</div>
-            <div className="gset"><span className="gset-l">Robô</span><span>{guia.montagem.robo}</span></div>
-            <div className="gset"><span className="gset-l">Você</span><span>{guia.montagem.voce}</span></div>
-            <div className="gset"><span className="gset-l">Confira</span><span>{guia.montagem.confira}</span></div>
-          </div>
-
-          <div className="guia-sec">
-            <div className="mini-title">A situação de jogo</div>
-            <p className="guia-sit">{guia.situacao}</p>
-          </div>
-
-          <div className="guia-sec">
-            <div className="mini-title">Passo a passo</div>
-            <ol className="bio-steps">{guia.passos.map((x, i) => <li key={i}>{bold(x)}</li>)}</ol>
-          </div>
-
-          <div className="guia-foco"><Target size={15} /><span><strong>O que olhar hoje: </strong>{guia.olhar}</span></div>
-
-          <div className="guia-sec">
-            <div className="mini-title">Se estiver errando</div>
-            <div className="gfix">
-              {guia.ajustes.map(([sintoma, correcao], i) => (
-                <div className="gfix-row" key={i}>
-                  <span className="gfix-s">{sintoma}</span>
-                  <span className="gfix-c">{correcao}</span>
-                </div>))}
-            </div>
-          </div>
-
-          <div className="guia-erro"><AlertTriangle size={15} /><span><strong>Erro mais comum: </strong>{guia.erro}</span></div>
-        </div>)}
-    </div>);
-}
 
 export {
-  bold, GuiaPadrao, Dial, RobotPanel, MiniDials, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
+  bold, Dial, RobotPanel, MiniDials, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
 };
