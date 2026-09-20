@@ -21,20 +21,30 @@ const d = (top, back, freq, osc) => ({
   Topspin: top, Backspin: back, "Frequência": freq, "Oscilação": osc ? "ON" : "OFF",
 });
 
-/* ---------- 1. ATIVAÇÃO ----------
-   Oito minutos que não são "corda 2 min". Aquecimento de tênis de mesa é
-   articulação, pés e o gesto do dia — nessa ordem, e sem bola. */
-function ativacao(focoNome) {
+/* ---------- 1. AQUECIMENTO ----------
+   O ciclo antigo abria com corda e pés sem bola. Você não fazia — e treino que
+   não é feito não é treino, é decoração. Então o aquecimento mudou de lugar:
+   acontece na mesa, com bola, e é o DRIVE, um dos quatro erros do torneio.
+
+   Aquecer batendo drive leve e subindo o ritmo faz as três coisas de uma vez:
+   sobe a temperatura, liga os pés e treina a batida base. O único bloco sem
+   bola que sobrou são os 2 minutos de sombra do gesto do dia, que é a última
+   chance de consertar o movimento antes de a bola impor a pressa. */
+function aquecimento(focoNome) {
   return [
-    { tag: "físico", label: "Mobilidade e corda", time: "4 min", rest: "—",
-      target: "Corda 2 min · círculos de ombro, rotação de tronco e tornozelo 2 min",
-      cue: "Aquecer é subir a temperatura da articulação, não cansar. Se você suou, passou." },
-    { tag: "físico", label: "Pés sem bola", time: "2 min", rest: "20 s",
-      target: "3 × 30 s: side-step entre os cantos · in-out · split-step no ritmo de jogo",
-      cue: "Comece o treino já com os pés ligados. É a diferença entre a primeira série boa e a primeira série perdida." },
+    { tag: "robô", label: "Drive de aquecimento — FH e BH", time: "6 min", rest: "—",
+      target: "2 min diagonal de forehand · 2 min diagonal de backhand · 2 min alternando",
+      dials: d(1, 0, 2, false),
+      cue: "Aquecimento e treino de drive na mesma coisa. Comece devagar de propósito: nos dois primeiros minutos você procura o timing, não a potência.",
+    },
+    { tag: "robô", label: "Subida de ritmo", time: "4 min", rest: "30 s",
+      target: "4 séries × 20 bolas · uma marcha acima, gesto igual",
+      dials: d(2, 0, 3, false),
+      cue: "A bola acelera, o gesto não muda de tamanho. Drive que cresce quando a bola vem mais rápido é o drive que erra em jogo.",
+    },
     { tag: "sombra", label: `Sombra — ${focoNome}`, time: "2 min", rest: "—",
       target: "20 repetições devagar, gesto inteiro, do pé à raquete",
-      cue: "Aqui a sombra vale: é a última chance de corrigir o gesto antes da bola impor a pressa." },
+      cue: "O único bloco do dia sem bola, e ele fica: é a última chance de corrigir o gesto antes da bola impor a pressa." },
   ];
 }
 
@@ -54,6 +64,24 @@ function regular(nome, dials, cue) {
    O que faltava. Bola fixa constrói golpe; bola imprevisível constrói jogador.
    A partir do bloco 2 o irregular passa a ser maior que o regular no dia. */
 const IRREGULARES = {
+  /* Os três blocos do ciclo pós-torneio. Cada um ataca um dos erros do
+     campeonato com bola imprevisível — que é a condição em que eles
+     apareceram, e não a bola parada em que eles não aparecem. */
+  "irr-abre": {
+    nome: "Abrir toda bola cortada", sub: "a saída do backspin sob incerteza", dials: d(0, 4, 2, true), time: "17 min",
+    target: "6 séries × 10 bolas · backspin alto varrendo os cantos", rest: "60 s", contador: "aberturas que passaram",
+    cue: "Backspin em todos os cantos e uma regra só: ABRIR. Nenhum push de volta, nem na difícil, nem na última da série. Você perdeu o torneio empurrando bola que dava para abrir — aqui a opção de empurrar não existe. Errar abrindo conta como série boa; empurrar zera a série.",
+  },
+  "irr-cozinha": {
+    nome: "Cozinhar e sair", sub: "três empurradas e a decisão", dials: d(0, 3, 2, true), time: "16 min",
+    target: "6 séries × 8 ciclos de 4 bolas", rest: "60 s", contador: "ciclos com a 4ª atacada",
+    cue: "Três bolas de push com qualidade — baixas, longas, no canto — e a QUARTA você abre, sempre. Cozinhar não é esperar o adversário errar, é preparar a bola que você vai atacar. Se a quarta não sai, o ciclo não conta. O robô manda tudo comprido: o push curto é sábado, com gente.",
+  },
+  "irr-defesa": {
+    nome: "Segurar o ataque dele", sub: "bloqueio que muda de direção", dials: d(5, 0, 4, true), time: "16 min",
+    target: "6 séries × 90 s · alternando bloqueio na paralela e na diagonal", rest: "75 s", contador: "sequências de 8 bloqueios",
+    cue: "Topspin pesado em cima de você, raquete fechada, sem movimento: só ângulo. A cada bola MUDA a direção do bloqueio — é o que tira o ritmo de quem ataca e faz atacante amador errar. Recuar aqui é entregar o ângulo; o bloqueio se faz colado na mesa.",
+  },
   "irr-fh": {
     nome: "Dois pontos, um golpe", sub: "pivô obrigatório", dials: d(2, 0, 3, true), time: "17 min",
     target: "6 séries × 90 s · oscilação entre os cantos", rest: "60 s", contador: "séries sem furo",
@@ -112,6 +140,22 @@ const SISTEMAS = {
     cue: "Recepção não é devolver, é escolher. E toda escolha tem uma bola seguinte — treinar as duas juntas é o que faz a recepção virar ataque.",
     limite: "O robô manda a mesma bola nas duas: a variação de efeito que o adversário faz não dá para simular. O que este bloco treina é a cadeia decisão → deslocamento → ataque.",
   },
+  /* O sistema do ciclo pós-torneio: os quatro erros na ordem em que eles
+     aconteceram no campeonato, dentro do mesmo ponto. */
+  "sist-abrir-aguentar": {
+    nome: "Abrir e aguentar a resposta", sub: "o ponto que você perdeu o torneio inteiro",
+    dials: d(3, 3, 2, true), time: "17 min", rest: "75 s", contador: "cadeias completas",
+    pos: "Regulagem mista: backspin para a abertura e topspin para a resposta. Se o seu robô não mistura numa série só, rode em duas séries alternadas — primeiro a cortada, depois o topspin.",
+    target: "6 séries × 6 ciclos (3 bolas cada)",
+    montagem: "Balde cheio. Você começa a meia-distância, não colado na mesa.",
+    ciclo: [
+      "**Bola 1 — cortada.** Abra de topspin, sem pensar em empurrar. É a saída do backspin.",
+      "**Bola 2 — topspin em cima.** Ele não morreu com a sua abertura: bloqueie colado na mesa, raquete fechada.",
+      "**Bola 3 — você volta a atacar.** Bloquear duas vezes é sobreviver; a terceira tem que ser sua.",
+    ],
+    cue: "No torneio o ponto morreu sempre no mesmo lugar: você empurrou quando devia abrir, ou abriu e entregou a bola seguinte. Este bloco é exatamente essas três bolas, seis vezes por série.",
+    limite: "O robô não responde à sua abertura de verdade — o topspin dele vem por regulagem, não por causa da sua bola. O que se treina aqui é a cadeia e a recuperação entre as três; a resposta real é sábado.",
+  },
   "sist-bloqueio": {
     nome: "Bloqueio → virar o jogo", sub: "parar de só sobreviver quando ele abre",
     dials: d(5, 0, 4, true), time: "15 min", rest: "60 s", contador: "viradas completas",
@@ -150,6 +194,16 @@ const JOGOS_SOLO = {
       "10 pontos por série, 3 séries.",
     ],
     cue: "Você tem consistência e usa ela para adiar a decisão. Este jogo cobra o oposto: resolver. É o remédio direto para o set que você domina e perde no fim.",
+  },
+  "js-abre": {
+    nome: "Só vale ponto com abertura", sub: "cozinhar deixa de ser desculpa",
+    dials: d(0, 4, 2, true), time: "12 min", rest: "—", contador: "pontos ganhos com abertura",
+    regras: [
+      "O robô manda **cortada**: você empurra **no máximo 3 bolas** e abre.",
+      "Ponto só conta se a **abertura passou**. Bola na mesa empurrando **não vale ponto**.",
+      "Empurrou a quarta: **ponto do robô**. Vai até 11 e anote o placar.",
+    ],
+    cue: "Este é o placar do erro que te custou o campeonato. Enquanto empurrar valer meio ponto na sua cabeça, você vai empurrar no jogo — aqui empurrar vale zero e abrir errado ainda te deixa vivo.",
   },
   "js-deuce": {
     nome: "Só deuce", sub: "a parte do jogo que decide",
@@ -265,13 +319,14 @@ const SETS_COMPLETOS = {
    Ensaiar a rotina é treinar a habilidade de começar pronto — o primeiro set
    perdido por estar frio é o mais caro do torneio. */
 const ROTINA_PREJOGO = [
-  { tag: "físico", label: "Mobilidade curta", time: "3 min", rest: "—",
-    target: "Ombro, quadril e tornozelo · corda 1 min",
-    cue: "Aquecimento de jogo é mais curto que o de treino de propósito: você tem 10 minutos de mesa em torneio, não 40." },
-  { tag: "robô", label: "Aquecimento de bola", time: "5 min", rest: "—",
-    target: "2 min diagonal de forehand · 2 min diagonal de backhand · 1 min alternando",
+  { tag: "robô", label: "Aquecimento de bola", time: "6 min", rest: "—",
+    target: "2 min diagonal de forehand · 2 min diagonal de backhand · 2 min alternando",
     dials: d(2, 0, 3, false),
-    cue: "Exatamente o aquecimento que você faria com o adversário antes do jogo. Sem oscilação: aquecer é achar o timing, não treinar." },
+    cue: "Exatamente o aquecimento que você faria com o adversário antes do jogo — e é assim que o aquecimento acontece agora: na mesa, com bola. Sem oscilação: aquecer é achar o timing, não treinar." },
+  { tag: "robô", label: "Três cortadas e três topspins", time: "3 min", rest: "—",
+    target: "10 aberturas contra backspin · 10 bloqueios contra topspin",
+    dials: d(0, 4, 2, false),
+    cue: "Antes do jogo, toque uma vez em cada um dos dois erros que decidem a sua partida. Chegar no primeiro ponto sem ter aberto nenhuma cortada é chegar frio no que mais importa." },
   { tag: "saque", label: "Ensaio da rotina", time: "2 min", rest: "—",
     target: "10 saques · e a decisão de qual vai ser o primeiro saque do jogo",
     passos: [
@@ -294,5 +349,5 @@ function saqueDiario(foco) {
   };
 }
 
-export { d, ativacao, regular, IRREGULARES, SISTEMAS, JOGOS_SOLO, saqueDiario,
+export { d, aquecimento, regular, IRREGULARES, SISTEMAS, JOGOS_SOLO, saqueDiario,
   ADVERSARIOS, SETS_COMPLETOS, ROTINA_PREJOGO };
