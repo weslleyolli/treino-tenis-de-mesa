@@ -32,17 +32,17 @@ const d = (top, back, freq, osc) => ({
    chance de consertar o movimento antes de a bola impor a pressa. */
 function aquecimento(focoNome) {
   return [
-    { tag: "robô", label: "Drive de aquecimento — FH e BH", time: "6 min", rest: "—",
+    { det: "aq-drive", tag: "robô", label: "Drive de aquecimento — FH e BH", time: "6 min", rest: "—",
       target: "2 min diagonal de forehand · 2 min diagonal de backhand · 2 min alternando",
       dials: d(1, 0, 2, false),
       cue: "Aquecimento e treino de drive na mesma coisa. Comece devagar de propósito: nos dois primeiros minutos você procura o timing, não a potência.",
     },
-    { tag: "robô", label: "Subida de ritmo", time: "4 min", rest: "30 s",
+    { det: "aq-ritmo", tag: "robô", label: "Subida de ritmo", time: "4 min", rest: "30 s",
       target: "4 séries × 20 bolas · uma marcha acima, gesto igual",
       dials: d(2, 0, 3, false),
       cue: "A bola acelera, o gesto não muda de tamanho. Drive que cresce quando a bola vem mais rápido é o drive que erra em jogo.",
     },
-    { tag: "sombra", label: `Sombra — ${focoNome}`, time: "2 min", rest: "—",
+    { det: "aq-sombra", tag: "sombra", label: `Sombra — ${focoNome}`, time: "2 min", rest: "—",
       target: "20 repetições devagar, gesto inteiro, do pé à raquete",
       cue: "O único bloco do dia sem bola, e ele fica: é a última chance de corrigir o gesto antes da bola impor a pressa." },
   ];
@@ -54,7 +54,7 @@ function aquecimento(focoNome) {
    que 400 no automático. */
 function regular(nome, dials, cue) {
   return {
-    tag: "robô", label: `Regular — ${nome}`, time: "13 min", rest: "45 s",
+    det: "regular", tag: "robô", label: `Regular — ${nome}`, time: "13 min", rest: "45 s",
     target: "6 séries × 25 bolas · mesmo ponto, mesma bola",
     dials, cue: cue || "Qualidade acima de quantidade: se a série passou de 5 erros, baixe a frequência em 1 antes de insistir.",
   };
@@ -319,15 +319,15 @@ const SETS_COMPLETOS = {
    Ensaiar a rotina é treinar a habilidade de começar pronto — o primeiro set
    perdido por estar frio é o mais caro do torneio. */
 const ROTINA_PREJOGO = [
-  { tag: "robô", label: "Aquecimento de bola", time: "6 min", rest: "—",
+  { det: "pj-bola", tag: "robô", label: "Aquecimento de bola", time: "6 min", rest: "—",
     target: "2 min diagonal de forehand · 2 min diagonal de backhand · 2 min alternando",
     dials: d(2, 0, 3, false),
     cue: "Exatamente o aquecimento que você faria com o adversário antes do jogo — e é assim que o aquecimento acontece agora: na mesa, com bola. Sem oscilação: aquecer é achar o timing, não treinar." },
-  { tag: "robô", label: "Três cortadas e três topspins", time: "3 min", rest: "—",
+  { det: "pj-cortadas", tag: "robô", label: "Três cortadas e três topspins", time: "3 min", rest: "—",
     target: "10 aberturas contra backspin · 10 bloqueios contra topspin",
     dials: d(0, 4, 2, false),
     cue: "Antes do jogo, toque uma vez em cada um dos dois erros que decidem a sua partida. Chegar no primeiro ponto sem ter aberto nenhuma cortada é chegar frio no que mais importa." },
-  { tag: "saque", label: "Ensaio da rotina", time: "2 min", rest: "—",
+  { det: "pj-rotina", tag: "saque", label: "Ensaio da rotina", time: "2 min", rest: "—",
     target: "10 saques · e a decisão de qual vai ser o primeiro saque do jogo",
     passos: [
       "Garrafa e toalha no lugar **antes** do primeiro ponto.",
@@ -343,7 +343,7 @@ const ROTINA_PREJOGO = [
    semana e ~500 bolas — contra os 30 min soltos do ciclo antigo. */
 function saqueDiario(foco) {
   return {
-    tag: "saque", label: "Saque — 10 minutos todo dia", time: "10 min", rest: "—",
+    det: "saque-diario", tag: "saque", label: "Saque — 10 minutos todo dia", time: "10 min", rest: "—",
     target: `100 bolas no balde · foco da semana: ${foco}`,
     cue: "Saque não melhora em treino semanal, melhora em repetição diária. Registre os acertos na aba Saque — sem denominador não existe evolução.",
   };

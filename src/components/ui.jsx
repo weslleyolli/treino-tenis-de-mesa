@@ -6,6 +6,7 @@ import { parseMin, parseRest, fmt, beep, yt } from "../lib/helpers.jsx";
 import { storage as store } from "../lib/db.js";
 import { robotFor, KIND_META } from "../data/schedule.jsx";
 import { tecnicasPorId } from "../data/strokes.js";
+import { DETALHES } from "../data/detalhes.js";
 
 /* ============ COMPONENTES ============ */
 function Dial({ label, value }) {
@@ -277,6 +278,82 @@ function Bars({ data, unit }) {
 /* Guia de execução de um padrão. Fica aberto por padrão: a dúvida "como eu faço
    isso" aparece na mesa, e um toque a mais nessa hora é atrito. */
 
+/* ============ COMO FAZER ============
+   O card do dia é curto: nome, dose, regulagem e uma frase. Isso basta quando
+   você já sabe o exercício, e não basta nenhuma vez na primeira semana — daí
+   este botão em cada bloco.
+
+   A tela é montada em duas camadas: o que está escrito à mão em detalhes.js
+   (o que é, montagem, passo a passo, meta, erros) e o que o próprio bloco já
+   carrega (dose, regulagem, ciclo, limite do robô e a frase de atenção). Um
+   bloco sem entrada em detalhes.js ainda abre uma tela cheia, com a segunda
+   camada — botão que abre tela vazia é pior que botão nenhum. */
+function ComoFazer({ bloco, cor, aberto, onFechar }) {
+  useEffect(() => {
+    if (!aberto) return;
+    const onKey = (e) => { if (e.key === "Escape") onFechar(); };
+    const antes = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = antes; window.removeEventListener("keydown", onKey); };
+  }, [aberto, onFechar]);
+
+  if (!aberto) return null;
+  const d = (bloco.det && DETALHES[bloco.det]) || {};
+  const passos = d.execucao || bloco.passos;
+  const robo = d.robo || bloco.limite;
+
+  return (
+    <div className="modal" onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="modal-cx cf-cx" role="dialog" aria-label={`Como fazer: ${bloco.label}`}>
+        <div className="modal-top">
+          <h3>{bloco.label}</h3>
+          <button className="modal-x" onClick={onFechar} aria-label="Fechar"><X size={18} /></button>
+        </div>
+
+        {d.oque && <p className="modal-p">{d.oque}</p>}
+
+        <div className="cf-dose"><Repeat size={13} /><span>{bloco.target}</span></div>
+        <div className="cf-chips">
+          {bloco.time && bloco.time !== "—" && <span className="cf-chip"><Clock size={11} /> {bloco.time}</span>}
+          {bloco.rest && bloco.rest !== "—" && <span className="cf-chip"><Timer size={11} /> descanso {bloco.rest}</span>}
+        </div>
+
+        {bloco.dials && (
+          <div className="cf-sec">
+            <h4><Bot size={13} /> Regulagem do robô</h4>
+            <MiniDials dials={bloco.dials} />
+          </div>)}
+
+        {d.montagem && (
+          <div className="cf-sec">
+            <h4><Target size={13} /> Montagem</h4>
+            <ul className="cf-lista">{d.montagem.map((x, i) => <li key={i}>{bold(x)}</li>)}</ul>
+          </div>)}
+
+        {passos && (
+          <div className="cf-sec">
+            <h4><Play size={13} /> Como executar</h4>
+            <ol className="tl-passos">{passos.map((x, i) => <li key={i}>{bold(x)}</li>)}</ol>
+          </div>)}
+
+        {d.meta && (
+          <div className="cf-meta"><Award size={14} /><span><strong>Meta de hoje: </strong>{d.meta}</span></div>)}
+
+        {d.erros && (
+          <div className="cf-sec">
+            <h4><AlertTriangle size={13} /> O que estraga o bloco</h4>
+            <ul className="cf-erros">{d.erros.map((x, i) => <li key={i}>{bold(x)}</li>)}</ul>
+          </div>)}
+
+        {robo && (
+          <div className="tl-limite"><AlertTriangle size={12} /><span><strong>O que o robô não faz: </strong>{robo}</span></div>)}
+
+        {bloco.cue && <p className="cf-cue" style={{ borderLeftColor: cor }}>{bloco.cue}</p>}
+      </div>
+    </div>);
+}
+
 export {
-  bold, Dial, RobotPanel, MiniDials, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars
+  bold, Dial, RobotPanel, MiniDials, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars, ComoFazer
 };

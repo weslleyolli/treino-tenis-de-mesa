@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus
 } from "lucide-react";
-import { bold, RobotPanel, MiniDials, Session, Counter, tagClass, Collapsible, Vids, BlocoAcervo } from "../components/ui.jsx";
+import { bold, RobotPanel, MiniDials, Session, Counter, tagClass, Collapsible, Vids, BlocoAcervo, ComoFazer } from "../components/ui.jsx";
 import { parseMin, parseRest } from "../lib/helpers.jsx";
 import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO, BLOCOS } from "../data/schedule.jsx";
 
@@ -15,6 +15,9 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
   const isDone = !!done[skey];
   // cada padrao carrega a propria regulagem; robotFor e o padrao antigo por dia
   const cfg = session.robotCfg || (session.robot ? robotFor(dayId, week) : null);
+  /* Qual bloco está com o "Como fazer" aberto. Índice, e não booleano por
+     bloco: só um de cada vez abre, que é como a tela se comporta na mesa. */
+  const [detalhe, setDetalhe] = useState(null);
   return (
     <div className={"sess" + (isDone ? " sess-done" : "")} style={{ "--c": meta.color }}>
       <div className="sess-head">
@@ -48,12 +51,19 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
                 <div className="tl-actions">
                   {sec && <button className="mini-btn" style={{ background: meta.color }} onClick={() => onTimer(b.label, sec)}><Play size={12} /> {b.time}</button>}
                   {rest && <button className="mini-btn ghost" onClick={() => onTimer("Descanso", rest)}><Timer size={12} /> {b.rest}</button>}
+                  {/* A descrição longa do exercício: montagem, passo a passo,
+                      meta e os erros que estragam o bloco. */}
+                  <button className="mini-btn ghost" onClick={() => setDetalhe(i)}
+                    aria-label={`Como fazer: ${b.label}`}><Info size={12} /> Como fazer</button>
                 </div>
                 {b.cue && <p className="tl-cue" style={{ borderLeftColor: meta.color }}>{b.cue}</p>}
               </div>
             </div>);
         })}
       </div>
+
+      <ComoFazer bloco={session.blocks[detalhe] || {}} cor={meta.color}
+        aberto={detalhe !== null} onFechar={() => setDetalhe(null)} />
 
       {/* A sessão diz quais técnicas do acervo abrir — a do dia, ou as que
           resolvem o adversário da sexta. BlocoAcervo devolve null se vazio. */}
