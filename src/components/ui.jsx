@@ -9,28 +9,56 @@ import { tecnicasPorId } from "../data/strokes.js";
 import { DETALHES } from "../data/detalhes.js";
 
 /* ============ COMPONENTES ============ */
+
+/* A REGULAGEM NA LINGUAGEM DO CONTROLE REMOTO
+   O V300 tem quatro controles de 1 a 8, e o visor mostra os quatro nesta
+   ordem: Frequência · Oscilação · Topspin · Backspin. O app mostrava outra
+   coisa (oscilação como liga/desliga, efeito num número só), e quem estava na
+   mesa tinha que traduzir de cabeça. Agora a tela é o controle.
+
+   E o efeito não é um número: são duas rodas, e o efeito é a DIFERENÇA entre
+   elas. Por isso o painel calcula e escreve o que vai sair. */
+const ORDEM_REMOTO = ["Frequência", "Oscilação", "Topspin", "Backspin"];
+const naOrdemDoRemoto = (dials) =>
+  ORDEM_REMOTO.filter((k) => dials[k] !== undefined).map((k) => [k, dials[k]])
+    .concat(Object.entries(dials).filter(([k]) => !ORDEM_REMOTO.includes(k)));
+
+/* O que sai da máquina, em uma frase: é a diferença entre as duas rodas. */
+function efeitoDaRegulagem(dials) {
+  const t = Number(dials.Topspin), b = Number(dials.Backspin);
+  if (!Number.isFinite(t) || !Number.isFinite(b)) return null;
+  const dif = t - b;
+  if (dif === 0) return { tom: "zero", texto: "Rodas iguais: bola SEM EFEITO" };
+  if (dif > 0) return { tom: "top", texto: `Topspin ${dif > 3 ? "forte" : dif > 1 ? "médio" : "leve"} · diferença ${dif}` };
+  return { tom: "back", texto: `Backspin ${-dif > 3 ? "forte" : -dif > 1 ? "médio" : "leve"} · diferença ${-dif}` };
+}
+
 function Dial({ label, value }) {
-  const tog = value === "ON" || value === "OFF";
+  const n = Number(value);
+  const desligada = label === "Oscilação" && n === 0;
   return (
     <div className="dial">
       <div className="dial-head"><span className="dial-label">{label}</span>
-        <span className={"dial-val" + (tog ? (value === "ON" ? " on" : " off") : "")}>{value}</span></div>
-      {tog ? <div className={"toggle " + (value === "ON" ? "toggle-on" : "toggle-off")}><div className="toggle-knob" /></div>
-        : <div className="track">{Array.from({ length: 10 }).map((_, i) => <span key={i} className={"tick" + (i === value ? " active" : i < value ? " past" : "")} />)}</div>}
+        <span className={"dial-val" + (desligada ? " off" : "")}>{value}</span></div>
+      {/* 0 a 8, que é a escala do controle: 0 só existe na oscilação. */}
+      <div className="track">{Array.from({ length: 9 }).map((_, i) =>
+        <span key={i} className={"tick" + (i === n ? " active" : i < n ? " past" : "")} />)}</div>
+      {desligada && <span className="dial-nota">desligada</span>}
     </div>);
 }
 
-/* Regulagem compacta dentro de um bloco da linha do tempo. As sessões agora
-   trocam de regulagem no meio (regular com oscilação OFF, irregular com ON), e
-   um painel inteiro por bloco ocuparia a tela toda. */
+/* Regulagem compacta dentro de um bloco da linha do tempo. Um painel inteiro
+   por bloco ocuparia a tela toda, então aqui vai a fita do visor. */
 const MD_CURTO = { Topspin: "Top", Backspin: "Back", "Frequência": "Freq", "Oscilação": "Osc" };
 function MiniDials({ dials }) {
   if (!dials) return null;
+  const ef = efeitoDaRegulagem(dials);
   return (
     <div className="minidials">
-      {Object.entries(dials).map(([k, v]) => (
-        <span key={k} className={"md" + (v === "ON" ? " md-on" : v === "OFF" ? " md-off" : "")}>
+      {naOrdemDoRemoto(dials).map(([k, v]) => (
+        <span key={k} className={"md" + (k === "Oscilação" && Number(v) === 0 ? " md-off" : "")}>
           <em>{MD_CURTO[k] || k}</em>{v}</span>))}
+      {ef && <span className={"md md-ef md-ef-" + ef.tom}>{ef.texto}</span>}
     </div>);
 }
 
@@ -47,7 +75,17 @@ function RobotPanel({ cfg }) {
     <div className="robot">
       <div className="section-eyebrow"><Bot size={13} /> Robô iPong V300</div>
       <div className="robot-title">{cfg.title}</div>
-      <div className="dials">{Object.entries(cfg.dials).map(([k, v]) => <Dial key={k} label={k} value={v} />)}</div>
+      {/* A fita do visor, na ordem em que os números aparecem no controle:
+          assim dá para conferir sem traduzir nada. */}
+      <div className="visor" title="Frequência · Oscilação · Topspin · Backspin">
+        {naOrdemDoRemoto(cfg.dials).map(([k, v]) => <span key={k} className="visor-n">{v}</span>)}
+        <span className="visor-lbl">freq · osc · top · back</span>
+      </div>
+      <div className="dials">{naOrdemDoRemoto(cfg.dials).map(([k, v]) => <Dial key={k} label={k} value={v} />)}</div>
+      {efeitoDaRegulagem(cfg.dials) && (
+        <div className={"robot-ef ef-" + efeitoDaRegulagem(cfg.dials).tom}>
+          <Gauge size={13} /> {efeitoDaRegulagem(cfg.dials).texto}
+        </div>)}
       <div className="robot-pos"><Info size={13} /> {cfg.pos}</div>
       {cfg.blockB && <div className="blockb"><div className="blockb-tag">Bloco B · Transição FH/BH (a partir da sem. 2)</div>
         <div className="dials">{Object.entries(cfg.blockB).map(([k, v]) => <Dial key={k} label={k} value={v} />)}</div></div>}
@@ -323,6 +361,17 @@ function ComoFazer({ bloco, cor, aberto, onFechar }) {
           <div className="cf-sec">
             <h4><Bot size={13} /> Regulagem do robô</h4>
             <MiniDials dials={bloco.dials} />
+            {/* A régua que o manual do V300 dá, e que vale para qualquer bloco:
+                é ela que resolve 90% do "a bola não está caindo certo". */}
+            <div className="cf-ajuste">
+              <div className="cf-ajuste-t">Se a bola não está caindo certo</div>
+              <ul>
+                <li><strong>Na rede:</strong> suba o <strong>Topspin</strong> em 1 e teste. Se ainda ficar na rede, suba o Backspin.</li>
+                <li><strong>Fora da mesa:</strong> desça o <strong>Topspin</strong> em 1 e teste. Se ainda sair, desça o Backspin.</li>
+                <li><strong>Ainda assim não passa:</strong> use o <strong>tilt stand</strong> (9, 17 ou 26 mm). Bola na rede, sobe a altura; bola fora, desce.</li>
+                <li><strong>Achou a regulagem?</strong> pause e aperte <strong>memória</strong> — o robô guarda uma, e amanhã você volta nela com um toque.</li>
+              </ul>
+            </div>
           </div>)}
 
         {d.montagem && (
@@ -355,5 +404,5 @@ function ComoFazer({ bloco, cor, aberto, onFechar }) {
 }
 
 export {
-  bold, Dial, RobotPanel, MiniDials, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars, ComoFazer
+  bold, Dial, RobotPanel, MiniDials, efeitoDaRegulagem, tagClass, Exercicio, BlocoAcervo, Session, Counter, Notes, Collapsible, Vids, BallClock, SecTitle, Hero, Spark, GoalBar, Bars, ComoFazer
 };

@@ -10,15 +10,44 @@
    isso passa a valer alguma coisa. Este arquivo guarda as peças; o
    schedule.jsx monta os dias com elas.
 
-   UMA LIMITAÇÃO DO iPONG V300 QUE MANDA NO DESENHO INTEIRO: a oscilação dele
-   varre na horizontal, de canto a canto. Ele não alterna curto e comprido, e
-   não muda de efeito no meio da série. Ou seja: aleatoriedade de direção dá
-   para treinar sozinho; aleatoriedade de comprimento e de efeito, não — isso
-   é sábado, com gente. Onde um bloco esbarra nisso, está escrito.
+   AS LIMITAÇÕES DO iPONG V300 QUE MANDAM NO DESENHO INTEIRO (manual oficial
+   e relato de quem usa):
+     · a oscilação manda a bola para posições ALEATÓRIAS. Não alterna
+       esquerda/direita a pedido, e não dá para mirar só metade da mesa;
+     · ele não alterna curto e comprido, e não muda de efeito no meio da série;
+     · nem duas bolas saem exatamente iguais, mesmo com a oscilação desligada;
+     · bola curta de dois quiques ele não faz.
+   Ou seja: aleatoriedade de direção dá para treinar sozinho; aleatoriedade de
+   comprimento e de efeito, não — isso é sábado, com gente. Onde um bloco
+   esbarra nisso, está escrito.
    ============================================================ */
 
-const d = (top, back, freq, osc) => ({
-  Topspin: top, Backspin: back, "Frequência": freq, "Oscilação": osc ? "ON" : "OFF",
+/* ---------- A REGULAGEM, COMO ELA EXISTE NO CONTROLE ----------
+   O app nasceu com um modelo de regulagem que não é o do robô. O manual do
+   V300 (JOOLA) descreve quatro controles, cada um de 1 a 8, e o visor do
+   controle mostra os quatro nessa ordem:
+
+       FREQUÊNCIA · OSCILAÇÃO · TOPSPIN · BACKSPIN        ex.: 4 0 7 3
+
+   E o que decide o efeito NÃO é um número só: são duas rodas, e o efeito é a
+   DIFERENÇA entre elas. A de cima mais rápida faz topspin; a de baixo mais
+   rápida faz backspin; as duas iguais fazem bola SEM EFEITO. Por isso o
+   manual nunca usa 0 num dos dois — com 0 a bola bate na lateral do furo de
+   saída. Os pontos de partida oficiais são:
+
+       bola de topspin   TOP 5-7 · BACK 2-4
+       bola cortada      TOP 2-4 · BACK 5-7
+       bola sem efeito   TOP igual a BACK
+
+   Oscilação é 1 a 8 e regula a VELOCIDADE da varredura; as bolas caem em
+   posições ALEATÓRIAS. Não dá para mandar o robô alternar esquerda/direita,
+   nem mirar só metade da mesa. 0 desliga.
+
+   Regra de correção do próprio manual, que vale para qualquer bloco daqui:
+   bola na rede → SOBE o Topspin primeiro. Bola fora da mesa → DESCE o
+   Topspin primeiro. Só depois mexa no Backspin. */
+const r = (freq, osc, top, back) => ({
+  "Frequência": freq, "Oscilação": osc, Topspin: top, Backspin: back,
 });
 
 /* ---------- 1. AQUECIMENTO ----------
@@ -34,12 +63,12 @@ function aquecimento(focoNome) {
   return [
     { det: "aq-drive", tag: "robô", label: "Drive de aquecimento — FH e BH", time: "6 min", rest: "—",
       target: "2 min diagonal de forehand · 2 min diagonal de backhand · 2 min alternando",
-      dials: d(1, 0, 2, false),
+      dials: r(2, 0, 5, 4),
       cue: "Aquecimento e treino de drive na mesma coisa. Comece devagar de propósito: nos dois primeiros minutos você procura o timing, não a potência.",
     },
     { det: "aq-ritmo", tag: "robô", label: "Subida de ritmo", time: "4 min", rest: "30 s",
       target: "4 séries × 20 bolas · uma marcha acima, gesto igual",
-      dials: d(2, 0, 3, false),
+      dials: r(4, 0, 6, 3),
       cue: "A bola acelera, o gesto não muda de tamanho. Drive que cresce quando a bola vem mais rápido é o drive que erra em jogo.",
     },
     { det: "aq-sombra", tag: "sombra", label: `Sombra — ${focoNome}`, time: "2 min", rest: "—",
@@ -68,44 +97,44 @@ const IRREGULARES = {
      campeonato com bola imprevisível — que é a condição em que eles
      apareceram, e não a bola parada em que eles não aparecem. */
   "irr-abre": {
-    nome: "Abrir toda bola cortada", sub: "a saída do backspin sob incerteza", dials: d(0, 4, 2, true), time: "17 min",
-    target: "6 séries × 10 bolas · backspin alto varrendo os cantos", rest: "60 s", contador: "aberturas que passaram",
-    cue: "Backspin em todos os cantos e uma regra só: ABRIR. Nenhum push de volta, nem na difícil, nem na última da série. Você perdeu o torneio empurrando bola que dava para abrir — aqui a opção de empurrar não existe. Errar abrindo conta como série boa; empurrar zera a série.",
+    nome: "Abrir toda bola cortada", sub: "a saída do backspin sob incerteza", dials: r(2, 4, 3, 7), time: "17 min",
+    target: "6 séries × 10 bolas · cortada forte, caindo em lugar sorteado", rest: "60 s", contador: "aberturas que passaram",
+    cue: "Cortada caindo em qualquer lugar da mesa — o robô sorteia — e uma regra só: ABRIR. Nenhum push de volta, nem na difícil, nem na última da série. Você perdeu o torneio empurrando bola que dava para abrir — aqui a opção de empurrar não existe. Errar abrindo conta como série boa; empurrar zera a série.",
   },
   "irr-cozinha": {
-    nome: "Cozinhar e sair", sub: "três empurradas e a decisão", dials: d(0, 3, 2, true), time: "16 min",
+    nome: "Cozinhar e sair", sub: "três empurradas e a decisão", dials: r(2, 3, 3, 6), time: "16 min",
     target: "6 séries × 8 ciclos de 4 bolas", rest: "60 s", contador: "ciclos com a 4ª atacada",
     cue: "Três bolas de push com qualidade — baixas, longas, no canto — e a QUARTA você abre, sempre. Cozinhar não é esperar o adversário errar, é preparar a bola que você vai atacar. Se a quarta não sai, o ciclo não conta. O robô manda tudo comprido: o push curto é sábado, com gente.",
   },
   "irr-defesa": {
-    nome: "Segurar o ataque dele", sub: "bloqueio que muda de direção", dials: d(5, 0, 4, true), time: "16 min",
+    nome: "Segurar o ataque dele", sub: "bloqueio que muda de direção", dials: r(5, 4, 7, 2), time: "16 min",
     target: "6 séries × 90 s · alternando bloqueio na paralela e na diagonal", rest: "75 s", contador: "sequências de 8 bloqueios",
     cue: "Topspin pesado em cima de você, raquete fechada, sem movimento: só ângulo. A cada bola MUDA a direção do bloqueio — é o que tira o ritmo de quem ataca e faz atacante amador errar. Recuar aqui é entregar o ângulo; o bloqueio se faz colado na mesa.",
   },
   "irr-fh": {
-    nome: "Dois pontos, um golpe", sub: "pivô obrigatório", dials: d(2, 0, 3, true), time: "17 min",
-    target: "6 séries × 90 s · oscilação entre os cantos", rest: "60 s", contador: "séries sem furo",
-    cue: "O robô alterna os cantos e você ataca SEMPRE de forehand — no lado do backhand, contorna. É o deslocamento que mais aparece em jogo de quem ataca, e o que mais falta no amador.",
+    nome: "Dois pontos, um golpe", sub: "pivô obrigatório", dials: r(4, 4, 5, 3), time: "17 min",
+    target: "6 séries × 90 s · oscilação ligada", rest: "60 s", contador: "séries sem furo",
+    cue: "O robô espalha a bola e você ataca SEMPRE de forehand — no lado do backhand, contorna. É o deslocamento que mais aparece em jogo de quem ataca, e o que mais falta no amador.",
   },
   "irr-escolha": {
-    nome: "Você escolhe, mas não repete", sub: "decisão sob incerteza", dials: d(2, 0, 3, true), time: "16 min",
+    nome: "Você escolhe, mas não repete", sub: "decisão sob incerteza", dials: r(4, 4, 5, 3), time: "16 min",
     target: "6 séries × 90 s", rest: "60 s", contador: "séries com a regra cumprida",
     cue: "A cada bola escolha forehand ou backhand — proibido dois iguais seguidos. Você deixa de reagir e passa a decidir, que é o que o jogo cobra e o robô normalmente não cobra.",
   },
   "irr-final": {
-    nome: "A quinta é finalização", sub: "trocar de marcha", dials: d(3, 0, 4, true), time: "16 min",
+    nome: "A quinta é finalização", sub: "trocar de marcha", dials: r(5, 4, 6, 3), time: "16 min",
     target: "6 séries × 90 s · conte as bolas em voz alta", rest: "60 s", contador: "finalizações certas",
     cue: "Quatro bolas de construção, a quinta você finaliza. Treina a troca de marcha — abrir é uma coisa, acelerar é outra, e perder o ponto por não mudar de marcha é o erro mais caro do amador.",
   },
   "irr-sobrevive": {
-    nome: "Aguentar o ritmo", sub: "densidade de set", dials: d(3, 0, 5, true), time: "14 min",
+    nome: "Aguentar o ritmo", sub: "densidade de set", dials: r(6, 4, 6, 3), time: "14 min",
     target: "5 séries × 2 min · conte a maior sequência de cada série", rest: "75 s", contador: "recorde de bolas seguidas",
     cue: "Frequência acima do seu conforto de propósito. Não é para atacar: é para não errar. É o treino que decide o quinto set.",
   },
   "irr-bh": {
-    nome: "Lado esquerdo sob pressão", sub: "o backhand deixa de só sobreviver", dials: d(3, 0, 4, true), time: "15 min",
-    target: "6 séries × 80 s · robô mirando o lado do backhand com oscilação curta", rest: "60 s", contador: "séries sem furo",
-    cue: "Oscilação ligada mas mirando só a metade esquerda: a bola varia dentro do seu lado fraco. Quem ataca sempre acha esse canto — é lá que o jogo é decidido contra o Caio e o Aleykson.",
+    nome: "Lado esquerdo sob pressão", sub: "o backhand deixa de só sobreviver", dials: r(5, 0, 6, 3), time: "15 min",
+    target: "6 séries × 80 s · robô fixo apontado para o seu lado de backhand", rest: "60 s", contador: "séries sem furo",
+    cue: "O V300 não mira meia mesa: a oscilação dele sorteia a mesa inteira. Então aqui ela fica DESLIGADA e você gira o furo de saída para o seu lado esquerdo. A variação vem de você — alterne bloqueio, drive e topspin a cada bola. Quem ataca sempre acha esse canto.",
   },
 };
 
@@ -115,10 +144,10 @@ const IRREGULARES = {
 const SISTEMAS = {
   "sist-saque3": {
     nome: "Saque + 3ª bola", sub: "o sistema que decide mais pontos que qualquer golpe",
-    dials: d(2, 0, 1, true), time: "16 min", rest: "60 s", contador: "3ªs bolas atacadas",
-    pos: "Frequência 1 — uma bola a cada 3 ou 4 segundos. É a pausa que te dá tempo de sacar e voltar.",
+    dials: r(1, 4, 5, 3), time: "16 min", rest: "60 s", contador: "3ªs bolas atacadas",
+    pos: "Frequência 1, a mais lenta que o robô tem. É a pausa que te dá tempo de sacar e voltar — e se mesmo assim vier rápido demais, este bloco vira exercício de recuperação, não de saque.",
     target: "6 séries × 8 ciclos",
-    montagem: "Balde do lado da mão que saca. Robô do outro lado da mesa, oscilação ON, mirando comprido.",
+    montagem: "Balde do lado da mão que saca. Robô do outro lado da mesa, oscilação ligada em 4 — ele sorteia o lado, que é o mais perto de uma devolução de verdade.",
     ciclo: [
       "Assim que a bola anterior passar, **saque de verdade** — gesto inteiro, com efeito, na mesa.",
       "**Solte a bola do saque e volte imediatamente à posição base.** Ninguém te espera.",
@@ -129,8 +158,8 @@ const SISTEMAS = {
   },
   "sist-rec4": {
     nome: "Recepção + 4ª bola", sub: "sair da recepção passiva",
-    dials: d(0, 3, 2, false), time: "15 min", rest: "60 s", contador: "cadeias completas",
-    pos: "Robô mirando curto, bola cortada caindo perto da rede. Frequência 2.",
+    dials: r(2, 0, 3, 6), time: "15 min", rest: "60 s", contador: "cadeias completas",
+    pos: "Robô adiantado na mesa, perto da rede: é assim que a cortada cai curta, porque mirar curto ele não sabe. Freq 2.",
     target: "6 séries × 10 ciclos (2 bolas cada)",
     montagem: "Robô fixo no curto. Você começa colado na mesa, pé direito pronto para entrar.",
     ciclo: [
@@ -144,7 +173,7 @@ const SISTEMAS = {
      aconteceram no campeonato, dentro do mesmo ponto. */
   "sist-abrir-aguentar": {
     nome: "Abrir e aguentar a resposta", sub: "o ponto que você perdeu o torneio inteiro",
-    dials: d(3, 3, 2, true), time: "17 min", rest: "75 s", contador: "cadeias completas",
+    dials: r(2, 4, 4, 4), time: "17 min", rest: "75 s", contador: "cadeias completas",
     pos: "Regulagem mista: backspin para a abertura e topspin para a resposta. Se o seu robô não mistura numa série só, rode em duas séries alternadas — primeiro a cortada, depois o topspin.",
     target: "6 séries × 6 ciclos (3 bolas cada)",
     montagem: "Balde cheio. Você começa a meia-distância, não colado na mesa.",
@@ -158,7 +187,7 @@ const SISTEMAS = {
   },
   "sist-bloqueio": {
     nome: "Bloqueio → virar o jogo", sub: "parar de só sobreviver quando ele abre",
-    dials: d(5, 0, 4, true), time: "15 min", rest: "60 s", contador: "viradas completas",
+    dials: r(5, 4, 7, 2), time: "15 min", rest: "60 s", contador: "viradas completas",
     pos: "Topspin pesado, frequência alta, oscilação ON. É o adversário que abriu primeiro.",
     target: "6 séries × 8 ciclos (3 bolas cada)",
     montagem: "Você colado na mesa. Robô no máximo de rotação que você ainda consegue bloquear.",
@@ -177,7 +206,7 @@ const SISTEMAS = {
 const JOGOS_SOLO = {
   "js-set5": {
     nome: "Set contra o robô", sub: "placar de verdade, sozinho",
-    dials: d(3, 0, 4, true), time: "12 min", rest: "—", contador: "sets ganhos do robô",
+    dials: r(5, 4, 6, 3), time: "12 min", rest: "—", contador: "sets ganhos do robô",
     regras: [
       "Cada **ponto** é uma sequência de **5 bolas seguidas** na mesa.",
       "Completou as 5: ponto seu. Errou antes: ponto do robô.",
@@ -187,7 +216,7 @@ const JOGOS_SOLO = {
   },
   "js-prazo": {
     nome: "Ponto com prazo", sub: "parar de empurrar o jogo",
-    dials: d(2, 0, 3, true), time: "12 min", rest: "—", contador: "pontos ganhos no prazo",
+    dials: r(4, 4, 5, 3), time: "12 min", rest: "—", contador: "pontos ganhos no prazo",
     regras: [
       "Cada ponto tem que terminar em **até 5 bolas**, com um **ataque seu**.",
       "Chegou na 6ª bola ainda trocando: ponto perdido, mesmo que a bola esteja na mesa.",
@@ -197,7 +226,7 @@ const JOGOS_SOLO = {
   },
   "js-abre": {
     nome: "Só vale ponto com abertura", sub: "cozinhar deixa de ser desculpa",
-    dials: d(0, 4, 2, true), time: "12 min", rest: "—", contador: "pontos ganhos com abertura",
+    dials: r(2, 4, 3, 7), time: "12 min", rest: "—", contador: "pontos ganhos com abertura",
     regras: [
       "O robô manda **cortada**: você empurra **no máximo 3 bolas** e abre.",
       "Ponto só conta se a **abertura passou**. Bola na mesa empurrando **não vale ponto**.",
@@ -207,7 +236,7 @@ const JOGOS_SOLO = {
   },
   "js-deuce": {
     nome: "Só deuce", sub: "a parte do jogo que decide",
-    dials: d(3, 0, 4, true), time: "12 min", rest: "90 s", contador: "deuces vencidos",
+    dials: r(5, 4, 6, 3), time: "12 min", rest: "90 s", contador: "deuces vencidos",
     regras: [
       "Todo ponto começa **9-9**. Você precisa de dois seguidos para levar.",
       "Cada ponto: **7 bolas seguidas** na mesa, sem tentar vencedor.",
@@ -231,7 +260,7 @@ const JOGOS_SOLO = {
 const ADVERSARIOS = {
   "adv-empurra": {
     id: "adv-empurra", tecnicas: ["fh-loop", "fh-loop-slow", "push-longo"], tipo: "Só empurra (defensivo)", fraqueza: "Não sabe lidar com velocidade nem com bola longa.",
-    dials: d(0, 4, 2, true), time: "20 min", rest: "60 s", contador: "aberturas que passaram",
+    dials: r(2, 4, 3, 7), time: "20 min", rest: "60 s", contador: "aberturas que passaram",
     pos: "Backspin alto com oscilação: tudo volta cortado, de qualquer canto. É exatamente o que esse cara devolve.",
     target: "6 séries × 10 bolas",
     regra: "Abra TODAS. Nenhum push devolvido — nem a difícil, nem a última da série.",
@@ -244,7 +273,7 @@ const ADVERSARIOS = {
   },
   "adv-ataca": {
     id: "adv-ataca", tecnicas: ["toque-curto", "block", "block-ativo"], tipo: "Ataca tudo (agressivo)", fraqueza: "Erra sob pressão de bola curta e baixa.",
-    dials: d(5, 0, 5, true), time: "20 min", rest: "75 s", contador: "sequências de 6 bloqueios",
+    dials: r(6, 5, 7, 2), time: "20 min", rest: "75 s", contador: "sequências de 6 bloqueios",
     pos: "Topspin pesado e frequência alta. É o cara que abriu primeiro e está em cima de você.",
     target: "6 séries × 90 s",
     regra: "Bloqueie tudo, mudando a direção a cada bola. Proibido atacar antes da sexta bola da sequência.",
@@ -257,7 +286,7 @@ const ADVERSARIOS = {
   },
   "adv-bh": {
     id: "adv-bh", tecnicas: ["fh-drive", "bh-drive", "footwork"], tipo: "Backhand fraco", fraqueza: "Trava quando é forçado a repetir backhand.",
-    dials: d(2, 0, 3, true), time: "20 min", rest: "60 s", contador: "sequências 3+1 completas",
+    dials: r(4, 4, 5, 3), time: "20 min", rest: "60 s", contador: "sequências 3+1 completas",
     pos: "Bola de jogo com oscilação. O que muda aqui não é a bola do robô — é onde VOCÊ coloca a sua.",
     target: "6 séries × 8 sequências",
     regra: "Três bolas seguidas no canto de backhand dele (sua diagonal esquerda), a quarta no forehand aberto.",
@@ -270,7 +299,7 @@ const ADVERSARIOS = {
   },
   "adv-canhoto": {
     id: "adv-canhoto", tecnicas: ["footwork", "cross-step", "pivo"], tipo: "Canhoto", fraqueza: "As diagonais invertem e ele abandona a sua paralela.",
-    dials: d(3, 0, 3, true), time: "20 min", rest: "60 s", contador: "paralelas certeiras",
+    dials: r(4, 4, 6, 3), time: "20 min", rest: "60 s", contador: "paralelas certeiras",
     pos: "Bola de jogo com oscilação. De novo: o que muda é o seu alvo, não a bola dele.",
     target: "6 séries × 10 bolas",
     regra: "TODAS na paralela. Nenhuma diagonal — que é o lado para onde a sua mão quer ir sozinha.",
@@ -283,7 +312,7 @@ const ADVERSARIOS = {
   },
   "adv-previsivel": {
     id: "adv-previsivel", tecnicas: ["ler-efeito", "split-step", "fh-drive"], tipo: "Devolve sempre no mesmo lugar", fraqueza: "Previsibilidade total.",
-    dials: d(2, 0, 3, false), time: "20 min", rest: "60 s", contador: "primeiras bolas atacadas",
+    dials: r(4, 0, 5, 3), time: "20 min", rest: "60 s", contador: "primeiras bolas atacadas",
     pos: "Oscilação DESLIGADA de propósito. O robô é literalmente este adversário — bola no mesmo lugar, sempre.",
     target: "6 séries × 12 bolas",
     regra: "Pré-posicione ANTES da bola sair e ataque de primeira. Nenhuma bola de espera.",
@@ -302,7 +331,7 @@ const ADVERSARIOS = {
    que é uma habilidade e ninguém treina. */
 const SETS_COMPLETOS = {
   nome: "Sets completos contra o robô", sub: "véspera de jogo se treina jogando",
-  dials: d(3, 0, 4, true), time: "18 min", rest: "90 s", contador: "sets ganhos",
+  dials: r(5, 4, 6, 3), time: "18 min", rest: "90 s", contador: "sets ganhos",
   pos: "Ritmo de jogo com oscilação. Regulagem única do começo ao fim — em jogo ninguém ajusta o robô no meio do set.",
   target: "3 sets até 11",
   regras: [
@@ -321,11 +350,11 @@ const SETS_COMPLETOS = {
 const ROTINA_PREJOGO = [
   { det: "pj-bola", tag: "robô", label: "Aquecimento de bola", time: "6 min", rest: "—",
     target: "2 min diagonal de forehand · 2 min diagonal de backhand · 2 min alternando",
-    dials: d(2, 0, 3, false),
+    dials: r(4, 0, 5, 3),
     cue: "Exatamente o aquecimento que você faria com o adversário antes do jogo — e é assim que o aquecimento acontece agora: na mesa, com bola. Sem oscilação: aquecer é achar o timing, não treinar." },
   { det: "pj-cortadas", tag: "robô", label: "Três cortadas e três topspins", time: "3 min", rest: "—",
     target: "10 aberturas contra backspin · 10 bloqueios contra topspin",
-    dials: d(0, 4, 2, false),
+    dials: r(2, 0, 3, 7),
     cue: "Antes do jogo, toque uma vez em cada um dos dois erros que decidem a sua partida. Chegar no primeiro ponto sem ter aberto nenhuma cortada é chegar frio no que mais importa." },
   { det: "pj-rotina", tag: "saque", label: "Ensaio da rotina", time: "2 min", rest: "—",
     target: "10 saques · e a decisão de qual vai ser o primeiro saque do jogo",
@@ -349,5 +378,5 @@ function saqueDiario(foco) {
   };
 }
 
-export { d, aquecimento, regular, IRREGULARES, SISTEMAS, JOGOS_SOLO, saqueDiario,
+export { r, aquecimento, regular, IRREGULARES, SISTEMAS, JOGOS_SOLO, saqueDiario,
   ADVERSARIOS, SETS_COMPLETOS, ROTINA_PREJOGO };
