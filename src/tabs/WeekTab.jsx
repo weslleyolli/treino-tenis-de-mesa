@@ -97,6 +97,7 @@ function WeekTab(p) {
   const semanasDoBloco = WEEK_INFO.filter(w => w.bloco === info.bloco);
   const intCls = day.intensity === "Alta" ? "int-high" : day.intensity === "Média" ? "int-mid" : day.intensity === "Jogo" ? "int-match" : "int-low";
   const doneN = sessions.filter(s => done[`w${week}-${day.id}-${s.slot || s.kind}`]).length;
+  const temApoio = !!(day.checklist || day.semAula || day.bio || day.videos);
 
   return (
     <div className="wk-layout">
@@ -166,6 +167,13 @@ function WeekTab(p) {
         <SessionCard key={s.slot || s.kind} session={s} week={week} dayId={day.id} done={done} toggle={toggleSession}
           notes={notes} setNote={setNote} records={records} setRecord={setRecord} onTimer={onTimer} />))}
 
+      </div>
+
+      {/* Apoio do dia — checklist, biomecânica e vídeos. No celular continua
+          vindo depois dos treinos, como sempre; em tela larga vira a terceira
+          coluna, e é ela que ocupa a sobra em vez de esticar a sessão. */}
+      {temApoio && (
+      <aside className="wk-aside">
       {day.checklist && <div className="block"><div className="section-eyebrow"><Check size={13} /> Checklist</div>
         <ul className="check-list">{day.checklist.map((c, i) => <li key={i}>{c}</li>)}</ul></div>}
       {day.semAula && <div className="matchbox"><div className="section-eyebrow" style={{ color: "#7A5A12" }}><GraduationCap size={13} /> Quando a aula voltar</div>
@@ -174,7 +182,7 @@ function WeekTab(p) {
         <ol className="bio-steps">{day.bio.steps.map((x, i) => <li key={i}>{bold(x)}</li>)}</ol>
         {day.bio.note && <div className="bio-note"><Info size={14} /> {day.bio.note}</div>}</Collapsible>}
       <Vids videos={day.videos} />
-    </div>
+      </aside>)}
     </div>);
 }
 

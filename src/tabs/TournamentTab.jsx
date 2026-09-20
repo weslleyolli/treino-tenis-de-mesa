@@ -454,6 +454,9 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
 
   return (
     <>
+      {/* Montagem do torneio: em tela larga os quatro passos se dividem em duas
+          colunas, senão viram campos de formulário de 1.700 px. */}
+      <div className="painel">
       <SecTitle n="1" icon={<Users size={14} />}>Jogadores</SecTitle>
       <div className="block">
         <div className="addrow">
@@ -551,6 +554,8 @@ function TourneyConfig({ t, save, nameInput, setNameInput, addPlayer, rmPlayer, 
           {soMata && chaveServe && (
             <EditorChave players={t.players} tamanho={t.koStart} ordem={ordem} onOrdem={setOrdem} />)}
         </>)}
+
+      </div>
 
       <button className="bigbtn" disabled={!podeComecar} onClick={comecar}>
         <Play size={17} /> {soMata ? "Começar o mata-mata" : "Gerar partidas e começar"}</button>

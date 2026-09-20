@@ -280,6 +280,9 @@ function EvolutionTab({ done, records }) {
         <div className="stat"><span className="stat-v">{best ? best.pct + "%" : "—"}</span><span className="stat-l">saque no alvo</span></div>
       </div>
 
+      {/* Painel: em tela larga estas seções se dividem em duas colunas, porque
+          nenhuma delas usa mais que meia tela de largura. */}
+      <div className="painel">
       <SecTitle n="1" icon={<CalendarDays size={14} />}>Mapa do ciclo</SecTitle>
       <div className="block">
         <div className="heat">
@@ -345,6 +348,7 @@ function EvolutionTab({ done, records }) {
       </div>
 
       <div className="nextbox"><TrendingUp size={16} /><div><div className="nb-t">Próximo passo</div><div className="nb-d">{nextStep}</div></div></div>
+      </div>
     </>);
 }
 

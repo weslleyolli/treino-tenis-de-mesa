@@ -1006,14 +1006,16 @@ court texture ============ */
 /* ============================================================
    TELAS LARGAS
    O app nasceu para o celular ao lado da mesa e ficou uma tira de 520 px no
-   meio do notebook. Aqui ele passa a usar a largura: o container abre, o que
-   é navegação vira trilho fixo à esquerda, e o que é lista vira grade.
+   meio do notebook. Aqui ele ocupa a janela inteira: nada de faixa cinza nas
+   laterais em PC e notebook. O container perde o teto, o que é navegação vira
+   trilho fixo à esquerda, e o que é lista vira grade que ganha colunas
+   conforme a tela cresce, em vez de esticar cartões.
    Tudo em min-width, então o celular não vê nada disto.
    ============================================================ */
 @media (min-width:1000px){
-  .app{max-width:1180px;}
-  .hdr{padding:18px 28px 0;border-radius:0 0 24px 24px;}
-  .content{padding:0 28px;}
+  .app{max-width:none;width:100%;}
+  .hdr{padding:18px clamp(24px,2.2vw,44px) 0;border-radius:0 0 24px 24px;}
+  .content{padding:0 clamp(24px,2.2vw,44px);}
 
   /* A navegação principal deixa de esticar por 1180 px: fica à esquerda, no
      tamanho do texto, como barra de aplicativo de verdade. */
@@ -1030,6 +1032,9 @@ court texture ============ */
     max-height:calc(100vh - 133px);overflow-y:auto;scrollbar-width:thin;}
   .wk-rail .subhdr{margin:0;}
   .wk-main{min-width:0;}
+  /* Enquanto a tela só comporta duas colunas, o apoio do dia fica embaixo dos
+     treinos — nunca embaixo do trilho. */
+  .wk-aside{grid-column:2;min-width:0;}
 
   /* Os sete dias empilham no trilho em vez de rolarem na horizontal. */
   .day-strip{display:grid;grid-template-columns:1fr;gap:5px;padding:0;overflow:visible;}
@@ -1041,32 +1046,67 @@ court texture ============ */
   .statgrid{grid-template-columns:repeat(4,1fr);}
   /* Os exercícios de uma técnica lado a lado: são cartões curtos, e em
      coluna única sobrava metade da tela em branco. */
-  .exc-lista{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;}
+  .exc-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;align-items:start;}
   .exc-lista .exc,.duelo-grade .duelo-jogo{margin-bottom:0;}
 
   /* O acervo em duas colunas; a técnica aberta ocupa a linha inteira, porque
      ela vira leitura longa e não cabe em meia largura. */
-  .acervo-grade{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
+  .acervo-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px;align-items:start;}
   .acervo-grade .scard{margin-bottom:0;}
   .acervo-grade .scard.open{grid-column:1 / -1;}
 
   /* Confrontos: as partidas lado a lado. */
-  .duelo-grade{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .duelo-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px;}
 
   /* O mapa do ciclo tem 7 colunas fixas: esticado por 1120 px vira uma
      fileira de pílulas gigantes. Fica no tamanho de calendário. */
   .heat{max-width:640px;}
 
-  /* Texto corrido não passa de ~70 caracteres nem em tela larga. */
+  /* Progresso e montagem de torneio são seções que não usam meia tela de
+     largura: viram duas colunas em vez de esticar um campo de texto por
+     1.700 px. Cada seção fica inteira numa coluna, com o título colado no
+     cartão que ele abre. */
+  .painel{columns:2;column-gap:22px;}
+  .painel>*{break-inside:avoid;}
+  .painel>.sec{break-after:avoid;margin-top:0;}
+  .painel>.sec~.sec{margin-top:22px;}
+  /* O cartão do mapa acompanha o calendário em vez de virar um retângulo
+     branco com 260 px de sobra. */
+  .painel>.block:has(>.heat){max-width:672px;}
+
+  /* Texto corrido não passa de ~70 caracteres nem em tela larga, e a linha de
+     lista não passa de ~85 dentro de um cartão que agora tem 1.800 px. */
   .p-lead,.wk-focus-note,.porque p{max-width:68ch;}
+  .clean-list li,.check-list li,.bio-steps li{max-width:85ch;}
   .zones,.vargrid{grid-template-columns:1fr 1fr;}
+
+  /* O cronômetro era uma tira de 520 px centrada no rodapé; com o app inteiro
+     na tela ele vira um painel ancorado no canto, perto de quem treina. */
+  .timerbar{left:auto;right:clamp(24px,2.2vw,44px);max-width:none;width:400px;margin:0;
+    border-radius:18px 18px 0 0;}
+  .timerbar .tb-info{min-width:0;}
+  .timerbar .tb-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 }
 
 @media (min-width:1360px){
-  .app{max-width:1320px;}
   .wk-layout{grid-template-columns:340px minmax(0,1fr);gap:26px;}
-  .acervo-grade,.duelo-grade{grid-template-columns:1fr 1fr 1fr;}
-  .acervo-grade .scard.open{grid-column:1 / -1;}
+}
+
+/* Monitor: a sobra vira a terceira coluna (apoio do dia) em vez de virar
+   linha de texto de 1.300 px. E quando o dia tem mais de um treino, os
+   cartões ficam lado a lado; um treino sozinho continua ocupando a coluna
+   inteira em vez de deixar metade da tela vazia. */
+@media (min-width:1500px){
+  .wk-layout{grid-template-columns:340px minmax(0,1fr);gap:26px;}
+  .wk-layout:has(.wk-aside){grid-template-columns:340px minmax(0,1fr) minmax(300px,390px);}
+  .wk-aside{grid-column:3;grid-row:1;display:flex;flex-direction:column;gap:12px;
+    position:sticky;top:119px;max-height:calc(100vh - 133px);overflow-y:auto;scrollbar-width:thin;}
+  .wk-aside>*{margin:0;}
+  /* Flex, e não grade de colunas fixas: dois treinos dividem a linha, um
+     treino sozinho ocupa a linha inteira. Nunca sobra coluna vazia. */
+  .wk-main{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;}
+  .wk-main>*{flex:0 0 100%;min-width:0;}
+  .wk-main>.sess{flex:1 1 430px;margin-bottom:0;}
 }
 
 /* ============================================================
