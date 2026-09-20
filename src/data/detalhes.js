@@ -16,6 +16,13 @@
      execucao  o passo a passo, na ordem
      meta      o critério objetivo de hoje: passou ou não passou
      erros     o que estraga o bloco, e o que fazer no lugar
+
+   As regulagens aparecem como o visor do controle mostra:
+   Freq · Osc · Top · Back, cada um de 1 a 8 (Osc 0 = desligada). O efeito é a
+   DIFERENÇA entre as duas rodas — Top maior faz topspin, Back maior faz
+   backspin, iguais fazem bola sem efeito. São pontos de partida: o próprio
+   manual avisa que bola, poeira e umidade mudam tudo, e a régua de correção
+   está no "Como fazer" de todo bloco com robô.
    ============================================================ */
 
 const DETALHES = {
@@ -23,7 +30,7 @@ const DETALHES = {
   "aq-drive": {
     oque: "O aquecimento e o treino de drive na mesma coisa: bola leve na diagonal, ritmo baixo, gesto inteiro.",
     montagem: [
-      "Robô no centro da mesa, Topspin 1, Frequência 2, oscilação DESLIGADA.",
+      "Robô na borda de trás, na linha do meio. Visor: Freq 2 · Osc 0 · Top 5 · Back 4 — topspin leve.",
       "Você na posição base, a um passo da mesa, joelhos soltos.",
       "Balde cheio antes de começar — parar no meio para catar bola esfria tudo.",
     ],
@@ -42,7 +49,7 @@ const DETALHES = {
   "aq-ritmo": {
     oque: "A ponte entre aquecer e treinar: a mesma bola, uma marcha acima, para o corpo chegar no bloco principal já no ritmo.",
     montagem: [
-      "Mesma posição do bloco anterior. Suba a frequência do robô em 1 (Frequência 3).",
+      "Mesma posição. Visor: Freq 4 · Osc 0 · Top 6 · Back 3 — a bola vem mais rápida e com mais efeito.",
       "Nada mais muda: mesmo ponto, mesma bola, oscilação desligada.",
     ],
     execucao: [
@@ -78,7 +85,7 @@ const DETALHES = {
   "regular": {
     oque: "Bola sempre no mesmo lugar. É o único momento do dia em que a repetição é o objetivo — e por isso ele é curto.",
     montagem: [
-      "Regulagem do painel acima, oscilação DESLIGADA: hoje a bola tem que ser previsível.",
+      "Regulagem do painel acima, com Osc 0: hoje a bola tem que ser previsível.",
       "Balde cheio e toalha ao alcance. 150 bolas seguidas sem parar.",
       "Marque mentalmente o ponto da mesa onde a bola vai cair, antes de ligar o robô.",
     ],
@@ -99,7 +106,7 @@ const DETALHES = {
   "irr-abre": {
     oque: "O erro nº 1 do campeonato, com bola imprevisível: cortada em qualquer canto e uma regra só — abrir.",
     montagem: [
-      "Robô em Backspin 4, Frequência 2, oscilação LIGADA varrendo os cantos.",
+      "Visor: Freq 2 · Osc 4 · Top 3 · Back 7 — cortada forte, caindo em lugar sorteado.",
       "Você a um passo e meio da mesa: abertura contra cortada precisa de espaço para o braço descer.",
       "Balde cheio: são 60 bolas e parar no meio quebra o bloco.",
     ],
@@ -119,7 +126,7 @@ const DETALHES = {
   "irr-cozinha": {
     oque: "O jogo de cozinhada com prazo: três empurradas de qualidade e a quarta é ataque, sempre.",
     montagem: [
-      "Robô em Backspin 3, Frequência 2, oscilação LIGADA.",
+      "Visor: Freq 2 · Osc 3 · Top 3 · Back 6 — cortada média, posição sorteada.",
       "Você colado na mesa para os pushes, pronto para dar um passo atrás na quarta bola.",
     ],
     execucao: [
@@ -138,7 +145,7 @@ const DETALHES = {
   "irr-defesa": {
     oque: "O ataque dele em cima de você: bloqueio colado na mesa, mudando de direção a cada bola.",
     montagem: [
-      "Robô em Topspin 5, Frequência 4, oscilação LIGADA. É o cara que abriu primeiro.",
+      "Visor: Freq 5 · Osc 4 · Top 7 · Back 2 — topspin pesado. É o cara que abriu primeiro.",
       "Você COLADO na mesa. Recuar aqui é entregar o ângulo.",
       "Suba a rotação até o limite em que você ainda consegue bloquear — e fique um passo abaixo dele.",
     ],
@@ -156,9 +163,9 @@ const DETALHES = {
     ],
   },
   "irr-fh": {
-    oque: "Dois pontos, um golpe: o robô alterna os cantos e você ataca sempre de forehand, contornando no lado do backhand.",
+    oque: "Dois pontos, um golpe: o robô espalha a bola (ele sorteia, não alterna) e você ataca sempre de forehand, contornando quando cair no lado do backhand.",
     montagem: [
-      "Topspin 2, Frequência 3, oscilação LIGADA entre os cantos.",
+      "Visor: Freq 4 · Osc 4 · Top 5 · Back 3 — bola de jogo, posição sorteada.",
       "Posição base deslocada um pouco para o lado do backhand — é de lá que você contorna.",
     ],
     execucao: [
@@ -174,7 +181,7 @@ const DETALHES = {
   },
   "irr-escolha": {
     oque: "Decisão sob incerteza: a cada bola você escolhe forehand ou backhand, proibido repetir duas iguais seguidas.",
-    montagem: ["Topspin 2, Frequência 3, oscilação LIGADA.", "Posição base no centro, peso nas pontas dos pés."],
+    montagem: ["Visor: Freq 4 · Osc 4 · Top 5 · Back 3.", "Posição base no centro, peso nas pontas dos pés."],
     execucao: [
       "6 séries de 90 segundos.",
       "A cada bola, decida o golpe ANTES de ela quicar.",
@@ -188,7 +195,7 @@ const DETALHES = {
   },
   "irr-final": {
     oque: "Trocar de marcha: quatro bolas de construção e a quinta é finalização.",
-    montagem: ["Topspin 3, Frequência 4, oscilação LIGADA.", "Comece a meia-distância."],
+    montagem: ["Visor: Freq 5 · Osc 4 · Top 6 · Back 3.", "Comece a meia-distância."],
     execucao: [
       "6 séries de 90 segundos, contando as bolas em voz alta.",
       "Bolas 1 a 4: construção, sem pressa, colocando a bola.",
@@ -202,7 +209,7 @@ const DETALHES = {
   },
   "irr-sobrevive": {
     oque: "Densidade de set: frequência acima do seu conforto, e a tarefa não é atacar, é não errar.",
-    montagem: ["Topspin 3, Frequência 5, oscilação LIGADA.", "Um passo atrás da posição normal."],
+    montagem: ["Visor: Freq 6 · Osc 4 · Top 6 · Back 3.", "Um passo atrás da posição normal."],
     execucao: [
       "5 séries de 2 minutos, 75 segundos de descanso.",
       "Bola na mesa é o objetivo. Nada de tentar vencedor.",
@@ -216,7 +223,7 @@ const DETALHES = {
   },
   "irr-bh": {
     oque: "O lado esquerdo sob pressão: oscilação ligada, mas mirando só a metade do backhand.",
-    montagem: ["Topspin 3, Frequência 4, oscilação LIGADA com amplitude curta, na metade esquerda.", "Posição base no lado do backhand."],
+    montagem: ["Visor: Freq 5 · Osc 0 · Top 6 · Back 3, com o furo de saída girado para o seu lado de backhand.", "O V300 não mira meia mesa: a oscilação dele sorteia a mesa inteira. Por isso aqui ela fica desligada e quem aponta é você.", "Posição base no lado do backhand."],
     execucao: [
       "6 séries de 80 segundos, 60 de descanso.",
       "A bola varia dentro do seu lado fraco: ajuste com pequenos passos, não com o braço.",
@@ -264,7 +271,7 @@ const DETALHES = {
   /* ---------- jogos pontuados ---------- */
   "js-abre": {
     oque: "O placar do erro que te custou o campeonato: bola na mesa empurrando não vale ponto.",
-    montagem: ["Robô em Backspin 4, Frequência 2, oscilação LIGADA.", "Papel e caneta, ou as anotações do card, para o placar."],
+    montagem: ["Visor: Freq 2 · Osc 4 · Top 3 · Back 7 — cortada forte, posição sorteada.", "Papel e caneta, ou as anotações do card, para o placar."],
     execucao: [
       "Cada ponto começa com o robô mandando cortada.",
       "Você empurra no máximo 3 bolas e abre.",
@@ -410,14 +417,14 @@ const DETALHES = {
   /* ---------- rotina pré-jogo (sexta) ---------- */
   "pj-bola": {
     oque: "Exatamente o aquecimento que você faria com o adversário nos 10 minutos antes da partida.",
-    montagem: ["Topspin 2, Frequência 3, oscilação DESLIGADA."],
+    montagem: ["Visor: Freq 4 · Osc 0 · Top 5 · Back 3."],
     execucao: ["2 min de diagonal de forehand, 2 de backhand, 2 alternando."],
     meta: "Chegar no primeiro ponto com o timing achado.",
     erros: ["Usar o aquecimento para treinar → aquecer é achar o timing; treino foi a semana toda."],
   },
   "pj-cortadas": {
     oque: "Tocar uma vez em cada um dos dois erros que decidem a sua partida, antes de ela começar.",
-    montagem: ["Backspin 4, Frequência 2, oscilação desligada. Depois Topspin, se der tempo."],
+    montagem: ["Visor: Freq 2 · Osc 0 · Top 3 · Back 7 para as cortadas. Depois Top 7 · Back 2 para os bloqueios, se der tempo."],
     execucao: ["10 aberturas contra cortada.", "10 bloqueios contra topspin."],
     meta: "Nenhuma das duas coisas estreando no primeiro ponto do jogo.",
     erros: ["Pular por causa do tempo → são 3 minutos e valem o primeiro set."],
@@ -465,49 +472,49 @@ const DETALHES = {
      método não compara com nada, e o ciclo inteiro depende dessa comparação. */
   "teste-1": {
     oque: "O erro nº 1 do torneio, medido com bola previsível: 48 cortadas, todas para abrir.",
-    montagem: ["Backspin 4, Frequência 2, oscilação DESLIGADA — o canto é sempre o mesmo.", "Balde cheio: parar no meio muda a medida."],
+    montagem: ["Visor: Freq 2 · Osc 0 · Top 3 · Back 7 — o canto é sempre o mesmo.", "Balde cheio: parar no meio muda a medida."],
     execucao: ["6 séries de 8 bolas, 45 segundos entre elas.", "Conte em voz alta as que passaram COM efeito.", "Anote o total das 6 séries, não a melhor série."],
     meta: "Linha de corte 26 de 48.",
     erros: ["Contar bola que passou sem girar → ela não é abertura, é empurrada alta.", "Mudar a regulagem no meio porque está difícil → aí o número não compara com o da semana 8."],
   },
   "teste-2": {
     oque: "O mesmo golpe do item 1, agora sem saber o canto. A diferença entre os dois números é o que o seu deslocamento está custando.",
-    montagem: ["Mesma regulagem do item 1, mas com oscilação LIGADA."],
+    montagem: ["Mesma regulagem do item 1, com Osc 4 — a posição passa a ser sorteada."],
     execucao: ["5 séries de 8 bolas, 60 segundos entre elas.", "Mesma contagem: só as que passaram com efeito."],
     meta: "Linha de corte 20 de 40. Se a queda em relação ao item 1 for maior que 25%, o problema é perna, não braço.",
     erros: ["Antecipar o canto olhando o robô → olhe a bola, como em jogo."],
   },
   "teste-3": {
     oque: "A cozinhada medida: três pushes de qualidade e a quarta atacada, 36 ciclos.",
-    montagem: ["Backspin 3, Frequência 2, oscilação LIGADA."],
+    montagem: ["Visor: Freq 2 · Osc 3 · Top 3 · Back 6."],
     execucao: ["6 séries de 6 ciclos.", "Conte só os ciclos completos: três pushes baixos E a quarta atacada."],
     meta: "Linha de corte 22 de 36.",
     erros: ["Contar o ciclo em que um push saiu alto → push alto é ponto do adversário; não conta."],
   },
   "teste-4": {
     oque: "A defesa medida: maior sequência de bloqueios sem errar, com direção alternada.",
-    montagem: ["Topspin 5, Frequência 4, oscilação LIGADA. A mesma regulagem das três medidas do ciclo."],
+    montagem: ["Visor: Freq 5 · Osc 4 · Top 7 · Back 2. A mesma regulagem das três medidas do ciclo."],
     execucao: ["Colado na mesa, alternando paralela e diagonal.", "Errou, recomeça do zero.", "Anote a maior sequência do dia."],
     meta: "Linha de corte 18 seguidas.",
     erros: ["Bloquear tudo no mesmo lugar para aumentar o número → a direção alternada é parte da medida."],
   },
   "teste-5": {
     oque: "O drive: série livre de forehand, o recorde do dia. É o único item que veio igual do ciclo antigo.",
-    montagem: ["Topspin 3, Frequência 4, oscilação DESLIGADA."],
+    montagem: ["Visor: Freq 5 · Osc 0 · Top 6 · Back 3."],
     execucao: ["Uma série livre, sem parar, até errar.", "Anote o número."],
     meta: "Linha de corte 40 seguidas.",
     erros: ["Diminuir o gesto para durar mais → aí você mede outra coisa, não o seu drive."],
   },
   "teste-6": {
     oque: "A cadeia inteira: cortada → abertura → topspin dele → bloqueio → seu ataque, 30 ciclos.",
-    montagem: ["Regulagem mista (Topspin 3 / Backspin 3, Frequência 2, oscilação ON). Se o seu robô não mistura, rode em séries alternadas."],
+    montagem: ["Visor: Freq 2 · Osc 4 · Top 4 · Back 4 — rodas iguais, bola sem efeito, que é a única mistura que o V300 faz. Para a cortada e o topspin de verdade, rode em séries alternadas trocando só o Top e o Back."],
     execucao: ["5 séries de 6 ciclos de 3 bolas.", "Conte as cadeias que chegaram até o fim."],
     meta: "Linha de corte 15 de 30. É o item que mais se parece com jogo.",
     erros: ["Contar a cadeia em que você bloqueou a terceira → a terceira é ataque, senão a cadeia não fechou."],
   },
   "teste-7": {
     oque: "Um set até 11 contra o robô, ponto = 5 bolas seguidas. A única medida com consequência de erro embutida.",
-    montagem: ["Topspin 3, Frequência 4, oscilação LIGADA."],
+    montagem: ["Visor: Freq 5 · Osc 4 · Top 6 · Back 3."],
     execucao: ["Set completo até 11, com 2 de diferença.", "Anote o placar final."],
     meta: "Ganhar. E, perdendo, perder por menos que na última semana de teste.",
     erros: ["Reiniciar o set quando começa mal → é justamente o set ruim que o torneio cobra."],
@@ -523,35 +530,35 @@ const DETALHES = {
   /* ---------- sexta: o adversário da semana ---------- */
   "adv-empurra": {
     oque: "Vinte minutos contra quem devolve tudo cortado e espera você errar — e sem a opção de empurrar de volta.",
-    montagem: ["Backspin 4, Frequência 2, oscilação LIGADA: tudo volta cortado, de qualquer canto."],
+    montagem: ["Visor: Freq 2 · Osc 4 · Top 3 · Back 7: tudo volta cortado, de lugar sorteado."],
     execucao: ["6 séries de 10 bolas.", "Abra TODAS. Nenhum push devolvido, nem a difícil, nem a última."],
     meta: "Aberturas que passaram. Errar abrindo aqui vale mais que ganhar empurrando.",
     erros: ["Entrar no jogo de empurrar dele → contra esse tipo você perde por paciência, nunca por técnica."],
   },
   "adv-ataca": {
     oque: "Vinte minutos contra quem abriu primeiro e está em cima de você: sobreviver seis bolas é literalmente a tática.",
-    montagem: ["Topspin 5, Frequência 5, oscilação LIGADA."],
+    montagem: ["Visor: Freq 6 · Osc 5 · Top 7 · Back 2."],
     execucao: ["6 séries de 90 segundos.", "Bloqueie tudo mudando a direção a cada bola.", "Proibido atacar antes da sexta bola da sequência."],
     meta: "Sequências de 6 bloqueios. No amador, quem ataca demais erra perto de 40% — sobreviver é o plano.",
     erros: ["Recuar da mesa → sair contra quem ataca é entregar o ângulo.", "Tentar resolver na terceira bola → a regra das seis existe para isso."],
   },
   "adv-bh": {
     oque: "Contra quem tem backhand fraco. O robô não tem backhand fraco: quem está sendo treinada aqui é a sua mira.",
-    montagem: ["Topspin 2, Frequência 3, oscilação LIGADA. O que muda não é a bola dele, é onde VOCÊ coloca a sua."],
+    montagem: ["Visor: Freq 4 · Osc 4 · Top 5 · Back 3. O que muda não é a bola dele, é onde VOCÊ coloca a sua."],
     execucao: ["6 séries de 8 sequências.", "Três bolas seguidas na diagonal esquerda, a quarta no forehand aberto.", "Errou a colocação: a sequência não conta."],
     meta: "Sequências 3+1 completas.",
     erros: ["Variar antes da terceira → a quarta só funciona porque as três primeiras foram no mesmo lugar."],
   },
   "adv-canhoto": {
     oque: "Contra canhoto: as diagonais invertem e a paralela vira o ângulo que ele abandona.",
-    montagem: ["Topspin 3, Frequência 3, oscilação LIGADA."],
+    montagem: ["Visor: Freq 4 · Osc 4 · Top 6 · Back 3."],
     execucao: ["6 séries de 10 bolas.", "TODAS na paralela. Nenhuma diagonal — que é para onde a sua mão quer ir sozinha."],
     meta: "Paralelas certeiras.",
     erros: ["Cair na diagonal no automático → é ela que entrega o forehand forte do canhoto."],
   },
   "adv-previsivel": {
     oque: "Contra quem devolve sempre no mesmo lugar. O robô é literalmente este adversário.",
-    montagem: ["Topspin 2, Frequência 3, oscilação DESLIGADA de propósito."],
+    montagem: ["Visor: Freq 4 · Osc 0 · Top 5 · Back 3 — oscilação desligada de propósito."],
     execucao: ["6 séries de 12 bolas.", "Pré-posicione ANTES de a bola sair e ataque de primeira.", "Nenhuma bola de espera."],
     meta: "Primeiras bolas atacadas. Em jogo, isto começa observando os três primeiros pontos.",
     erros: ["Esperar a bola para 'ver o que vem' → contra previsível, esperar desperdiça a sua única vantagem."],
