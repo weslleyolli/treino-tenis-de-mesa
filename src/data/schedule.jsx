@@ -116,15 +116,15 @@ const SERVE_FOCUS = {
 function serveSession(week) {
   const foco = SERVE_FOCUS[week];
   const blocks = [
-    { tag: "saque", label: "Aquecimento de punho", time: "3 min", rest: "—",
+    { det: "sv-punho", tag: "saque", label: "Aquecimento de punho", time: "3 min", rest: "—",
       target: "30 saques leves só de punho", cue: "Empunhadura 2/10. Solte a mão." },
-    { tag: "saque", label: `Foco da semana: ${foco}`, time: "9 min", rest: "40 s",
+    { det: "sv-foco", tag: "saque", label: `Foco da semana: ${foco}`, time: "9 min", rest: "40 s",
       target: "60 bolas no mesmo alvo · séries de 10",
       cue: "Registre acertos por série na aba Saque." },
-    { tag: "parceiro", label: "Ele devolve e canta o efeito", time: "10 min", rest: "—",
+    { det: "sv-parceiro-efeito", tag: "parceiro", label: "Ele devolve e canta o efeito", time: "10 min", rest: "—",
       target: "40 saques · depois de devolver, ele diz que efeito leu",
       cue: "É o único teste que existe do seu disfarce. Balde não responde. Se ele acerta o efeito em 8 de 10, o saque é honesto demais." },
-    { tag: "parceiro", label: "Saque dele, recepção sua", time: "10 min", rest: "—",
+    { det: "sv-parceiro-saque", tag: "parceiro", label: "Saque dele, recepção sua", time: "10 min", rest: "—",
       target: "40 saques dele, variando efeito e comprimento sem avisar",
       cue: "A habilidade que mais decide jogo é ler efeito de gente, e é a que menos dá para treinar sozinho. Este bloco é o mais caro da semana — não troque ele por nada." },
   ];
@@ -160,7 +160,7 @@ function sessaoMesa({ tecnica, irr, curto, semIrregular, titulo, sub }) {
     ...aquecimento(nome),
     { ...regular(rotulo, { ...dialsReg, "Oscilação": "OFF" }, cueReg), time: curto ? "10 min" : "13 min" },
   ];
-  if (!semIrregular) blocos.push({ tag: "robô · osc ON", label: `Irregular — ${I.nome}`,
+  if (!semIrregular) blocos.push({ det: irr, tag: "robô · osc ON", label: `Irregular — ${I.nome}`,
     time: I.time, rest: I.rest, target: I.target, dials: I.dials, cue: I.cue });
   return {
     kind: "mesa", slot: "mesa-" + irr, title: titulo, sub,
@@ -176,7 +176,7 @@ function sessaoMesa({ tecnica, irr, curto, semIrregular, titulo, sub }) {
 function sessaoSistema({ sist, week }) {
   const S = SISTEMAS[sist];
   const blocos = [
-    { tag: "robô", label: S.nome, time: S.time, rest: S.rest,
+    { det: sist, tag: "robô", label: S.nome, time: S.time, rest: S.rest,
       target: `${S.target} — ${S.montagem}`, dials: S.dials, passos: S.ciclo,
       cue: S.cue, limite: S.limite },
     saqueDiario(SERVE_FOCUS[week]),
@@ -195,7 +195,7 @@ function sessaoSistema({ sist, week }) {
 function sessaoPontos({ jogo, week }) {
   const J = JOGOS_SOLO[jogo];
   const blocos = [
-    { tag: "jogo", label: J.nome, time: J.time, rest: J.rest,
+    { det: jogo, tag: "jogo", label: J.nome, time: J.time, rest: J.rest,
       target: "Placar anotado no fim — é o dado que a aba Progresso desenha",
       dials: J.dials, passos: J.regras, cue: J.cue },
     saqueDiario(SERVE_FOCUS[week]),
@@ -214,7 +214,7 @@ function sessaoFisico(letra, blocoN) {
   const F = FISICO[letra];
   const fase = FASES[blocoN];
   const blocos = F.exercicios.map((e) => ({
-    tag: "físico", label: e.nome, time: "—", rest: fase.descanso,
+    det: e.det, tag: "físico", label: e.nome, time: "—", rest: fase.descanso,
     target: e.dose[blocoN], cue: e.cue,
   }));
   return {
@@ -233,14 +233,14 @@ function sessaoCorrecao(tecnicas) {
   const nomes = tecnicas.map((t) => t.name).join(" · ");
   const blocos = [
     ...aquecimento(tecnicas[0] ? tecnicas[0].name : "gesto da semana"),
-    { tag: "sombra", label: "Correção lenta", time: "10 min", rest: "30 s",
+    { det: "corr-lenta", tag: "sombra", label: "Correção lenta", time: "10 min", rest: "30 s",
       target: `4 × 2 min alternando: ${nomes}`,
       cue: "Metade da velocidade de jogo. Você está procurando o erro, não repetindo o acerto." },
-    { tag: "robô", label: "Só o trecho que estava errado", time: "12 min", rest: "45 s",
+    { det: "corr-trecho", tag: "robô", label: "Só o trecho que estava errado", time: "12 min", rest: "45 s",
       target: "4 séries × 20 bolas · frequência 1 abaixo do normal",
       dials: d(2, 0, 2, false),
       cue: "Bola lenta de propósito. Se o gesto só sai certo devagar, ele ainda não está pronto — e insistir rápido grava o errado." },
-    { tag: "estudo", label: "Gravar e mandar para análise", time: "6 min", rest: "—",
+    { det: "corr-video", tag: "estudo", label: "Gravar e mandar para análise", time: "6 min", rest: "—",
       target: "6 a 8 repetições de UMA técnica, slow motion, câmera lateral",
       cue: "Abra a técnica na aba Golpes, copie o prompt de análise e mande o vídeo. A resposta guia a segunda-feira seguinte." },
   ];
@@ -254,13 +254,13 @@ function sessaoCorrecao(tecnicas) {
 function sessaoLeve(tecnicas) {
   const nomes = tecnicas.map((t) => t.name).join(" · ");
   const blocos = [
-    { tag: "sombra", label: "Soltura", time: "6 min", rest: "—",
+    { det: "leve-soltura", tag: "sombra", label: "Soltura", time: "6 min", rest: "—",
       target: "Ombro, quadril e coluna torácica · sem corda, sem série, sem contar nada",
       cue: "Soltar, não cansar. Domingo é o único dia sem mesa: se virar treino, a semana que vem começa devendo." },
-    { tag: "sombra", label: "Sombra da semana", time: "12 min", rest: "30 s",
+    { det: "leve-sombra", tag: "sombra", label: "Sombra da semana", time: "12 min", rest: "30 s",
       target: `3 × 2 min alternando: ${nomes}`,
       cue: "Devagar e correto. É o único treino da semana sem nenhuma pressa." },
-    { tag: "estudo", label: "Fechar a semana", time: "8 min", rest: "—",
+    { det: "leve-revisao", tag: "estudo", label: "Fechar a semana", time: "8 min", rest: "—",
       target: "Reler as anotações dos 6 dias e escrever UMA frase: o que muda na semana que vem",
       cue: "Ciclo sem revisão é calendário, não é treino." },
   ];
@@ -272,7 +272,7 @@ function sessaoLeve(tecnicas) {
    robô não entrega: efeito de verdade para ler e ponto disputado. */
 const JOGO_TREINO = (() => {
   const blocos = [
-    { tag: "jogo", label: "Sets valendo, com uma regra", time: "25 min", rest: "—",
+    { det: "jt-regra", tag: "jogo", label: "Sets valendo, com uma regra", time: "25 min", rest: "—",
       target: "3 sets contra o parceiro · uma regra por set",
       passos: [
         "**Set 1 — saída do backspin.** Toda bola cortada que der para abrir, você abre. Nenhum push de volta.",
@@ -280,7 +280,7 @@ const JOGO_TREINO = (() => {
         "**Set 3 — defesa.** Quando ele abrir primeiro, bloqueia colado na mesa e muda a direção. Proibido recuar.",
       ],
       cue: "Uma regra por set, e são as três da semana. Ganhar é secundário: o que conta é a regra ter sido cumprida, porque é ela que leva o conserto para dentro do jogo. Foi no jogo que os quatro erros apareceram." },
-    { tag: "jogo", label: "Set livre e anotação", time: "12 min", rest: "—",
+    { det: "jt-livre", tag: "jogo", label: "Set livre e anotação", time: "12 min", rest: "—",
       target: "1 set sem regra nenhuma + 3 minutos anotando",
       cue: "Sem regra, para ver o que sai sozinho — é o retrato mais honesto da semana. Anote: quantas cortadas você abriu (e quantas empurrou), quantos bloqueios aguentaram, onde perdeu mais. Esses números são o seu jogo, não o que você acha que é o seu jogo." },
   ];
@@ -296,28 +296,28 @@ const JOGO_TREINO = (() => {
    você passar todas na semana 8, elas sobem no próximo ciclo. */
 function sessaoTeste(week) {
   const blocos = [
-    { tag: "robô", label: "1 · Saída do backspin", time: "9 min", rest: "45 s",
+    { det: "teste-1", tag: "robô", label: "1 · Saída do backspin", time: "9 min", rest: "45 s",
       target: "6 séries × 8 bolas cortadas · abrir todas", dials: d(0, 4, 2, false),
       cue: "O erro nº 1 do torneio. Conte as que passam COM efeito — bola que passa sem girar não conta. Linha de corte: 26 de 48." },
-    { tag: "robô", label: "2 · Abrir sem saber onde vem", time: "7 min", rest: "60 s",
+    { det: "teste-2", tag: "robô", label: "2 · Abrir sem saber onde vem", time: "7 min", rest: "60 s",
       target: "5 séries × 8 bolas · oscilação ON", dials: d(0, 4, 2, true),
       cue: "O mesmo golpe do item 1, agora sem saber o canto. A diferença entre os dois números é o quanto o seu deslocamento está custando. Linha de corte: 20 de 40." },
-    { tag: "robô", label: "3 · Cozinhada com saída", time: "8 min", rest: "60 s",
+    { det: "teste-3", tag: "robô", label: "3 · Cozinhada com saída", time: "8 min", rest: "60 s",
       target: "6 séries × 6 ciclos: 3 pushes e abre a 4ª", dials: d(0, 3, 2, true),
       cue: "Conte só os ciclos completos — três pushes baixos E a quarta atacada. Push alto no meio zera o ciclo. Linha de corte: 22 de 36." },
-    { tag: "robô", label: "4 · Defesa de topspin", time: "7 min", rest: "60 s",
+    { det: "teste-4", tag: "robô", label: "4 · Defesa de topspin", time: "7 min", rest: "60 s",
       target: "Maior sequência de bloqueios sem errar", dials: d(5, 0, 4, true),
       cue: "Colado na mesa, mudando a direção a cada bola. Errou, recomeça do zero. Linha de corte: 18 seguidas." },
-    { tag: "robô", label: "5 · Drive seguidas", time: "5 min", rest: "—",
+    { det: "teste-5", tag: "robô", label: "5 · Drive seguidas", time: "5 min", rest: "—",
       target: "Série livre de drive FH", dials: d(3, 0, 4, false),
       cue: "A batida base, e o único item que veio igual do ciclo antigo — dá para comparar com o que você já tinha. Linha de corte: 40." },
-    { tag: "robô", label: "6 · A cadeia inteira", time: "8 min", rest: "60 s",
+    { det: "teste-6", tag: "robô", label: "6 · A cadeia inteira", time: "8 min", rest: "60 s",
       target: "5 séries × 6 ciclos: abre, bloqueia, ataca", dials: d(3, 3, 2, true),
       cue: "Cortada → abertura → topspin dele → bloqueio → seu ataque. Conte as cadeias que chegaram até o fim. É o item que mais parece jogo. Linha de corte: 15 de 30." },
-    { tag: "jogo", label: "7 · Set contra o robô", time: "8 min", rest: "—",
+    { det: "teste-7", tag: "jogo", label: "7 · Set contra o robô", time: "8 min", rest: "—",
       target: "Um set até 11 · ponto = 5 bolas seguidas", dials: d(3, 0, 4, true),
       cue: "Anote o placar. É a única medida do ciclo com consequência de erro embutida." },
-    { tag: "estudo", label: "Anotar e comparar", time: "5 min", rest: "—",
+    { det: "teste-8", tag: "estudo", label: "Anotar e comparar", time: "5 min", rest: "—",
       target: "Os 7 números, no campo de anotações abaixo",
       cue: "Compare com a última semana de teste. O que não subiu vira o foco do bloco seguinte — e se nada subir em dois testes seguidos, o problema não é volume, é o gesto: grave e mande para análise." },
   ];
@@ -468,7 +468,7 @@ function sessaoAdversario(advId) {
   const A = ADVERSARIOS[advId];
   const blocos = [
     ...ROTINA_PREJOGO,
-    { tag: "robô", label: `Contra: ${A.tipo}`, time: A.time, rest: A.rest,
+    { det: A.id, tag: "robô", label: `Contra: ${A.tipo}`, time: A.time, rest: A.rest,
       target: `${A.target} — REGRA: ${A.regra}`, dials: A.dials, passos: A.plano, cue: A.cue },
   ];
   return {
@@ -483,7 +483,7 @@ function sessaoAdversario(advId) {
 function sessaoSets(week) {
   const S = SETS_COMPLETOS;
   const blocos = [
-    { tag: "jogo", label: S.nome, time: S.time, rest: S.rest,
+    { det: "sets-completos", tag: "jogo", label: S.nome, time: S.time, rest: S.rest,
       target: S.target, dials: S.dials, passos: S.regras, cue: S.cue },
     saqueDiario(SERVE_FOCUS[week]),
   ];

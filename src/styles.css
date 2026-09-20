@@ -152,6 +152,35 @@ exercícios e progressão ---- */
 .modal-x{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;}
 .modal-p{margin:0 0 14px;font-size:13px;line-height:1.55;color:#37473D;}
 .modal-nota{margin:11px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted);}
+
+/* ---- "Como fazer": a descrição longa de um exercício ----
+   Mais larga e rolável, porque aqui cabe montagem, passo a passo, meta e a
+   lista de erros — e no celular isso passa da altura da tela. */
+.cf-cx{max-width:520px;max-height:86vh;overflow-y:auto;overscroll-behavior:contain;}
+.cf-cx .modal-top{position:sticky;top:-18px;background:var(--card);padding-top:4px;margin-top:-4px;z-index:1;}
+.cf-dose{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5;font-weight:600;
+  color:var(--ink);background:#F4F7F5;border-radius:11px;padding:10px 12px;margin-bottom:9px;}
+.cf-dose svg{flex:none;margin-top:2px;color:var(--teal-600);}
+.cf-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;}
+.cf-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:11px;
+  font-weight:700;color:var(--muted);background:#EFF4F1;border:1px solid var(--line);border-radius:7px;padding:4px 8px;}
+.cf-sec{margin-top:15px;}
+.cf-sec h4{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:10.5px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--muted);}
+.cf-sec h4 svg{color:var(--teal-600);}
+.cf-lista{list-style:none;margin:0;padding:0;}
+.cf-lista li{position:relative;padding-left:15px;margin-bottom:6px;font-size:12.5px;line-height:1.5;color:#37473D;}
+.cf-lista li::before{content:"";position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--teal-600);}
+.cf-erros{list-style:none;margin:0;padding:0;}
+.cf-erros li{position:relative;padding-left:15px;margin-bottom:7px;font-size:12.5px;line-height:1.5;color:#7A3B28;}
+.cf-erros li::before{content:"×";position:absolute;left:0;top:-1px;font-weight:800;color:var(--red);}
+.cf-meta{display:flex;gap:8px;align-items:flex-start;margin-top:15px;padding:10px 12px;
+  background:#E4F5EC;border:1px solid #B7E3CC;border-radius:12px;font-size:12.5px;line-height:1.5;color:#166F4A;}
+.cf-meta svg{flex:none;margin-top:1px;color:var(--green);}
+.cf-meta strong{color:#0F5637;}
+.cf-cue{margin:15px 0 0;padding:10px 12px;background:#F7FAF8;border-left:3px solid var(--teal-600);
+  border-radius:0 10px 10px 0;font-size:12.5px;line-height:1.55;color:#37473D;}
+.cf-cx .tl-limite{margin-top:15px;}
 .synclinha{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);
   background:#F1F5F2;border-radius:11px;padding:11px;margin-bottom:12px;}
 .syncdot{width:9px;height:9px;border-radius:50%;background:#C4CDC5;flex:none;}
