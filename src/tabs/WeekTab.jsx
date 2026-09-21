@@ -5,6 +5,8 @@ import {
 import { bold, RobotPanel, MiniDials, Session, Counter, tagClass, Collapsible, Vids, BlocoAcervo, ComoFazer } from "../components/ui.jsx";
 import { parseMin, parseRest } from "../lib/helpers.jsx";
 import { sessionsFor, isDayDone, KIND_META, robotFor, DAYS, WEEK_INFO, BLOCOS } from "../data/schedule.jsx";
+import { promptDoDia, FILMAR_DO_DIA } from "../data/analiseVideo.js";
+import { STROKES } from "../data/strokes.js";
 
 /* ============ ABA SEMANA ============ */
 function SessionCard({ session, week, dayId, done, toggle, notes, setNote, records, setRecord, onTimer }) {
@@ -97,6 +99,39 @@ function SessionCard({ session, week, dayId, done, toggle, notes, setNote, recor
     </div>);
 }
 
+/* ============ GRAVAR E MANDAR PARA A IA ============
+   O acervo já tem um prompt por técnica. Este é o do DIA: sai pronto com o
+   tema de hoje, o que filmar hoje, a regulagem que o robô está usando e a
+   técnica que o dia trabalha. É escrito para vídeo inteiro — quem lê vídeo
+   enxerga o que quadro nenhum mostra: se a última repetição continua igual à
+   primeira, se você chega pronto na bola, se volta à base entre uma e outra. */
+function GravarHoje({ dia, week, info, tecnica, dials }) {
+  const [copiado, setCopiado] = useState(false);
+  const f = FILMAR_DO_DIA[dia.id];
+  const texto = promptDoDia({
+    diaId: dia.id, diaNome: dia.name, semana: week,
+    tituloSemana: info.title, tecnica, dials,
+  });
+  if (!f || !texto) return null;
+  const copiar = async () => {
+    try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2500); }
+    catch { setCopiado(false); }
+  };
+  return (
+    <Collapsible title="Gravar e analisar com IA" icon={<Camera size={13} />}
+      sub={`o que filmar hoje + prompt pronto · ${f.tema}`}>
+      <div className="mini-title">O que filmar hoje</div>
+      <ul className="clean-list">{f.filmar.map((x, i) => <li key={i}>{bold(x)}</li>)}</ul>
+      <div className="guia-foco"><Eye size={14} /><span>{f.olhar}</span></div>
+      <div className="mini-title">Prompt pronto</div>
+      <p className="p-lead">Mande o <strong>vídeo</strong> para uma IA que leia vídeo e cole este texto junto. Ele já vai com o tema do dia, a regulagem do robô e a referência técnica — e pede o tempo do vídeo em cada afirmação, para você poder conferir.</p>
+      <pre className="promptbox">{texto}</pre>
+      <button className={"mastbtn" + (copiado ? " on" : "")} onClick={copiar}>
+        <span className="mb-box">{copiado && <Check size={13} strokeWidth={3} />}</span>
+        {copiado ? "Prompt copiado" : "Copiar prompt do dia"}</button>
+    </Collapsible>);
+}
+
 function WeekTab(p) {
   const { week, setWeek, activeIdx, setActiveIdx, done, toggleSession, records, setRecord, notes, setNote, onTimer, resetWeek, monthDone } = p;
   const day = DAYS[activeIdx];
@@ -107,7 +142,14 @@ function WeekTab(p) {
   const semanasDoBloco = WEEK_INFO.filter(w => w.bloco === info.bloco);
   const intCls = day.intensity === "Alta" ? "int-high" : day.intensity === "Média" ? "int-mid" : day.intensity === "Jogo" ? "int-match" : "int-low";
   const doneN = sessions.filter(s => done[`w${week}-${day.id}-${s.slot || s.kind}`]).length;
-  const temApoio = !!(day.checklist || day.semAula || day.bio || day.videos);
+  const temApoio = true;   // o card de gravar existe em todos os dias
+  /* A técnica que o dia trabalha e a regulagem que ele usa: é o que faz o
+     prompt de hoje ser de hoje, e não um prompt genérico. */
+  const tecDoDia = (() => {
+    const ids = sessions.flatMap(s => s.tecnicas || []);
+    return STROKES.find(t => t.id === ids[0]) || null;
+  })();
+  const dialsDoDia = sessions.find(s => s.robotCfg)?.robotCfg?.dials || null;
 
   return (
     <div className="wk-layout">
@@ -184,6 +226,7 @@ function WeekTab(p) {
           coluna, e é ela que ocupa a sobra em vez de esticar a sessão. */}
       {temApoio && (
       <aside className="wk-aside">
+      <GravarHoje dia={day} week={week} info={info} tecnica={tecDoDia} dials={dialsDoDia} />
       {day.checklist && <div className="block"><div className="section-eyebrow"><Check size={13} /> Checklist</div>
         <ul className="check-list">{day.checklist.map((c, i) => <li key={i}>{c}</li>)}</ul></div>}
       {day.semAula && <div className="matchbox"><div className="section-eyebrow" style={{ color: "#7A5A12" }}><GraduationCap size={13} /> Quando a aula voltar</div>
