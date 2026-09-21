@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Users, Plus, X, Trophy, Info, Target, ChevronRight, AlertTriangle,
-  Check, Gauge, Layers, Flame, RotateCcw, Award,
+  Check, Gauge, Layers, Flame, RotateCcw, Award, ChevronDown, HelpCircle, Ban,
 } from "lucide-react";
 import { bold, Hero, Collapsible, SecTitle } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
@@ -56,20 +56,65 @@ function Elenco({ jogadores, onAdd, onRemove, travado }) {
     </div>);
 }
 
+/* ---------- o corpo de uma regra ----------
+   Os mesmos campos servem o acervo (antes do jogo) e a regra que está
+   valendo (durante), porque é a mesma pergunta nos dois momentos: como
+   funciona, quando vale, o que acontece se quebrar, e o que o juiz olha. */
+function RegraCorpo({ r }) {
+  return (<>
+    <ol className="rc-passos">{r.comoFunciona.map((x, i) => <li key={i}>{x}</li>)}</ol>
+    <div className="rc-linhas">
+      <p className="rc-l"><span>Vale</span>{r.vale}</p>
+      <p className="rc-l pun"><Ban size={12} /><span className="rc-lb">Se quebrar</span>{r.punicao}</p>
+      <p className="rc-l juiz"><Gauge size={12} /><span className="rc-lb">Juiz</span>{r.juiz}</p>
+      {r.placar && <p className="rc-l placar"><Trophy size={12} />{r.placar}</p>}
+    </div>
+    {r.aviso && <p className="rc-aviso"><Info size={12} /><span>{r.aviso}</span></p>}
+  </>);
+}
+
+/* As dúvidas são o que impede o campeonato de parar para discutir: são os
+   casos de borda já decididos, à mão, antes de alguém precisar deles. */
+function Duvidas({ lista }) {
+  const [aberto, setAberto] = useState(false);
+  if (!lista || !lista.length) return null;
+  return (
+    <div className="dv">
+      <button className="dv-head" onClick={() => setAberto(a => !a)}>
+        <HelpCircle size={13} />
+        <span>Combinado antes · {lista.length} dúvida{lista.length === 1 ? "" : "s"}</span>
+        <ChevronDown size={15} className={"chev" + (aberto ? " open" : "")} />
+      </button>
+      {aberto && (
+        <div className="dv-body">
+          {lista.map((d, i) => (
+            <div className="dv-i" key={i}>
+              <p className="dv-p">{d.p}</p>
+              <p className="dv-r">{d.r}</p>
+            </div>))}
+        </div>)}
+    </div>);
+}
+
 /* ---------- uma regra do acervo ---------- */
 function CartaoRegra({ r, escolhida, onToggle }) {
+  const [aberto, setAberto] = useState(false);
   const niv = NIVEIS[r.nivel];
   return (
     <div className={"rg" + (escolhida ? " on" : "")}>
       <button className="rg-head" onClick={() => onToggle(r.id)}>
         <span className={"rg-check" + (escolhida ? " on" : "")}>{escolhida && <Check size={13} />}</span>
         <span className="rg-nome">{r.nome}</span>
-        <span className="rg-niv" style={{ background: niv.cor }}>{r.nivel}</span>
+        <span className="rg-niv" style={{ background: niv.cor }} title={niv.nome}>{r.nivel}</span>
       </button>
-      <p className="rg-como">{r.como}</p>
-      <p className="rg-juiz"><Gauge size={12} /><span><strong>O juiz marca assim: </strong>{r.juiz}</span></p>
-      {r.placar && <p className="rg-placar"><Trophy size={12} /> {r.placar}</p>}
-      {r.aviso && <p className="rg-aviso"><Info size={12} /> {r.aviso}</p>}
+      <p className="rg-resumo">{r.resumo}</p>
+      {/* O detalhe fica fechado: com 32 regras, o acervo aberto viraria uma
+          parede de texto e ninguém acharia nada. */}
+      <button className="rg-mais" onClick={() => setAberto(a => !a)}>
+        {aberto ? "Menos" : "Como funciona, e as dúvidas"}
+        <ChevronDown size={14} className={"chev" + (aberto ? " open" : "")} />
+      </button>
+      {aberto && <div className="rg-det"><RegraCorpo r={r} /><Duvidas lista={r.duvidas} /></div>}
     </div>);
 }
 
@@ -87,9 +132,9 @@ function RegraDaVez({ id, titulo }) {
     <div className="gr-regra-vez" style={{ "--c": cat ? cat.cor : "var(--ball)" }}>
       <span className="rv-eyebrow">{titulo} · treina {cat ? cat.nome.toLowerCase() : "—"}</span>
       <strong>{r.nome}</strong>
-      <p>{r.como}</p>
-      <p className="rv-juiz"><Gauge size={12} /><span><strong>Juiz: </strong>{r.juiz}</span></p>
-      {r.placar && <p className="rv-placar"><Trophy size={12} /> {r.placar}</p>}
+      <p className="rv-resumo">{r.resumo}</p>
+      <RegraCorpo r={r} />
+      <Duvidas lista={r.duvidas} />
     </div>);
 }
 
@@ -259,7 +304,15 @@ function ReiDaMesa({ camp, setCamp }) {
 /* ---------- a aba ---------- */
 function GrupoTab() {
   const [s, setS] = useState(null);
-  useEffect(() => { (async () => { setS({ ...VAZIO, ...((await store.get(CHAVE)) || {}) }); })(); }, []);
+  useEffect(() => { (async () => {
+    const g = { ...VAZIO, ...((await store.get(CHAVE)) || {}) };
+    /* O acervo cresce e muda entre versões do app. Uma regra gravada que não
+       existe mais viraria um buraco no rodízio ("sem regra") no meio do
+       campeonato, então ela é descartada na entrada. */
+    g.escolhidas = (g.escolhidas || []).filter(id => regraPorId(id));
+    if (g.camp) g.camp = { ...g.camp, escolhidas: (g.camp.escolhidas || []).filter(id => regraPorId(id)) };
+    setS(g);
+  })(); }, []);
   if (!s) return <div className="loading">Carregando o campeonato…</div>;
 
   const grava = (novo) => { const nx = { ...s, ...novo }; setS(nx); store.set(CHAVE, nx); };
@@ -312,10 +365,11 @@ function GrupoTab() {
 
       <SecTitle icon={<Layers size={13} />} n="1">O acervo de regras</SecTitle>
       <p className="gr-intro">
-        {REGRAS.length} regras. Cada uma proíbe uma saída fácil — aquela que você usa quando a bola
-        fica difícil e que é justamente a que precisa sumir. O número na ponta é o nível:
-        <strong> 1</strong> dá para jogar hoje, <strong>2</strong> exige atenção,
-        <strong> 3</strong> vira outro jogo por uns minutos.
+        {REGRAS.length} regras em {CATEGORIAS.length} frentes. Cada uma proíbe uma saída fácil — aquela que
+        você usa quando a bola fica difícil e que é justamente a que precisa sumir. Abra qualquer
+        uma para ver o passo a passo, o que o juiz olha e as dúvidas que vão aparecer na mesa, já
+        respondidas. O número na ponta é o nível: <strong>1</strong> dá para jogar hoje,
+        <strong> 2</strong> exige atenção, <strong>3</strong> vira outro jogo por uns minutos.
       </p>
 
       {CATEGORIAS.map(c => {

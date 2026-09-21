@@ -1131,13 +1131,46 @@ court texture ============ */
 .rg-nome{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.3;}
 .rg-niv{flex:none;width:19px;height:19px;border-radius:6px;color:#fff;font-family:var(--f-mono);
   font-size:11px;font-weight:700;display:grid;place-items:center;}
-.rg-como{margin:0 0 7px;font-size:12.5px;line-height:1.55;color:#37473D;}
-.rg-juiz,.rg-placar,.rg-aviso{display:flex;gap:6px;align-items:flex-start;margin:0 0 5px;
-  font-size:11.5px;line-height:1.5;}
-.rg-juiz{color:#37473D;}.rg-juiz svg{flex:none;margin-top:2px;color:var(--teal-600);}
-.rg-placar{color:#7A5A12;}.rg-placar svg{flex:none;margin-top:2px;color:var(--gold);}
-.rg-aviso{color:var(--muted);}.rg-aviso svg{flex:none;margin-top:2px;}
-.rg-juiz:last-child,.rg-placar:last-child,.rg-aviso:last-child{margin-bottom:0;}
+.rg-resumo{margin:0 0 9px;font-size:12.5px;line-height:1.55;color:#37473D;}
+.rg-mais{display:inline-flex;align-items:center;gap:5px;background:none;border:none;padding:0;
+  font-family:inherit;font-size:11.5px;font-weight:700;color:var(--teal-600);cursor:pointer;}
+.rg-mais .chev{transition:transform .18s;}
+.rg-mais .chev.open,.dv-head .chev.open{transform:rotate(180deg);}
+.rg-det{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);}
+
+/* o corpo de uma regra: passo a passo + as linhas curtas que resolvem
+   discussão (quando vale, o que acontece, o que o juiz olha) */
+.rc-passos{margin:0 0 10px;padding-left:19px;display:flex;flex-direction:column;gap:6px;}
+.rc-passos li{font-size:12.5px;line-height:1.55;color:#37473D;}
+.rc-passos li::marker{color:var(--c,var(--ball));font-weight:700;}
+.rc-linhas{display:flex;flex-direction:column;gap:6px;}
+.rc-l{display:flex;gap:6px;align-items:flex-start;margin:0;font-size:11.5px;line-height:1.5;color:#37473D;}
+.rc-l svg{flex:none;margin-top:2px;}
+.rc-l>span:first-child,.rc-lb{flex:none;font-size:9.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--muted);padding-top:2px;}
+.rc-l.pun{color:#A33A22;}.rc-l.pun svg{color:var(--red);}
+.rc-l.pun .rc-lb{color:#C4705A;}
+.rc-l.juiz svg{color:var(--teal-600);}
+.rc-l.placar{color:#7A5A12;}.rc-l.placar svg{color:var(--gold);}
+.rc-aviso{display:flex;gap:6px;align-items:flex-start;margin:10px 0 0;padding-top:9px;
+  border-top:1px dashed var(--line);font-size:11.5px;line-height:1.5;color:var(--muted);}
+.rc-aviso svg{flex:none;margin-top:2px;}
+
+/* as dúvidas já decididas */
+.dv{margin-top:10px;}
+.dv-head{display:flex;align-items:center;gap:6px;width:100%;background:#F1F5F2;border:none;
+  border-radius:9px;padding:8px 10px;font-family:inherit;font-size:11.5px;font-weight:700;
+  color:var(--teal-600);cursor:pointer;}
+.dv-head svg:first-child{flex:none;}
+.dv-head>span{flex:1;min-width:0;text-align:left;}
+.dv-head .chev{flex:none;transition:transform .18s;}
+.dv-body{padding:10px 2px 0;}
+.dv-i{margin-bottom:10px;}
+.dv-i:last-child{margin-bottom:0;}
+.dv-p{margin:0 0 3px;font-size:12px;font-weight:700;line-height:1.45;color:var(--ink);}
+.dv-p::before{content:"— ";color:var(--muted);}
+.dv-r{margin:0;font-size:12px;line-height:1.55;color:#37473D;padding-left:13px;
+  border-left:2px solid #DCE6E0;}
 
 /* a regra que está valendo */
 .gr-regra-vez{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--c);
@@ -1146,11 +1179,9 @@ court texture ============ */
 .rv-eyebrow{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
   color:var(--muted);margin-bottom:5px;}
 .gr-regra-vez>strong{display:block;font-size:16px;line-height:1.3;color:var(--ink);margin-bottom:6px;}
-.gr-regra-vez p{margin:0 0 6px;font-size:13px;line-height:1.55;color:#37473D;}
-.rv-juiz,.rv-placar{display:flex;gap:6px;align-items:flex-start;font-size:11.5px!important;margin:0!important;}
-.rv-juiz svg{flex:none;margin-top:2px;color:var(--teal-600);}
-.rv-placar{color:#7A5A12!important;margin-top:5px!important;}
-.rv-placar svg{flex:none;margin-top:2px;color:var(--gold);}
+.rv-resumo{margin:0 0 10px;font-size:13px;line-height:1.55;color:#37473D;}
+.gr-regra-vez .rc-passos li{font-size:13px;}
+.gr-regra-vez .rc-aviso{display:none;}
 
 /* formatos e o botão de começar */
 .gr-formatos{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
@@ -1259,7 +1290,8 @@ court texture ============ */
   .gr-formatos{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;}
   .rd .pt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:center;}
   .rd .pt-bonus{margin-top:0;padding-top:0;border-top:none;border-left:1px dashed var(--line);padding-left:12px;}
-  .rg-como,.gr-regra-vez p,.gr-fmt>span{font-size:13.5px;}
+  .rg-resumo,.rv-resumo,.gr-fmt>span,.rc-passos li{font-size:13.5px;}
+  .rg-det .rc-linhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:8px 18px;}
   .gr-regra-vez>strong{font-size:17.5px;}
 
   .app{max-width:none;width:100%;}
