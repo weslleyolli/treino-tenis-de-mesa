@@ -106,7 +106,7 @@ const DETALHES = {
   "irr-abre": {
     oque: "O erro nº 1 do campeonato, com bola imprevisível: cortada em qualquer canto e uma regra só — abrir.",
     montagem: [
-      "Visor: Freq 2 · Osc 4 · Top 3 · Back 7 — cortada forte, caindo em lugar sorteado.",
+      "Visor: Freq 2 · Osc 4 · Top 3 · Back 6 — cortada forte, caindo em lugar sorteado.",
       "Você a um passo e meio da mesa: abertura contra cortada precisa de espaço para o braço descer.",
       "Balde cheio: são 60 bolas e parar no meio quebra o bloco.",
     ],
@@ -271,7 +271,7 @@ const DETALHES = {
   /* ---------- jogos pontuados ---------- */
   "js-abre": {
     oque: "O placar do erro que te custou o campeonato: bola na mesa empurrando não vale ponto.",
-    montagem: ["Visor: Freq 2 · Osc 4 · Top 3 · Back 7 — cortada forte, posição sorteada.", "Papel e caneta, ou as anotações do card, para o placar."],
+    montagem: ["Visor: Freq 2 · Osc 4 · Top 3 · Back 6 — cortada forte, posição sorteada.", "Papel e caneta, ou as anotações do card, para o placar."],
     execucao: [
       "Cada ponto começa com o robô mandando cortada.",
       "Você empurra no máximo 3 bolas e abre.",
@@ -424,7 +424,7 @@ const DETALHES = {
   },
   "pj-cortadas": {
     oque: "Tocar uma vez em cada um dos dois erros que decidem a sua partida, antes de ela começar.",
-    montagem: ["Visor: Freq 2 · Osc 0 · Top 3 · Back 7 para as cortadas. Depois Top 7 · Back 2 para os bloqueios, se der tempo."],
+    montagem: ["Visor: Freq 2 · Osc 0 · Top 3 · Back 6 para as cortadas. Depois Top 7 · Back 2 para os bloqueios, se der tempo."],
     execucao: ["10 aberturas contra cortada.", "10 bloqueios contra topspin."],
     meta: "Nenhuma das duas coisas estreando no primeiro ponto do jogo.",
     erros: ["Pular por causa do tempo → são 3 minutos e valem o primeiro set."],
@@ -472,7 +472,7 @@ const DETALHES = {
      método não compara com nada, e o ciclo inteiro depende dessa comparação. */
   "teste-1": {
     oque: "O erro nº 1 do torneio, medido com bola previsível: 48 cortadas, todas para abrir.",
-    montagem: ["Visor: Freq 2 · Osc 0 · Top 3 · Back 7 — o canto é sempre o mesmo.", "Balde cheio: parar no meio muda a medida."],
+    montagem: ["Visor: Freq 2 · Osc 0 · Top 3 · Back 6 — o canto é sempre o mesmo.", "Balde cheio: parar no meio muda a medida."],
     execucao: ["6 séries de 8 bolas, 45 segundos entre elas.", "Conte em voz alta as que passaram COM efeito.", "Anote o total das 6 séries, não a melhor série."],
     meta: "Linha de corte 26 de 48.",
     erros: ["Contar bola que passou sem girar → ela não é abertura, é empurrada alta.", "Mudar a regulagem no meio porque está difícil → aí o número não compara com o da semana 8."],
@@ -530,7 +530,7 @@ const DETALHES = {
   /* ---------- sexta: o adversário da semana ---------- */
   "adv-empurra": {
     oque: "Vinte minutos contra quem devolve tudo cortado e espera você errar — e sem a opção de empurrar de volta.",
-    montagem: ["Visor: Freq 2 · Osc 4 · Top 3 · Back 7: tudo volta cortado, de lugar sorteado."],
+    montagem: ["Visor: Freq 2 · Osc 4 · Top 3 · Back 6: tudo volta cortado, de lugar sorteado."],
     execucao: ["6 séries de 10 bolas.", "Abra TODAS. Nenhum push devolvido, nem a difícil, nem a última."],
     meta: "Aberturas que passaram. Errar abrindo aqui vale mais que ganhar empurrando.",
     erros: ["Entrar no jogo de empurrar dele → contra esse tipo você perde por paciência, nunca por técnica."],

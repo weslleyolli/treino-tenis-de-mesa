@@ -39,13 +39,23 @@
        bola cortada      TOP 2-4 · BACK 5-7
        bola sem efeito   TOP igual a BACK
 
+   Dentro dessas faixas, os blocos daqui começam no MEIO (cortada em Back 6, e
+   não no 7): na prática o teto da faixa manda a bola para fora da mesa, e é
+   mais barato subir um degrau do que perder uma série inteira corrigindo.
+   Cortada fraca demais? sobe para 7. Saindo da mesa? desce para 5.
+
    Oscilação é 1 a 8 e regula a VELOCIDADE da varredura; as bolas caem em
    posições ALEATÓRIAS. Não dá para mandar o robô alternar esquerda/direita,
    nem mirar só metade da mesa. 0 desliga.
 
-   Regra de correção do próprio manual, que vale para qualquer bloco daqui:
-   bola na rede → SOBE o Topspin primeiro. Bola fora da mesa → DESCE o
-   Topspin primeiro. Só depois mexa no Backspin. */
+   Regra de correção, na ordem que funciona na mesa:
+     bola na rede      → SOBE o Topspin. Não resolveu, sobe o Backspin. Só
+                         depois use o calço (tilt stand) para levantar a saída.
+     bola fora da mesa → PRIMEIRO tire o calço e encoste o robô na borda de
+                         trás; depois DESCE o Backspin; por último desce Top e
+                         Back juntos, que tira velocidade sem mudar o efeito.
+   Calço no máximo com bola já comprida é o erro mais fácil de cometer: ele
+   levanta a saída e joga a bola ainda mais longe. */
 const r = (freq, osc, top, back) => ({
   "Frequência": freq, "Oscilação": osc, Topspin: top, Backspin: back,
 });
@@ -97,7 +107,7 @@ const IRREGULARES = {
      campeonato com bola imprevisível — que é a condição em que eles
      apareceram, e não a bola parada em que eles não aparecem. */
   "irr-abre": {
-    nome: "Abrir toda bola cortada", sub: "a saída do backspin sob incerteza", dials: r(2, 4, 3, 7), time: "17 min",
+    nome: "Abrir toda bola cortada", sub: "a saída do backspin sob incerteza", dials: r(2, 4, 3, 6), time: "17 min",
     target: "6 séries × 10 bolas · cortada forte, caindo em lugar sorteado", rest: "60 s", contador: "aberturas que passaram",
     cue: "Cortada caindo em qualquer lugar da mesa — o robô sorteia — e uma regra só: ABRIR. Nenhum push de volta, nem na difícil, nem na última da série. Você perdeu o torneio empurrando bola que dava para abrir — aqui a opção de empurrar não existe. Errar abrindo conta como série boa; empurrar zera a série.",
   },
@@ -226,7 +236,7 @@ const JOGOS_SOLO = {
   },
   "js-abre": {
     nome: "Só vale ponto com abertura", sub: "cozinhar deixa de ser desculpa",
-    dials: r(2, 4, 3, 7), time: "12 min", rest: "—", contador: "pontos ganhos com abertura",
+    dials: r(2, 4, 3, 6), time: "12 min", rest: "—", contador: "pontos ganhos com abertura",
     regras: [
       "O robô manda **cortada**: você empurra **no máximo 3 bolas** e abre.",
       "Ponto só conta se a **abertura passou**. Bola na mesa empurrando **não vale ponto**.",
@@ -260,7 +270,7 @@ const JOGOS_SOLO = {
 const ADVERSARIOS = {
   "adv-empurra": {
     id: "adv-empurra", tecnicas: ["fh-loop", "fh-loop-slow", "push-longo"], tipo: "Só empurra (defensivo)", fraqueza: "Não sabe lidar com velocidade nem com bola longa.",
-    dials: r(2, 4, 3, 7), time: "20 min", rest: "60 s", contador: "aberturas que passaram",
+    dials: r(2, 4, 3, 6), time: "20 min", rest: "60 s", contador: "aberturas que passaram",
     pos: "Backspin alto com oscilação: tudo volta cortado, de qualquer canto. É exatamente o que esse cara devolve.",
     target: "6 séries × 10 bolas",
     regra: "Abra TODAS. Nenhum push devolvido — nem a difícil, nem a última da série.",
@@ -354,7 +364,7 @@ const ROTINA_PREJOGO = [
     cue: "Exatamente o aquecimento que você faria com o adversário antes do jogo — e é assim que o aquecimento acontece agora: na mesa, com bola. Sem oscilação: aquecer é achar o timing, não treinar." },
   { det: "pj-cortadas", tag: "robô", label: "Três cortadas e três topspins", time: "3 min", rest: "—",
     target: "10 aberturas contra backspin · 10 bloqueios contra topspin",
-    dials: r(2, 0, 3, 7),
+    dials: r(2, 0, 3, 6),
     cue: "Antes do jogo, toque uma vez em cada um dos dois erros que decidem a sua partida. Chegar no primeiro ponto sem ter aberto nenhuma cortada é chegar frio no que mais importa." },
   { det: "pj-rotina", tag: "saque", label: "Ensaio da rotina", time: "2 min", rest: "—",
     target: "10 saques · e a decisão de qual vai ser o primeiro saque do jogo",

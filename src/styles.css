@@ -190,6 +190,7 @@ exercícios e progressão ---- */
 /* ---- Truque de robô: o que o V300 não faz de fábrica mas dá para forçar ----
    Fica visualmente separado do "No robô" oficial de propósito: uma coisa é a
    regulagem, outra é a gambiarra — e ela vem com o preço escrito junto. */
+.cf-onde{background:#EFF4F1;border-color:#D7E4DC;}
 .truque{margin:13px 0;border:1px dashed #C9B37E;border-radius:14px;background:#FFFBF2;padding:13px;}
 .truque-t{display:flex;align-items:center;gap:7px;font-family:var(--f-display);text-transform:uppercase;
   letter-spacing:.03em;font-size:13.5px;font-weight:600;color:#7A5A12;margin-bottom:8px;}

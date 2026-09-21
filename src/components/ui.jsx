@@ -361,14 +361,27 @@ function ComoFazer({ bloco, cor, aberto, onFechar }) {
           <div className="cf-sec">
             <h4><Bot size={13} /> Regulagem do robô</h4>
             <MiniDials dials={bloco.dials} />
+            {/* Onde o robô fica é metade da regulagem, e não estava escrito em
+                lugar nenhum: o mesmo número com o robô adiantado manda a bola
+                para fora. Vale para qualquer bloco, por isso mora aqui. */}
+            <div className="cf-ajuste cf-onde">
+              <div className="cf-ajuste-t">Onde fica o robô</div>
+              <ul>
+                <li><strong>Padrão:</strong> em cima da mesa, encostado na <strong>borda de trás</strong>, na <strong>linha do meio</strong>. Gire o furo de saída para escolher o lado.</li>
+                <li><strong>Sem calço</strong> embaixo, a não ser que o bloco peça. A base fica reta na mesa.</li>
+                <li><strong>Bola caindo comprida?</strong> puxe o robô mais para trás, colado na borda. Adiantado na mesa, a bola tem menos mesa para cair.</li>
+                <li><strong>Quer bola curta</strong> (push, toque)? aí sim adiante o robô, perto da rede — é o único jeito, porque mirar curto ele não sabe.</li>
+              </ul>
+            </div>
+
             {/* A régua que o manual do V300 dá, e que vale para qualquer bloco:
                 é ela que resolve 90% do "a bola não está caindo certo". */}
             <div className="cf-ajuste">
               <div className="cf-ajuste-t">Se a bola não está caindo certo</div>
               <ul>
-                <li><strong>Na rede:</strong> suba o <strong>Topspin</strong> em 1 e teste. Se ainda ficar na rede, suba o Backspin.</li>
-                <li><strong>Fora da mesa:</strong> desça o <strong>Topspin</strong> em 1 e teste. Se ainda sair, desça o Backspin.</li>
-                <li><strong>Ainda assim não passa:</strong> use o <strong>tilt stand</strong> (9, 17 ou 26 mm). Bola na rede, sobe a altura; bola fora, desce.</li>
+                <li><strong>Saindo da mesa?</strong> nesta ordem: <strong>1)</strong> tire o calço e encoste o robô na borda de trás; <strong>2)</strong> desça o <strong>Backspin</strong> em 1 (cortada forte demais faz a bola flutuar longe); <strong>3)</strong> desça <strong>Top e Back juntos</strong> em 1 — isso tira velocidade sem mudar o efeito.</li>
+                <li><strong>Na rede?</strong> suba o <strong>Topspin</strong> em 1 e teste. Se ainda ficar na rede, suba o Backspin; só depois disso use o calço.</li>
+                <li><strong>O calço levanta a saída.</strong> Bola na rede, sobe a altura (9 → 17 → 26 mm). <strong>Bola fora, tire o calço</strong> — calço no máximo com bola comprida só piora.</li>
                 <li><strong>Achou a regulagem?</strong> pause e aperte <strong>memória</strong> — o robô guarda uma, e amanhã você volta nela com um toque.</li>
               </ul>
             </div>

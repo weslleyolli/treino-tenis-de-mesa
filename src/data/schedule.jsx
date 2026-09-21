@@ -296,10 +296,10 @@ const JOGO_TREINO = (() => {
 function sessaoTeste(week) {
   const blocos = [
     { det: "teste-1", tag: "robô", label: "1 · Saída do backspin", time: "9 min", rest: "45 s",
-      target: "6 séries × 8 bolas cortadas · abrir todas", dials: r(2, 0, 3, 7),
+      target: "6 séries × 8 bolas cortadas · abrir todas", dials: r(2, 0, 3, 6),
       cue: "O erro nº 1 do torneio. Conte as que passam COM efeito — bola que passa sem girar não conta. Linha de corte: 26 de 48." },
     { det: "teste-2", tag: "robô", label: "2 · Abrir sem saber onde vem", time: "7 min", rest: "60 s",
-      target: "5 séries × 8 bolas · oscilação ligada", dials: r(2, 4, 3, 7),
+      target: "5 séries × 8 bolas · oscilação ligada", dials: r(2, 4, 3, 6),
       cue: "O mesmo golpe do item 1, agora sem saber o canto. A diferença entre os dois números é o quanto o seu deslocamento está custando. Linha de corte: 20 de 40." },
     { det: "teste-3", tag: "robô", label: "3 · Cozinhada com saída", time: "8 min", rest: "60 s",
       target: "6 séries × 6 ciclos: 3 pushes e abre a 4ª", dials: r(2, 3, 3, 6),
@@ -322,7 +322,7 @@ function sessaoTeste(week) {
   ];
   return { kind: "tecnica", slot: "teste", title: `Bateria de teste · semana ${week}`,
     sub: "os quatro erros do torneio, medidos", total: totalDe(blocos), robot: true,
-    robotCfg: { title: "Bateria de teste", pos: "Cada item tem a sua regulagem — está no bloco.", dials: r(2, 0, 3, 7) },
+    robotCfg: { title: "Bateria de teste", pos: "Cada item tem a sua regulagem — está no bloco.", dials: r(2, 0, 3, 6) },
     counter: "itens acima da linha de corte", blocks: blocos };
 }
 
