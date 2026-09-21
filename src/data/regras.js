@@ -643,16 +643,35 @@ export const NIVEIS = {
   3: { nome: "Vira outro jogo", cor: "#D14A32" },
 };
 
-/* ---------- Formatos ---------- */
+/* ---------- Formatos ----------
+   A diferença entre os dois primeiros é QUANDO a regra troca, e isso muda
+   quem chega a jogar com ela:
+
+     · regra por rodada  — rápido, mas quem apita aquela rodada não joga
+       aquela regra nenhuma vez;
+     · regra por rodízio — cada regra dura um todos-contra-todos inteiro,
+       então ninguém fica de fora de nenhuma regra.                        */
 export const FORMATOS = [
+  {
+    id: "porregra",
+    nome: "Uma regra por vez",
+    resumo: "Cada regra vira um rodízio completo: todo mundo enfrenta todo mundo com aquela regra antes de trocar.",
+    detalhe: [
+      "Com 5 pessoas, cada regra são 10 partidas e cada um joga 4 vezes com ela.",
+      "**Ninguém fica de fora de nenhuma regra** — é a diferença para o formato de baixo.",
+      "Por isso, escolha poucas regras: duas já dão 20 partidas.",
+      "A cada rodada, quem está de folga **apita**.",
+    ],
+    minJog: 3,
+  },
   {
     id: "todos",
     nome: "Todos contra todos",
-    resumo: "Cada um joga contra cada um, uma vez. Com 5 pessoas são 10 partidas e a tela monta a tabela.",
+    resumo: "Um rodízio só, com a regra trocando a cada rodada. Mais rápido, mas quem apita a rodada não joga aquela regra.",
     detalhe: [
-      "A cada rodada, quem está de folga **apita** — e é por isso que não precisa de raquete para todo mundo.",
-      "Cada rodada tem a sua regra. Ela troca sozinha quando a rodada vira.",
-      "Vitória vale 2. Quem cumpriu a regra a partida inteira ganha +1, mesmo perdendo.",
+      "Com 5 pessoas são 10 partidas no total, em 5 rodadas.",
+      "A regra troca sozinha quando a rodada vira.",
+      "A cada rodada, quem está de folga **apita** — e não joga a regra daquela rodada.",
     ],
     minJog: 3,
   },
@@ -698,15 +717,42 @@ export function tabelaTodosContraTodos(jogadores) {
   return rodadas;
 }
 
-export const totalPartidas = (rodadas) => rodadas.reduce((a, r) => a + r.jogos.length, 0);
+/* Um BLOCO é um pedaço do campeonato que roda sob UMA regra. É o que
+   unifica os dois formatos de tabela: no "todos" cada bloco tem uma rodada
+   só (a regra troca a cada rodada); no "porregra" cada bloco tem o rodízio
+   inteiro (a regra dura até todo mundo ter jogado com ela). A tela desenha
+   os dois do mesmo jeito. */
+export function montarBlocos(formato, jogadores, escolhidas) {
+  const rodadas = tabelaTodosContraTodos(jogadores);
+  if (formato === "porregra") {
+    const regras = escolhidas.length ? escolhidas : [null];
+    return regras.map((regraId) => ({ regraId, rodadas }));
+  }
+  return rodadas.map((rd, i) => ({ regraId: regraDaVez(escolhidas, i), rodadas: [rd] }));
+}
+
+export const totalPartidas = (blocos) =>
+  blocos.reduce((a, b) => a + b.rodadas.reduce((x, r) => x + r.jogos.length, 0), 0);
+
+export const chaveDaPartida = (bi, ri, pi) => `b${bi}-r${ri}-p${pi}`;
 
 /* Classificação a partir dos resultados já lançados.
-   `resultados` é { "chaveDaPartida": { vencedor, bonus: [nomes] } } */
+   `resultados` é { chaveDaPartida: { vencedor, perdedor, bonus[], naRegra{} } }.
+
+   `pr` (pontos na regra) não entra em `pts`: ele já se paga dentro da
+   partida, porque cada ponto na regra vale 2 e portanto ajuda a vencer.
+   Somá-lo de novo na classificação cobraria a mesma coisa duas vezes. Ele
+   fica na tabela como medida de execução — quem mais fez o que a regra
+   pedia, tendo ganhado ou não. */
 export function classificacao(jogadores, resultados) {
   const base = {};
-  jogadores.forEach((j) => { base[j] = { nome: j, pts: 0, v: 0, d: 0, regra: 0 }; });
+  jogadores.forEach((j) => { base[j] = { nome: j, pts: 0, v: 0, d: 0, regra: 0, pr: 0 }; });
   Object.values(resultados || {}).forEach((res) => {
-    if (!res || !res.vencedor) return;
+    if (!res) return;
+    Object.entries(res.naRegra || {}).forEach(([nome, n]) => {
+      if (base[nome]) base[nome].pr += Number(n) || 0;
+    });
+    if (!res.vencedor) return;
     const v = base[res.vencedor];
     if (v) { v.pts += 2; v.v += 1; }
     if (res.perdedor && base[res.perdedor]) base[res.perdedor].d += 1;
@@ -715,7 +761,7 @@ export function classificacao(jogadores, resultados) {
     });
   });
   return Object.values(base).sort((a, b) =>
-    b.pts - a.pts || b.v - a.v || b.regra - a.regra || a.nome.localeCompare(b.nome));
+    b.pts - a.pts || b.v - a.v || b.pr - a.pr || b.regra - a.regra || a.nome.localeCompare(b.nome));
 }
 
 /* REI DA MESA — fila com limite de vitórias seguidas.
