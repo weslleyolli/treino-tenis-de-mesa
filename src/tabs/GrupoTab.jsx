@@ -1,44 +1,38 @@
 import React, { useState, useEffect } from "react";
 import {
-  Users, Plus, X, Play, Clock, RotateCcw, Trophy, Info, Target, ChevronRight,
-  AlertTriangle, Bot, Check, Minus, Layers, StickyNote,
+  Users, Plus, X, Trophy, Info, Target, ChevronRight, AlertTriangle,
+  Check, Gauge, Layers, Flame, RotateCcw, Award,
 } from "lucide-react";
 import { bold, Hero, Collapsible, SecTitle } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import {
-  BLOCOS, REGRAS_DE_CASA, DRILLS, GUIA_ALIMENTADOR, FOCOS_MULTIBOLA,
-  REGRAS_JOGO, PLANO_B, TOTAL_MIN,
-  escalacaoDiagonais, turnoMultibola, totalTurnosMultibola, voltaDoTurno,
-  proximoJogo, rankingMultibola,
-} from "../data/grupo.js";
+  CATEGORIAS, REGRAS, NIVEIS, FORMATOS, regrasPorCategoria, regraPorId,
+  tabelaTodosContraTodos, totalPartidas, classificacao, regraDaVez, proximoJogo,
+} from "../data/regras.js";
 
-/* ============ ABA GRUPO ============
-   Uma tela para treinar com o pessoal numa mesa só. O conteúdo está em
-   data/grupo.js; aqui mora só o estado do dia: quem veio, em que volta o
-   rodízio está, quantas bolas cada um acertou e como está a fila do jogo.
+/* ============ ABA GRUPO: CAMPEONATO COM REGRA ============
+   Campeonato normal não levanta o nível de ninguém. O que muda o jogo é uma
+   regra que proíbe a saída fácil — e o grupo monta o campeonato escolhendo
+   quais regras quer treinar.
 
-   Tudo é gravado a cada toque. O celular fica na ponta da mesa o treino
-   inteiro e não pode perder nada se a tela apagar ou alguém recarregar. */
+   Numa mesa só jogam sempre dois, e quem está fora apita. Duas raquetes
+   bastam para o dia inteiro, e é isso que faz este formato rodar quando o da
+   sessão com diagonais e multibola não rodava.
 
-const CHAVE = "grupo:v1";
-const VAZIO = { jogadores: [], voltas: {}, turno: 0, acertos: {}, regra: "A", jogo: null };
+   O conteúdo (as 23 regras, os formatos, a tabela) está em data/regras.js.
+   Aqui mora só o estado do dia, gravado a cada toque: o celular fica na ponta
+   da mesa o campeonato inteiro e não pode perder nada se a tela apagar. */
 
-/* ---------- peças pequenas ---------- */
-function Stepper({ valor, onMuda, max }) {
-  return (
-    <div className="gr-cnt">
-      <button onClick={() => onMuda(Math.max(0, valor - 1))} aria-label="Menos um acerto"><Minus size={15} /></button>
-      <span className="gr-cnt-v">{valor}<em>/{max}</em></span>
-      <button onClick={() => onMuda(Math.min(max, valor + 1))} aria-label="Mais um acerto"><Plus size={15} /></button>
-    </div>);
-}
+const CHAVE = "grupo:v2";
+const VAZIO = { jogadores: [], escolhidas: [], formato: "todos", camp: null };
+const TROCA_REI = 3;   // partidas até a regra girar no rei da mesa
 
-function Elenco({ jogadores, onAdd, onRemove }) {
+/* ---------- elenco ---------- */
+function Elenco({ jogadores, onAdd, onRemove, travado }) {
   const [nome, setNome] = useState("");
   const add = () => {
     const n = nome.trim();
-    if (!n) return;
-    if (jogadores.some(j => j.toLowerCase() === n.toLowerCase())) { setNome(""); return; }
+    if (!n || jogadores.some(j => j.toLowerCase() === n.toLowerCase())) { setNome(""); return; }
     onAdd(n); setNome("");
   };
   return (
@@ -46,277 +40,318 @@ function Elenco({ jogadores, onAdd, onRemove }) {
       <div className="section-eyebrow"><Users size={13} /> Quem veio hoje</div>
       <div className="gr-nomes">
         {jogadores.map((j, i) => (
-          <span className="gr-nome" key={j}>
-            <b>{i + 1}</b>{j}
-            <button onClick={() => onRemove(j)} aria-label={`Tirar ${j}`}><X size={13} /></button>
+          <span className="gr-nome" key={j}><b>{i + 1}</b>{j}
+            {!travado && <button onClick={() => onRemove(j)} aria-label={`Tirar ${j}`}><X size={13} /></button>}
           </span>))}
-        {!jogadores.length && <span className="gr-vazio">Escreva os nomes para a tela calcular os rodízios.</span>}
+        {!jogadores.length && <span className="gr-vazio">Escreva os nomes para a tela montar a tabela.</span>}
       </div>
-      <div className="gr-add">
-        <input value={nome} placeholder="Nome" maxLength={18}
-          onChange={e => setNome(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") add(); }} />
-        <button className="mini-btn" onClick={add}><Plus size={14} /> Entrar</button>
-      </div>
+      {travado
+        ? <p className="gr-nota">Campeonato em andamento — a lista só muda encerrando o campeonato.</p>
+        : (<div className="gr-add">
+            <input value={nome} placeholder="Nome" maxLength={18}
+              onChange={e => setNome(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") add(); }} />
+            <button className="mini-btn" onClick={add}><Plus size={14} /> Entrar</button>
+          </div>)}
     </div>);
 }
 
-/* ---------- painel: diagonais ---------- */
-function PainelDiagonais({ bloco, jogadores, volta, setVolta, onTimer }) {
-  const e = escalacaoDiagonais(jogadores, volta);
-  if (!e) return <div className="gr-falta">Precisa de pelo menos 2 nomes.</div>;
-  const min = Math.round(bloco.trocaSeg / 60);
+/* ---------- uma regra do acervo ---------- */
+function CartaoRegra({ r, escolhida, onToggle }) {
+  const niv = NIVEIS[r.nivel];
   return (
-    <div className="gr-painel">
-      <div className="gr-painel-top">
-        <span className="gr-volta">Volta {volta + 1}</span>
-        <button className="mini-btn ghost" onClick={() => onTimer(`${bloco.nome} · volta ${volta + 1}`, bloco.trocaSeg)}>
-          <Clock size={12} /> {min} min</button>
-      </div>
-      <div className="gr-mesa">
-        {e.diagonais.map(d => (
-          <div className="gr-diag" key={d.nome}>
-            <span className="gr-diag-n">{d.nome}</span>
-            <div className="gr-par"><span>{d.par[0]}</span><em>×</em><span>{d.par[1]}</span></div>
-          </div>))}
-      </div>
-      {e.fora.length > 0 && (
-        <div className="gr-fora"><Layers size={13} />
-          <span><strong>Fora da mesa:</strong> {e.fora.join(", ")} — conta a série de quem está jogando.</span></div>)}
-      <button className="gr-prox" onClick={() => setVolta(volta + 1)}>
-        Girar o rodízio <ChevronRight size={16} /></button>
+    <div className={"rg" + (escolhida ? " on" : "")}>
+      <button className="rg-head" onClick={() => onToggle(r.id)}>
+        <span className={"rg-check" + (escolhida ? " on" : "")}>{escolhida && <Check size={13} />}</span>
+        <span className="rg-nome">{r.nome}</span>
+        <span className="rg-niv" style={{ background: niv.cor }}>{r.nivel}</span>
+      </button>
+      <p className="rg-como">{r.como}</p>
+      <p className="rg-juiz"><Gauge size={12} /><span><strong>O juiz marca assim: </strong>{r.juiz}</span></p>
+      {r.placar && <p className="rg-placar"><Trophy size={12} /> {r.placar}</p>}
+      {r.aviso && <p className="rg-aviso"><Info size={12} /> {r.aviso}</p>}
     </div>);
 }
 
-/* ---------- painel: multibola ---------- */
-function PainelMultibola({ jogadores, turno, setTurno, acertos, setAcerto, onTimer }) {
-  const n = jogadores.length;
-  const t = turnoMultibola(jogadores, turno);
-  if (!t) return <div className="gr-falta">Precisa de pelo menos 2 nomes.</div>;
-  const total = totalTurnosMultibola(n, FOCOS_MULTIBOLA.length);
-  const iVolta = Math.min(voltaDoTurno(n, turno), FOCOS_MULTIBOLA.length - 1);
-  const foco = FOCOS_MULTIBOLA[iVolta];
-  const chave = `${foco.volta}:${t.treina}`;
-  const acabou = turno >= total;
-  const rank = rankingMultibola(jogadores, acertos);
+/* ---------- a regra que está valendo agora ---------- */
+function RegraDaVez({ id, titulo }) {
+  const r = id && regraPorId(id);
+  if (!r) return (
+    <div className="gr-regra-vez sem">
+      <span className="rv-eyebrow">{titulo}</span>
+      <strong>Sem regra — jogo normal</strong>
+      <p>Escolha regras no acervo para o campeonato treinar alguma coisa.</p>
+    </div>);
+  const cat = CATEGORIAS.find(c => c.id === r.cat);
   return (
-    <div className="gr-painel">
-      <div className="gr-painel-top">
-        <span className="gr-volta">Turno {Math.min(turno + 1, total)} de {total}</span>
-        <button className="mini-btn ghost" onClick={() => onTimer(`Multibola · ${t.treina}`, 120)}>
-          <Clock size={12} /> 2 min</button>
-      </div>
-
-      <div className="gr-foco">
-        <span className="gr-foco-n">Volta {foco.volta} · {foco.titulo}</span>
-        <strong>{foco.alvo}</strong>
-        <p>{foco.como}</p>
-        <p className="gr-foco-conta"><Info size={12} /> {foco.conta}</p>
-      </div>
-
-      {!acabou && (<>
-        <div className="gr-papeis">
-          <div className="gr-papel treina"><span>Treina</span><strong>{t.treina}</strong></div>
-          <div className="gr-papel alimenta"><span>Alimenta</span><strong>{t.alimenta}</strong></div>
-          <div className="gr-papel cata"><span>Catam</span><strong>{t.catam.join(", ") || "—"}</strong></div>
-        </div>
-        <div className="gr-conta">
-          <span>Acertos de <strong>{t.treina}</strong></span>
-          <Stepper valor={Number(acertos[chave]) || 0} max={30} onMuda={v => setAcerto(chave, v)} />
-        </div>
-        <button className="gr-prox" onClick={() => setTurno(turno + 1)}>
-          Próximo turno <ChevronRight size={16} /></button>
-      </>)}
-      {acabou && <div className="gr-fim"><Check size={15} /> Multibola encerrada. O ranking abaixo é o do fechamento.</div>}
-
-      {rank.some(r => r.total > 0) && (
-        <div className="gr-rank">
-          <div className="section-eyebrow"><Trophy size={13} /> Ranking da multibola</div>
-          {rank.map((r, i) => (
-            <div className={"gr-rk" + (i === 0 ? " top" : "")} key={r.nome}>
-              <span className="gr-rk-p">{i + 1}</span>
-              <span className="gr-rk-n">{r.nome}</span>
-              <span className="gr-rk-v">{r.voltas.join(" + ")}</span>
-              <strong>{r.total}</strong>
-            </div>))}
-        </div>)}
+    <div className="gr-regra-vez" style={{ "--c": cat ? cat.cor : "var(--ball)" }}>
+      <span className="rv-eyebrow">{titulo} · treina {cat ? cat.nome.toLowerCase() : "—"}</span>
+      <strong>{r.nome}</strong>
+      <p>{r.como}</p>
+      <p className="rv-juiz"><Gauge size={12} /><span><strong>Juiz: </strong>{r.juiz}</span></p>
+      {r.placar && <p className="rv-placar"><Trophy size={12} /> {r.placar}</p>}
     </div>);
 }
 
-/* ---------- painel: jogo com regra ---------- */
-function PainelJogo({ jogadores, jogo, setJogo, regra, setRegra }) {
-  if (jogadores.length < 2) return <div className="gr-falta">Precisa de pelo menos 2 nomes.</div>;
-  /* Se alguém entrou ou saiu depois da fila montada, a fila não vale mais:
-     é melhor remontar do que jogar com um nome que foi embora. */
-  const elencoOk = jogo && [...jogo.mesa, ...jogo.fila].length === jogadores.length
-    && [...jogo.mesa, ...jogo.fila].every(j => jogadores.includes(j));
-
-  if (!elencoOk) return (
-    <div className="gr-painel">
-      <button className="gr-prox" onClick={() => setJogo({
-        mesa: jogadores.slice(0, 2), fila: jogadores.slice(2),
-        seguidas: 0, campeao: null, pontos: {}, pendente: null,
-      })}>{jogo ? "Remontar a fila" : "Montar a fila"} <ChevronRight size={16} /></button>
-      {jogo && <p className="gr-nota">A lista de jogadores mudou — a fila precisa ser refeita. O placar recomeça.</p>}
-    </div>);
-
-  const venceu = (v) => {
-    const r = proximoJogo(jogo, v);
-    const pontos = { ...jogo.pontos, [v]: (jogo.pontos[v] || 0) + 2 };
-    setJogo({ ...jogo, ...r, pontos, pendente: r.perdedor || null });
-  };
-  const bonus = (sim) => {
-    const p = jogo.pendente;
-    const pontos = sim ? { ...jogo.pontos, [p]: (jogo.pontos[p] || 0) + 1 } : jogo.pontos;
-    setJogo({ ...jogo, pontos, pendente: null });
-  };
-  const placar = jogadores.map(j => ({ nome: j, pts: jogo.pontos[j] || 0 })).sort((a, b) => b.pts - a.pts);
-
+/* ---------- lançar o resultado de uma partida ---------- */
+function Partida({ par, res, onVencedor, onBonus, atual }) {
+  const [a, b] = par;
   return (
-    <div className="gr-painel">
-      <div className="gr-regras-sel">
-        {REGRAS_JOGO.opcoes.map(o => (
-          <button key={o.id} className={"gr-reg" + (regra === o.id ? " on" : "")} onClick={() => setRegra(o.id)}>
-            <strong>{o.nome}</strong><span>{o.texto}</span></button>))}
-      </div>
-
-      <div className="gr-duelo">
-        {jogo.mesa.map(j => (
-          <button className="gr-duelista" key={j} disabled={!!jogo.pendente} onClick={() => venceu(j)}>
-            <span className="gr-duel-n">{j}</span>
-            {jogo.campeao === j && <em className="gr-seq">{jogo.seguidas} seguida{jogo.seguidas > 1 ? "s" : ""}</em>}
-            <span className="gr-duel-b"><Trophy size={12} /> Ganhou</span>
+    <div className={"pt" + (res ? " feita" : "") + (atual ? " atual" : "")}>
+      <div className="pt-duelo">
+        {par.map(j => (
+          <button key={j} className={"pt-j" + (res && res.vencedor === j ? " venceu" : "")}
+            onClick={() => onVencedor(j)}>
+            {res && res.vencedor === j && <Trophy size={12} />}{j}
           </button>))}
       </div>
-
-      {jogo.pendente && (
-        <div className="gr-bonus">
-          <span><strong>{jogo.pendente}</strong> cumpriu a regra a partida inteira?</span>
-          <div>
-            <button className="mini-btn" onClick={() => bonus(true)}><Check size={13} /> Sim, +1</button>
-            <button className="mini-btn ghost" onClick={() => bonus(false)}>Não</button>
+      {res && res.vencedor && (
+        <div className="pt-bonus">
+          <span>Cumpriu a regra (+1):</span>
+          <div>{par.map(j => (
+            <button key={j} className={"pt-b" + ((res.bonus || []).includes(j) ? " on" : "")}
+              onClick={() => onBonus(j)}>{(res.bonus || []).includes(j) && <Check size={11} />}{j}</button>))}
           </div>
         </div>)}
-
-      {jogo.fila.length > 0 && (
-        <div className="gr-fila"><span className="gr-fila-l">Fila</span>
-          {jogo.fila.map((j, i) => <span className="gr-fila-j" key={j}><b>{i + 1}</b>{j}</span>)}</div>)}
-
-      <div className="gr-rank">
-        <div className="section-eyebrow"><Trophy size={13} /> Placar do bloco</div>
-        {placar.map((p, i) => (
-          <div className={"gr-rk" + (i === 0 && p.pts > 0 ? " top" : "")} key={p.nome}>
-            <span className="gr-rk-p">{i + 1}</span><span className="gr-rk-n">{p.nome}</span>
-            <strong>{p.pts}</strong></div>))}
-      </div>
-      <p className="gr-nota">{REGRAS_JOGO.pontos} {REGRAS_JOGO.bonus}</p>
     </div>);
+}
+
+/* ---------- classificação ---------- */
+function Tabela({ jogadores, resultados, titulo }) {
+  const cl = classificacao(jogadores, resultados);
+  if (!cl.length) return null;
+  return (
+    <div className="gr-rank">
+      <div className="section-eyebrow"><Trophy size={13} /> {titulo}</div>
+      <div className="cl-head"><span /><span className="cl-n">Jogador</span>
+        <span>V</span><span>D</span><span>R</span><span>Pts</span></div>
+      {cl.map((r, i) => (
+        <div className={"cl" + (i === 0 && r.pts > 0 ? " top" : "")} key={r.nome}>
+          <span className="cl-p">{i + 1}</span>
+          <span className="cl-n">{r.nome}</span>
+          <span>{r.v}</span><span>{r.d}</span><span>{r.regra}</span>
+          <strong>{r.pts}</strong>
+        </div>))}
+      <p className="gr-nota">V vitórias · D derrotas · R partidas em que cumpriu a regra · Pts = 2 por vitória + 1 por regra cumprida.</p>
+    </div>);
+}
+
+/* ---------- campeonato: todos contra todos ---------- */
+function TodosContraTodos({ camp, setCamp }) {
+  const { jogadores, rodadas, escolhidas, resultados } = camp;
+  const feita = (k) => resultados[k] && resultados[k].vencedor;
+  /* A rodada "de agora" é a primeira que ainda tem partida em aberto: é o que
+     o grupo quer ver ao pegar o celular, sem ter que procurar. */
+  let iAtual = rodadas.findIndex((r, ri) => r.jogos.some((p, pi) => !feita(`r${ri}-${pi}`)));
+  if (iAtual < 0) iAtual = rodadas.length - 1;
+  const acabou = rodadas.every((r, ri) => r.jogos.every((p, pi) => feita(`r${ri}-${pi}`)));
+
+  const lancar = (k, par, vencedor) => {
+    const atual = resultados[k];
+    const perdedor = par.find(j => j !== vencedor);
+    /* Tocar de novo no mesmo vencedor desfaz o lançamento — é o jeito de
+       corrigir o toque errado sem um botão de apagar em cada linha. */
+    const novo = atual && atual.vencedor === vencedor
+      ? undefined : { vencedor, perdedor, bonus: (atual && atual.bonus) || [] };
+    const r = { ...resultados };
+    if (novo) r[k] = novo; else delete r[k];
+    setCamp({ ...camp, resultados: r });
+  };
+  const bonus = (k, nome) => {
+    const atual = resultados[k]; if (!atual) return;
+    const lista = atual.bonus || [];
+    const nova = lista.includes(nome) ? lista.filter(x => x !== nome) : [...lista, nome];
+    setCamp({ ...camp, resultados: { ...resultados, [k]: { ...atual, bonus: nova } } });
+  };
+
+  const total = totalPartidas(rodadas);
+  const prontas = Object.values(resultados).filter(r => r && r.vencedor).length;
+
+  return (<>
+    <div className="gr-progresso">
+      <span>{prontas} de {total} partidas</span>
+      <div className="gr-track"><div className="gr-fill" style={{ width: (total ? (prontas / total) * 100 : 0) + "%" }} /></div>
+    </div>
+    {acabou && <div className="gr-fim"><Award size={15} /> Campeonato completo. A tabela abaixo é a final.</div>}
+
+    {rodadas.map((rd, ri) => {
+      const regraId = regraDaVez(escolhidas, ri);
+      const aberta = ri === iAtual;
+      return (
+        <div className={"rd" + (aberta ? " aberta" : "")} key={ri}>
+          <div className="rd-head">
+            <span className="rd-n">Rodada {ri + 1}</span>
+            {rd.juiz && <span className="rd-juiz"><Gauge size={11} /> apita: {rd.juiz}</span>}
+          </div>
+          {aberta && <RegraDaVez id={regraId} titulo={`Regra da rodada ${ri + 1}`} />}
+          {!aberta && regraId && <div className="rd-regra">{regraPorId(regraId)?.nome || ""}</div>}
+          {rd.jogos.map((par, pi) => {
+            const k = `r${ri}-${pi}`;
+            return <Partida key={k} par={par} res={resultados[k]} atual={aberta}
+              onVencedor={(v) => lancar(k, par, v)} onBonus={(n) => bonus(k, n)} />;
+          })}
+        </div>);
+    })}
+
+    <Tabela jogadores={jogadores} resultados={resultados} titulo={acabou ? "Classificação final" : "Classificação"} />
+  </>);
+}
+
+/* ---------- campeonato: rei da mesa ---------- */
+function ReiDaMesa({ camp, setCamp }) {
+  const { jogadores, escolhidas, resultados, rei } = camp;
+  const nPartidas = Object.keys(resultados).length;
+  const regraId = regraDaVez(escolhidas, Math.floor(nPartidas / TROCA_REI));
+  const faltam = TROCA_REI - (nPartidas % TROCA_REI);
+  const pendente = camp.pendente;
+
+  const venceu = (v) => {
+    const r = proximoJogo(rei, v);
+    const k = `p${nPartidas}`;
+    setCamp({
+      ...camp, rei: { mesa: r.mesa, fila: r.fila, seguidas: r.seguidas, campeao: r.campeao },
+      resultados: { ...resultados, [k]: { vencedor: v, perdedor: r.perdedor, bonus: [] } },
+      pendente: { chave: k, par: [v, r.perdedor] },
+    });
+  };
+  const bonus = (nome) => {
+    const k = pendente.chave, atual = resultados[k]; if (!atual) return;
+    const lista = atual.bonus || [];
+    const nova = lista.includes(nome) ? lista.filter(x => x !== nome) : [...lista, nome];
+    setCamp({ ...camp, resultados: { ...resultados, [k]: { ...atual, bonus: nova } } });
+  };
+
+  return (<>
+    <RegraDaVez id={regraId} titulo={`Regra valendo · troca em ${faltam} partida${faltam > 1 ? "s" : ""}`} />
+
+    <div className="gr-duelo">
+      {rei.mesa.map(j => (
+        <button className="gr-duelista" key={j} disabled={!!pendente} onClick={() => venceu(j)}>
+          <span className="gr-duel-n">{j}</span>
+          {rei.campeao === j && <em className="gr-seq">{rei.seguidas} seguida{rei.seguidas > 1 ? "s" : ""}</em>}
+          <span className="gr-duel-b"><Trophy size={12} /> Ganhou</span>
+        </button>))}
+    </div>
+
+    {pendente && (
+      <div className="gr-bonus">
+        <span>Quem cumpriu a regra a partida inteira? <em>(+1 cada, mesmo perdendo)</em></span>
+        <div className="pt-bonus-b">
+          {pendente.par.filter(Boolean).map(j => (
+            <button key={j} className={"pt-b" + ((resultados[pendente.chave]?.bonus || []).includes(j) ? " on" : "")}
+              onClick={() => bonus(j)}>{(resultados[pendente.chave]?.bonus || []).includes(j) && <Check size={11} />}{j}</button>))}
+        </div>
+        <button className="gr-prox" onClick={() => setCamp({ ...camp, pendente: null })}>
+          Próxima partida <ChevronRight size={16} /></button>
+      </div>)}
+
+    {rei.fila.length > 0 && (
+      <div className="gr-fila"><span className="gr-fila-l">Fila</span>
+        {rei.fila.map((j, i) => (
+          <span className={"gr-fila-j" + (i === 0 ? " apita" : "")} key={j}>
+            <b>{i + 1}</b>{j}{i === 0 && <em>apita</em>}</span>))}
+      </div>)}
+
+    <Tabela jogadores={jogadores} resultados={resultados} titulo={`Classificação · ${nPartidas} partida${nPartidas === 1 ? "" : "s"}`} />
+  </>);
 }
 
 /* ---------- a aba ---------- */
-function GrupoTab({ onTimer }) {
+function GrupoTab() {
   const [s, setS] = useState(null);
-
-  useEffect(() => { (async () => {
-    setS({ ...VAZIO, ...((await store.get(CHAVE)) || {}) });
-  })(); }, []);
-  if (!s) return <div className="loading">Carregando o treino do grupo…</div>;
+  useEffect(() => { (async () => { setS({ ...VAZIO, ...((await store.get(CHAVE)) || {}) }); })(); }, []);
+  if (!s) return <div className="loading">Carregando o campeonato…</div>;
 
   const grava = (novo) => { const nx = { ...s, ...novo }; setS(nx); store.set(CHAVE, nx); };
-  const { jogadores } = s;
-  /* Sem gente não há rodízio para calcular. O aviso mora só no elenco: um
-     "precisa de 2 nomes" repetido em cada bloco só empurrava o conteúdo
-     para baixo sem dizer nada de novo. */
-  const pronto = jogadores.length >= 2;
+  const { jogadores, escolhidas, formato, camp } = s;
+  const fmt = FORMATOS.find(f => f.id === formato) || FORMATOS[0];
+  const podeComecar = jogadores.length >= fmt.minJog;
 
-  const zerar = () => {
-    if (!confirm("Zerar o dia?\n\nOs nomes continuam; o rodízio, os acertos da multibola e o placar do jogo voltam ao zero.")) return;
-    grava({ voltas: {}, turno: 0, acertos: {}, jogo: null });
+  const toggleRegra = (id) => grava({
+    escolhidas: escolhidas.includes(id) ? escolhidas.filter(x => x !== id) : [...escolhidas, id] });
+
+  const comecar = () => {
+    const base = { formato, jogadores: [...jogadores], escolhidas: [...escolhidas], resultados: {}, pendente: null };
+    grava({ camp: formato === "todos"
+      ? { ...base, rodadas: tabelaTodosContraTodos(jogadores) }
+      : { ...base, rei: { mesa: jogadores.slice(0, 2), fila: jogadores.slice(2), seguidas: 0, campeao: null } } });
+  };
+  const encerrar = () => {
+    if (!confirm("Encerrar o campeonato?\n\nOs resultados são apagados e a lista de jogadores volta a ser editável.")) return;
+    grava({ camp: null });
   };
 
-  const rank = rankingMultibola(jogadores, s.acertos);
+  /* ---- campeonato em andamento: a tela é só ele ---- */
+  if (camp) {
+    const f = FORMATOS.find(x => x.id === camp.formato) || FORMATOS[0];
+    return (
+      <>
+        <Hero tone="purple" icon={<Trophy size={13} />} eyebrow={`Campeonato · ${f.nome}`}
+          title="Valendo" sub={`${camp.jogadores.length} jogadores · ${camp.escolhidas.length} regra${camp.escolhidas.length === 1 ? "" : "s"} no rodízio`} />
+        <Elenco jogadores={camp.jogadores} travado />
+        {camp.formato === "todos"
+          ? <TodosContraTodos camp={camp} setCamp={c => grava({ camp: c })} />
+          : <ReiDaMesa camp={camp} setCamp={c => grava({ camp: c })} />}
+        <button className="gr-zerar" onClick={encerrar}><RotateCcw size={14} /> Encerrar o campeonato</button>
+      </>);
+  }
 
+  /* ---- montagem ---- */
   return (
     <>
-      <Hero tone="green" icon={<Users size={13} />} eyebrow="Treino em grupo"
-        title="Uma mesa, o grupo inteiro treinando"
-        sub={`${TOTAL_MIN} min de bola em 5 blocos. A tela calcula quem entra, quem sai e quem alimenta — ninguém fica parado olhando.`} />
+      <Hero tone="purple" icon={<Trophy size={13} />} eyebrow="Campeonato com regra"
+        title="Campeonato que treina alguma coisa"
+        sub="Campeonato normal não levanta o nível de ninguém. Escolha as regras, monte o campeonato, e a tela cuida da tabela, do juiz e do placar." />
+
+      <div className="gr-raquete"><Info size={15} />
+        <span><strong>Duas raquetes bastam. </strong>Numa mesa só jogam sempre dois — quem está fora apita, e juiz não precisa de raquete.</span></div>
 
       <Elenco jogadores={jogadores}
         onAdd={n => grava({ jogadores: [...jogadores, n] })}
         onRemove={n => grava({ jogadores: jogadores.filter(j => j !== n) })} />
 
-      <Collapsible title="As três regras de casa" icon={<AlertTriangle size={15} />}
-        sub="leia em voz alta antes de começar">
-        {REGRAS_DE_CASA.map(r => (
-          <div className="gr-regra" key={r.titulo}>
-            <strong>{r.titulo}</strong><p>{r.texto}</p></div>))}
-      </Collapsible>
+      <SecTitle icon={<Layers size={13} />} n="1">O acervo de regras</SecTitle>
+      <p className="gr-intro">
+        {REGRAS.length} regras. Cada uma proíbe uma saída fácil — aquela que você usa quando a bola
+        fica difícil e que é justamente a que precisa sumir. O número na ponta é o nível:
+        <strong> 1</strong> dá para jogar hoje, <strong>2</strong> exige atenção,
+        <strong> 3</strong> vira outro jogo por uns minutos.
+      </p>
 
-      <SecTitle icon={<Clock size={13} />} n="1">A sessão, minuto a minuto</SecTitle>
+      {CATEGORIAS.map(c => {
+        const lista = regrasPorCategoria(c.id);
+        const n = lista.filter(r => escolhidas.includes(r.id)).length;
+        return (
+          <Collapsible key={c.id} title={c.nome} icon={<Target size={15} />}
+            sub={n ? `${n} escolhida${n === 1 ? "" : "s"} de ${lista.length}` : `${lista.length} regras`}>
+            <p className="gr-alvo">Treina: {c.alvo}.</p>
+            {lista.map(r => (
+              <CartaoRegra key={r.id} r={r} escolhida={escolhidas.includes(r.id)} onToggle={toggleRegra} />))}
+          </Collapsible>);
+      })}
 
-      {BLOCOS.map((b, i) => (
-        <div className="gr-bloco" key={b.id} style={{ "--c": b.cor }}>
-          <div className="gr-bloco-head">
-            <span className="gr-bloco-t">{b.de}–{b.ate}<em>min</em></span>
-            <div className="gr-bloco-mid">
-              <div className="gr-bloco-n">{b.nome}</div>
-              <div className="gr-bloco-f">{b.formacao}</div>
-            </div>
-            <button className="mini-btn" style={{ background: b.cor }}
-              onClick={() => onTimer(b.nome, b.min * 60)}><Play size={12} /> {b.min}min</button>
-          </div>
-
-          <p className="gr-bloco-r">{b.resumo}</p>
-          <ol className="gr-passos">{b.comoRodar.map((x, k) => <li key={k}>{bold(x)}</li>)}</ol>
-
-          {b.id === "regularidade" && (
-            <div className="gr-drills">
-              {DRILLS.map((d, k) => (
-                <div className="gr-drill" key={d.nome}>
-                  <div className="gr-drill-top"><span className="gr-drill-n">{k + 1}. {d.nome}</span>
-                    <span className="gr-drill-m"><Target size={11} /> {d.meta}</span></div>
-                  <p>{d.como}</p>
-                  <p className="gr-drill-o"><Info size={12} /> {d.olho}</p>
-                </div>))}
-            </div>)}
-
-          {pronto && b.painel === "diagonais" && (
-            <PainelDiagonais bloco={b} jogadores={jogadores} onTimer={onTimer}
-              volta={s.voltas[b.id] || 0}
-              setVolta={v => grava({ voltas: { ...s.voltas, [b.id]: v } })} />)}
-
-          {b.painel === "multibola" && (<>
-            <Collapsible title="Como alimentar sem estragar o treino" icon={<Bot size={15} />} sub="o trabalho é ser previsível">
-              <p className="gr-onde"><strong>Onde ficar: </strong>{GUIA_ALIMENTADOR.onde}</p>
-              <ul className="clean-list">{GUIA_ALIMENTADOR.passos.map((x, k) => <li key={k}>{bold(x)}</li>)}</ul>
-            </Collapsible>
-            {pronto && <PainelMultibola jogadores={jogadores} onTimer={onTimer}
-              turno={s.turno} setTurno={t => grava({ turno: t })}
-              acertos={s.acertos} setAcerto={(k, v) => grava({ acertos: { ...s.acertos, [k]: v } })} />}
-          </>)}
-
-          {pronto && b.painel === "jogo" && (
-            <PainelJogo jogadores={jogadores} jogo={s.jogo} setJogo={j => grava({ jogo: j })}
-              regra={s.regra} setRegra={r => grava({ regra: r })} />)}
-
-          {b.id === "fechamento" && rank.some(r => r.total > 0) && (
-            <div className="gr-rank gr-rank-fim">
-              <div className="section-eyebrow"><Trophy size={13} /> Para ler em voz alta</div>
-              {rank.map((r, k) => (
-                <div className={"gr-rk" + (k === 0 ? " top" : "")} key={r.nome}>
-                  <span className="gr-rk-p">{k + 1}</span><span className="gr-rk-n">{r.nome}</span>
-                  <span className="gr-rk-v">{r.voltas.join(" + ")}</span><strong>{r.total}</strong></div>))}
-            </div>)}
-        </div>))}
-
-      <SecTitle icon={<AlertTriangle size={13} />} n="2">Quando o dia não sai como o planejado</SecTitle>
-      <div className="gr-planob">
-        {PLANO_B.map(p => (
-          <div className="gr-pb" key={p.se}><span className="gr-pb-se">{p.se}</span><p>{p.entao}</p></div>))}
+      <SecTitle icon={<Flame size={13} />} n="2">Montar o campeonato</SecTitle>
+      <div className="gr-formatos">
+        {FORMATOS.map(f => (
+          <button key={f.id} className={"gr-fmt" + (formato === f.id ? " on" : "")} onClick={() => grava({ formato: f.id })}>
+            <strong>{f.nome}</strong>
+            <span>{f.resumo}</span>
+            {formato === f.id && <ul className="clean-list">{f.detalhe.map((d, i) => <li key={i}>{bold(d)}</li>)}</ul>}
+          </button>))}
       </div>
 
-      <button className="gr-zerar" onClick={zerar}><RotateCcw size={14} /> Zerar o dia</button>
+      <div className="gr-pronto">
+        <div className="gr-pronto-l">
+          <span><strong>{jogadores.length}</strong> jogador{jogadores.length === 1 ? "" : "es"}</span>
+          <span><strong>{escolhidas.length}</strong> regra{escolhidas.length === 1 ? "" : "s"}</span>
+          {formato === "todos" && jogadores.length >= fmt.minJog &&
+            <span><strong>{totalPartidas(tabelaTodosContraTodos(jogadores))}</strong> partidas</span>}
+        </div>
+        <button className="gr-prox" disabled={!podeComecar} onClick={comecar}>
+          Começar o campeonato <ChevronRight size={16} /></button>
+        {!podeComecar && <p className="gr-nota">Precisa de pelo menos {fmt.minJog} jogadores para este formato.</p>}
+        {podeComecar && !escolhidas.length && <p className="gr-nota">Sem regra escolhida vira campeonato normal — dá para começar assim, mas aí não treina nada.</p>}
+      </div>
     </>);
 }
 
