@@ -29,8 +29,11 @@ function efeitoDaRegulagem(dials) {
   if (!Number.isFinite(t) || !Number.isFinite(b)) return null;
   const dif = t - b;
   if (dif === 0) return { tom: "zero", texto: "Rodas iguais: bola SEM EFEITO" };
-  if (dif > 0) return { tom: "top", texto: `Topspin ${dif > 3 ? "forte" : dif > 1 ? "médio" : "leve"} · diferença ${dif}` };
-  return { tom: "back", texto: `Backspin ${-dif > 3 ? "forte" : -dif > 1 ? "médio" : "leve"} · diferença ${-dif}` };
+  /* Na escala do V300 o ponto de partida do manual já é diferença 2 (Top 3 ·
+     Back 1, ou Top 1 · Back 3), então 2 é o normal e não o médio. */
+  const nome = (d) => (d > 3 ? "forte" : d > 2 ? "médio" : "leve");
+  if (dif > 0) return { tom: "top", texto: `Topspin ${nome(dif)} · diferença ${dif}` };
+  return { tom: "back", texto: `Backspin ${nome(-dif)} · diferença ${-dif}` };
 }
 
 function Dial({ label, value }) {
@@ -361,14 +364,29 @@ function ComoFazer({ bloco, cor, aberto, onFechar }) {
           <div className="cf-sec">
             <h4><Bot size={13} /> Regulagem do robô</h4>
             <MiniDials dials={bloco.dials} />
+            {/* Onde o robô fica é metade da regulagem, e não estava escrito em
+                lugar nenhum: o mesmo número com o robô adiantado manda a bola
+                para fora. Vale para qualquer bloco, por isso mora aqui. */}
+            <div className="cf-ajuste cf-onde">
+              <div className="cf-ajuste-t">Onde fica o robô</div>
+              <ul>
+                <li><strong>Padrão:</strong> em cima da mesa, encostado na <strong>borda de trás</strong>, na <strong>linha do meio</strong>. Gire o furo de saída para escolher o lado.</li>
+                <li><strong>Sem calço</strong> embaixo, a não ser que o bloco peça. A base fica reta na mesa.</li>
+                <li><strong>Bola caindo comprida?</strong> puxe o robô mais para trás, colado na borda. Adiantado na mesa, a bola tem menos mesa para cair.</li>
+                <li><strong>Quer bola curta</strong> (push, toque)? aí sim adiante o robô, perto da rede — é o único jeito, porque mirar curto ele não sabe.</li>
+              </ul>
+            </div>
+
             {/* A régua que o manual do V300 dá, e que vale para qualquer bloco:
                 é ela que resolve 90% do "a bola não está caindo certo". */}
             <div className="cf-ajuste">
               <div className="cf-ajuste-t">Se a bola não está caindo certo</div>
               <ul>
-                <li><strong>Na rede:</strong> suba o <strong>Topspin</strong> em 1 e teste. Se ainda ficar na rede, suba o Backspin.</li>
-                <li><strong>Fora da mesa:</strong> desça o <strong>Topspin</strong> em 1 e teste. Se ainda sair, desça o Backspin.</li>
-                <li><strong>Ainda assim não passa:</strong> use o <strong>tilt stand</strong> (9, 17 ou 26 mm). Bola na rede, sobe a altura; bola fora, desce.</li>
+                <li><strong>Saindo da mesa?</strong> Antes de mexer: a bola está <em>alta</em> ou está <em>rápida</em>? Alta é ângulo; rápida é roda.</li>
+                <li><strong>Rápida</strong> (sai mesmo apontada para baixo): desça <strong>Top e Back juntos</strong>, um degrau por vez. A soma das duas rodas é a velocidade — baixar só uma muda o efeito, não a força.</li>
+                <li><strong>Alta:</strong> encoste o robô na borda de trás e desça o <strong>Backspin</strong> em 1 — cortada forte flutua e viaja.</li>
+                <li><strong>Na rede?</strong> suba o <strong>Topspin</strong> em 1. Se ainda ficar na rede, suba o Backspin.</li>
+                <li><strong>O calço muda o ângulo de saída:</strong> embaixo da <strong>frente</strong> levanta a bola (para bola que não passa); embaixo de <strong>trás</strong> aponta para baixo (para bola alta). Se a bola sai da mesa mesmo com o calço atrás, o problema não é ângulo — é velocidade.</li>
                 <li><strong>Achou a regulagem?</strong> pause e aperte <strong>memória</strong> — o robô guarda uma, e amanhã você volta nela com um toque.</li>
               </ul>
             </div>

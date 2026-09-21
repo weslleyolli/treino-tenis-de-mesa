@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Search
+  Wrench, Check, ChevronDown, Play, Bot, GraduationCap, Trophy, Zap, Target, Info, RotateCcw, ChevronLeft, ChevronRight, Flame, Clock, Repeat, Timer, Pause, Plus, X, Gauge, Award, StickyNote, CalendarDays, Wind, AlertTriangle, Eye, EyeOff, CircleDot, Layers, TrendingUp, Users, Activity, Trash2, Camera, Minus, Search
 } from "lucide-react";
 import { bold, Collapsible, Vids, SecTitle, Hero, Spark, GoalBar, Bars, Exercicio, BlocoAcervo } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
@@ -97,6 +97,19 @@ function StrokesTab() {
                 <div className="mini-title">Erros comuns</div>
                 <ul className="err-list">{s.err.map((x, k) => <li key={k}>{x}</li>)}</ul>
                 {s.robot && <div className="len-box"><Bot size={14} /><span><strong>No robô: </strong>{s.robot}</span></div>}
+                {/* Onde o V300 não faz a bola de fábrica mas existe um jeito
+                    documentado de forçar, o jeito fica aqui — com os poréns
+                    junto, senão vira promessa. */}
+                {s.roboTruque && (
+                  <div className="truque">
+                    <div className="truque-t"><Wrench size={13} /> {s.roboTruque.titulo}</div>
+                    <p className="truque-p">{s.roboTruque.porque}</p>
+                    <ol className="truque-passos">{s.roboTruque.como.map((x, k) => <li key={k}>{bold(x)}</li>)}</ol>
+                    <div className="truque-porem">
+                      <div className="truque-porem-t"><AlertTriangle size={12} /> O preço do truque</div>
+                      <ul>{s.roboTruque.porem.map((x, k) => <li key={k}>{bold(x)}</li>)}</ul>
+                    </div>
+                  </div>)}
                 <div className="mini-title">Exercícios · {s.exercicios.length}</div>
                 <div className="exc-lista">{s.exercicios.map(e => <Exercicio key={e.n} e={e} />)}</div>
                 <Collapsible title="Progressão" icon={<TrendingUp size={13} />}
