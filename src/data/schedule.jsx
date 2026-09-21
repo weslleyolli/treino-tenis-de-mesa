@@ -13,7 +13,7 @@ import {
    anotação sem nenhum componente novo de tela. */
 
 /* O campo `robot` das técnicas é prosa na ordem do controle remoto do V300
-   ("Freq 2 · Osc 0 · Top 3 · Back 6"). Onde ela casa com esse formato, vira
+   ("Freq 2 · Osc 0 · Top 1 · Back 3"). Onde ela casa com esse formato, vira
    painel do robô. Onde não casa — as técnicas em que está escrito que o robô
    NÃO produz aquela bola — devolve null, e o painel não aparece. */
 function dialsDaTecnica(texto) {
@@ -84,7 +84,7 @@ function robotFor(id) {
   if (id === "dom") return {
     title: "Aquecimento pré-campeonato",
     pos: "Centralizado, ritmo de jogo. Termine 20 min antes do primeiro jogo.",
-    dials: r(4, 4, 5, 3),
+    dials: r(4, 4, 3, 1),
   };
   return null;
 }
@@ -142,7 +142,7 @@ function sessaoMesa({ tecnica, irr, curto, semIrregular, titulo, sub }) {
   const t = tecnica ? STROKES.find((x) => x.id === tecnica) : null;
   const nome = t ? t.name : "gesto do dia";
   const I = IRREGULARES[irr];
-  const dialsReg = (t && dialsDaTecnica(t.robot)) || r(3, 0, 5, 3);
+  const dialsReg = (t && dialsDaTecnica(t.robot)) || r(3, 0, 3, 1);
 
   /* Pegada, base, timing e deslocamento não são golpes: não existe "25 bolas de
      empunhadura". O que existe é bater drive enquanto se confere aquilo. Nesses
@@ -237,7 +237,7 @@ function sessaoCorrecao(tecnicas) {
       cue: "Metade da velocidade de jogo. Você está procurando o erro, não repetindo o acerto." },
     { det: "corr-trecho", tag: "robô", label: "Só o trecho que estava errado", time: "12 min", rest: "45 s",
       target: "4 séries × 20 bolas · frequência 1 abaixo do normal",
-      dials: r(2, 0, 5, 4),
+      dials: r(2, 0, 3, 1),
       cue: "Bola lenta de propósito. Se o gesto só sai certo devagar, ele ainda não está pronto — e insistir rápido grava o errado." },
     { det: "corr-video", tag: "estudo", label: "Gravar e mandar para análise", time: "6 min", rest: "—",
       target: "6 a 8 repetições de UMA técnica, slow motion, câmera lateral",
@@ -245,7 +245,7 @@ function sessaoCorrecao(tecnicas) {
   ];
   return { kind: "tecnica", slot: "correcao", title: "Correção e vídeo", sub: "dia leve do meio da semana",
     total: totalDe(blocos), robot: true,
-    robotCfg: { title: "Correção", pos: "Frequência baixa. Hoje a bola é ferramenta de conserto, não de treino.", dials: r(2, 0, 5, 4) },
+    robotCfg: { title: "Correção", pos: "Frequência baixa. Hoje a bola é ferramenta de conserto, não de treino.", dials: r(2, 0, 3, 1) },
     blocks: blocos };
 }
 
@@ -296,25 +296,25 @@ const JOGO_TREINO = (() => {
 function sessaoTeste(week) {
   const blocos = [
     { det: "teste-1", tag: "robô", label: "1 · Saída do backspin", time: "9 min", rest: "45 s",
-      target: "6 séries × 8 bolas cortadas · abrir todas", dials: r(2, 0, 3, 6),
+      target: "6 séries × 8 bolas cortadas · abrir todas", dials: r(2, 0, 1, 3),
       cue: "O erro nº 1 do torneio. Conte as que passam COM efeito — bola que passa sem girar não conta. Linha de corte: 26 de 48." },
     { det: "teste-2", tag: "robô", label: "2 · Abrir sem saber onde vem", time: "7 min", rest: "60 s",
-      target: "5 séries × 8 bolas · oscilação ligada", dials: r(2, 4, 3, 6),
+      target: "5 séries × 8 bolas · oscilação ligada", dials: r(2, 4, 1, 3),
       cue: "O mesmo golpe do item 1, agora sem saber o canto. A diferença entre os dois números é o quanto o seu deslocamento está custando. Linha de corte: 20 de 40." },
     { det: "teste-3", tag: "robô", label: "3 · Cozinhada com saída", time: "8 min", rest: "60 s",
-      target: "6 séries × 6 ciclos: 3 pushes e abre a 4ª", dials: r(2, 3, 3, 6),
+      target: "6 séries × 6 ciclos: 3 pushes e abre a 4ª", dials: r(2, 3, 1, 3),
       cue: "Conte só os ciclos completos — três pushes baixos E a quarta atacada. Push alto no meio zera o ciclo. Linha de corte: 22 de 36." },
     { det: "teste-4", tag: "robô", label: "4 · Defesa de topspin", time: "7 min", rest: "60 s",
-      target: "Maior sequência de bloqueios sem errar", dials: r(5, 4, 7, 2),
+      target: "Maior sequência de bloqueios sem errar", dials: r(5, 4, 6, 1),
       cue: "Colado na mesa, mudando a direção a cada bola. Errou, recomeça do zero. Linha de corte: 18 seguidas." },
     { det: "teste-5", tag: "robô", label: "5 · Drive seguidas", time: "5 min", rest: "—",
-      target: "Série livre de drive FH", dials: r(5, 0, 6, 3),
+      target: "Série livre de drive FH", dials: r(5, 0, 4, 1),
       cue: "A batida base, e o único item que veio igual do ciclo antigo — dá para comparar com o que você já tinha. Linha de corte: 40." },
     { det: "teste-6", tag: "robô", label: "6 · A cadeia inteira", time: "8 min", rest: "60 s",
-      target: "5 séries × 6 ciclos: abre, bloqueia, ataca", dials: r(2, 4, 4, 4),
+      target: "5 séries × 6 ciclos: abre, bloqueia, ataca", dials: r(2, 4, 2, 2),
       cue: "Cortada → abertura → topspin dele → bloqueio → seu ataque. Conte as cadeias que chegaram até o fim. É o item que mais parece jogo. Linha de corte: 15 de 30." },
     { det: "teste-7", tag: "jogo", label: "7 · Set contra o robô", time: "8 min", rest: "—",
-      target: "Um set até 11 · ponto = 5 bolas seguidas", dials: r(5, 4, 6, 3),
+      target: "Um set até 11 · ponto = 5 bolas seguidas", dials: r(5, 4, 4, 1),
       cue: "Anote o placar. É a única medida do ciclo com consequência de erro embutida." },
     { det: "teste-8", tag: "estudo", label: "Anotar e comparar", time: "5 min", rest: "—",
       target: "Os 7 números, no campo de anotações abaixo",
@@ -322,7 +322,7 @@ function sessaoTeste(week) {
   ];
   return { kind: "tecnica", slot: "teste", title: `Bateria de teste · semana ${week}`,
     sub: "os quatro erros do torneio, medidos", total: totalDe(blocos), robot: true,
-    robotCfg: { title: "Bateria de teste", pos: "Cada item tem a sua regulagem — está no bloco.", dials: r(2, 0, 3, 6) },
+    robotCfg: { title: "Bateria de teste", pos: "Cada item tem a sua regulagem — está no bloco.", dials: r(2, 0, 1, 3) },
     counter: "itens acima da linha de corte", blocks: blocos };
 }
 

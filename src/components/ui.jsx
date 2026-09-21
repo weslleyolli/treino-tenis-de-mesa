@@ -29,8 +29,11 @@ function efeitoDaRegulagem(dials) {
   if (!Number.isFinite(t) || !Number.isFinite(b)) return null;
   const dif = t - b;
   if (dif === 0) return { tom: "zero", texto: "Rodas iguais: bola SEM EFEITO" };
-  if (dif > 0) return { tom: "top", texto: `Topspin ${dif > 3 ? "forte" : dif > 1 ? "médio" : "leve"} · diferença ${dif}` };
-  return { tom: "back", texto: `Backspin ${-dif > 3 ? "forte" : -dif > 1 ? "médio" : "leve"} · diferença ${-dif}` };
+  /* Na escala do V300 o ponto de partida do manual já é diferença 2 (Top 3 ·
+     Back 1, ou Top 1 · Back 3), então 2 é o normal e não o médio. */
+  const nome = (d) => (d > 3 ? "forte" : d > 2 ? "médio" : "leve");
+  if (dif > 0) return { tom: "top", texto: `Topspin ${nome(dif)} · diferença ${dif}` };
+  return { tom: "back", texto: `Backspin ${nome(-dif)} · diferença ${-dif}` };
 }
 
 function Dial({ label, value }) {
@@ -379,9 +382,11 @@ function ComoFazer({ bloco, cor, aberto, onFechar }) {
             <div className="cf-ajuste">
               <div className="cf-ajuste-t">Se a bola não está caindo certo</div>
               <ul>
-                <li><strong>Saindo da mesa?</strong> nesta ordem: <strong>1)</strong> tire o calço e encoste o robô na borda de trás; <strong>2)</strong> desça o <strong>Backspin</strong> em 1 (cortada forte demais faz a bola flutuar longe); <strong>3)</strong> desça <strong>Top e Back juntos</strong> em 1 — isso tira velocidade sem mudar o efeito.</li>
-                <li><strong>Na rede?</strong> suba o <strong>Topspin</strong> em 1 e teste. Se ainda ficar na rede, suba o Backspin; só depois disso use o calço.</li>
-                <li><strong>O calço levanta a saída.</strong> Bola na rede, sobe a altura (9 → 17 → 26 mm). <strong>Bola fora, tire o calço</strong> — calço no máximo com bola comprida só piora.</li>
+                <li><strong>Saindo da mesa?</strong> Antes de mexer: a bola está <em>alta</em> ou está <em>rápida</em>? Alta é ângulo; rápida é roda.</li>
+                <li><strong>Rápida</strong> (sai mesmo apontada para baixo): desça <strong>Top e Back juntos</strong>, um degrau por vez. A soma das duas rodas é a velocidade — baixar só uma muda o efeito, não a força.</li>
+                <li><strong>Alta:</strong> encoste o robô na borda de trás e desça o <strong>Backspin</strong> em 1 — cortada forte flutua e viaja.</li>
+                <li><strong>Na rede?</strong> suba o <strong>Topspin</strong> em 1. Se ainda ficar na rede, suba o Backspin.</li>
+                <li><strong>O calço muda o ângulo de saída:</strong> embaixo da <strong>frente</strong> levanta a bola (para bola que não passa); embaixo de <strong>trás</strong> aponta para baixo (para bola alta). Se a bola sai da mesa mesmo com o calço atrás, o problema não é ângulo — é velocidade.</li>
                 <li><strong>Achou a regulagem?</strong> pause e aperte <strong>memória</strong> — o robô guarda uma, e amanhã você volta nela com um toque.</li>
               </ul>
             </div>
