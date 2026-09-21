@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
   Users, Plus, X, Trophy, Info, Target, ChevronRight, AlertTriangle,
-  Check, Gauge, Layers, Flame, RotateCcw, Award, ChevronDown, HelpCircle, Ban,
+  Check, Gauge, Layers, Flame, RotateCcw, Award, ChevronDown, HelpCircle, Ban, Undo2, Plus as Mais,
 } from "lucide-react";
 import { bold, Hero, Collapsible, SecTitle } from "../components/ui.jsx";
 import { storage as store } from "../lib/db.js";
 import {
   CATEGORIAS, REGRAS, NIVEIS, FORMATOS, regrasPorCategoria, regraPorId,
-  tabelaTodosContraTodos, totalPartidas, classificacao, regraDaVez, proximoJogo,
+  montarBlocos, totalPartidas, chaveDaPartida, classificacao, regraDaVez, proximoJogo,
 } from "../data/regras.js";
 
 /* ============ ABA GRUPO: CAMPEONATO COM REGRA ============
@@ -24,7 +24,7 @@ import {
    da mesa o campeonato inteiro e não pode perder nada se a tela apagar. */
 
 const CHAVE = "grupo:v2";
-const VAZIO = { jogadores: [], escolhidas: [], formato: "todos", camp: null };
+const VAZIO = { jogadores: [], escolhidas: [], formato: "porregra", camp: null };
 const TROCA_REI = 3;   // partidas até a regra girar no rei da mesa
 
 /* ---------- elenco ---------- */
@@ -138,19 +138,65 @@ function RegraDaVez({ id, titulo }) {
     </div>);
 }
 
-/* ---------- lançar o resultado de uma partida ---------- */
-function Partida({ par, res, onVencedor, onBonus, atual }) {
+/* ---------- placar ao vivo da partida que está rolando ----------
+   Ponto normal soma 1; ponto feito seguindo a regra soma 2. É isso que faz
+   a regra valer a pena dentro da partida, e não só no discurso: quem executa
+   o que a regra pede ganha em metade dos pontos do adversário.
+
+   O histórico existe só para o desfazer. Numa mesa com o grupo em volta,
+   toque errado acontece o tempo todo, e sem desfazer o placar vira briga. */
+function Placar({ par, res, onMarcar, onDesfazer, onEncerrar }) {
+  const pts = res?.placar || {};
+  const reg = res?.naRegra || {};
   const [a, b] = par;
+  const pa = pts[a] || 0, pb = pts[b] || 0;
+  const temHist = !!(res?.hist && res.hist.length);
   return (
-    <div className={"pt" + (res ? " feita" : "") + (atual ? " atual" : "")}>
-      <div className="pt-duelo">
-        {par.map(j => (
-          <button key={j} className={"pt-j" + (res && res.vencedor === j ? " venceu" : "")}
-            onClick={() => onVencedor(j)}>
-            {res && res.vencedor === j && <Trophy size={12} />}{j}
-          </button>))}
+    <div className="plc">
+      <div className="plc-linha">
+        {par.map((j) => (
+          <div className="plc-j" key={j}>
+            <span className="plc-n">{j}</span>
+            <span className="plc-p">{pts[j] || 0}</span>
+            <span className={"plc-r" + (reg[j] ? "" : " zero")}>{reg[j] || 0} na regra</span>
+            <div className="plc-btns">
+              <button className="plc-b1" onClick={() => onMarcar(j, 1)}>
+                <Mais size={12} />1</button>
+              <button className="plc-b2" onClick={() => onMarcar(j, 2)}>
+                <Mais size={12} />2 <em>na regra</em></button>
+            </div>
+          </div>))}
       </div>
-      {res && res.vencedor && (
+      <div className="plc-pe">
+        <button className="plc-desf" disabled={!temHist} onClick={onDesfazer}>
+          <Undo2 size={13} /> Desfazer</button>
+        <button className="plc-fim" disabled={pa === pb}
+          onClick={() => onEncerrar(pa > pb ? a : b)}>
+          {pa === pb
+            ? (pa === 0 ? "Marque os pontos" : "Empate: não dá para encerrar")
+            : <><Check size={14} /> Encerrar: {pa > pb ? a : b} venceu</>}
+        </button>
+      </div>
+    </div>);
+}
+
+/* ---------- uma partida da tabela ---------- */
+function Partida({ par, res, atual, onVencedor, onBonus, placarProps }) {
+  const feita = res && res.vencedor;
+  const temPlacar = res && res.placar && Object.keys(res.placar).length;
+  return (
+    <div className={"pt" + (feita ? " feita" : "") + (atual && !feita ? " atual" : "")}>
+      {atual && !feita
+        ? <Placar par={par} res={res} {...placarProps} />
+        : (<div className="pt-duelo">
+            {par.map(j => (
+              <button key={j} className={"pt-j" + (feita && res.vencedor === j ? " venceu" : "")}
+                onClick={() => onVencedor(j)}>
+                {feita && res.vencedor === j && <Trophy size={12} />}{j}
+                {temPlacar && <em className="pt-pl">{res.placar[j] || 0}</em>}
+              </button>))}
+          </div>)}
+      {feita && (
         <div className="pt-bonus">
           <span>Cumpriu a regra (+1):</span>
           <div>{par.map(j => (
@@ -169,48 +215,84 @@ function Tabela({ jogadores, resultados, titulo }) {
     <div className="gr-rank">
       <div className="section-eyebrow"><Trophy size={13} /> {titulo}</div>
       <div className="cl-head"><span /><span className="cl-n">Jogador</span>
-        <span>V</span><span>D</span><span>R</span><span>Pts</span></div>
+        <span>V</span><span>D</span><span title="partidas em que cumpriu a regra">R</span>
+        <span title="pontos feitos na regra">PR</span><span>Pts</span></div>
       {cl.map((r, i) => (
         <div className={"cl" + (i === 0 && r.pts > 0 ? " top" : "")} key={r.nome}>
           <span className="cl-p">{i + 1}</span>
           <span className="cl-n">{r.nome}</span>
           <span>{r.v}</span><span>{r.d}</span><span>{r.regra}</span>
-          <strong>{r.pts}</strong>
+          <span className="cl-pr">{r.pr}</span><strong>{r.pts}</strong>
         </div>))}
-      <p className="gr-nota">V vitórias · D derrotas · R partidas em que cumpriu a regra · Pts = 2 por vitória + 1 por regra cumprida.</p>
+      <p className="gr-nota">V vitórias · D derrotas · R partidas em que cumpriu a regra ·
+        PR pontos feitos na regra · Pts = 2 por vitória + 1 por regra cumprida.
+        PR não entra nos pontos: ele já se paga dentro da partida, onde vale 2.</p>
     </div>);
 }
 
-/* ---------- campeonato: todos contra todos ---------- */
-function TodosContraTodos({ camp, setCamp }) {
-  const { jogadores, rodadas, escolhidas, resultados } = camp;
+/* ---------- campeonato em tabela (os dois formatos) ----------
+   Desenha blocos. No formato "todos" cada bloco é uma rodada com a sua
+   regra; no "porregra" cada bloco é uma regra com o rodízio inteiro. */
+function Tabelado({ camp, setCamp }) {
+  const { jogadores, blocos, resultados } = camp;
   const feita = (k) => resultados[k] && resultados[k].vencedor;
-  /* A rodada "de agora" é a primeira que ainda tem partida em aberto: é o que
-     o grupo quer ver ao pegar o celular, sem ter que procurar. */
-  let iAtual = rodadas.findIndex((r, ri) => r.jogos.some((p, pi) => !feita(`r${ri}-${pi}`)));
-  if (iAtual < 0) iAtual = rodadas.length - 1;
-  const acabou = rodadas.every((r, ri) => r.jogos.every((p, pi) => feita(`r${ri}-${pi}`)));
 
-  const lancar = (k, par, vencedor) => {
-    const atual = resultados[k];
-    const perdedor = par.find(j => j !== vencedor);
-    /* Tocar de novo no mesmo vencedor desfaz o lançamento — é o jeito de
-       corrigir o toque errado sem um botão de apagar em cada linha. */
-    const novo = atual && atual.vencedor === vencedor
-      ? undefined : { vencedor, perdedor, bonus: (atual && atual.bonus) || [] };
+  /* A partida "de agora" é a primeira ainda em aberto: é o que o grupo quer
+     ver ao pegar o celular, e é a única que ganha o placar ao vivo — porque
+     é uma mesa só, e só uma partida acontece por vez. */
+  let atual = null;
+  blocos.forEach((bl, bi) => bl.rodadas.forEach((rd, ri) => rd.jogos.forEach((par, pi) => {
+    if (!atual && !feita(chaveDaPartida(bi, ri, pi))) atual = chaveDaPartida(bi, ri, pi);
+  })));
+  const acabou = !atual;
+
+  const gravar = (k, valor) => {
     const r = { ...resultados };
-    if (novo) r[k] = novo; else delete r[k];
+    if (valor) r[k] = valor; else delete r[k];
     setCamp({ ...camp, resultados: r });
   };
+  const marcar = (k, jogador, valor) => {
+    const at = resultados[k] || { placar: {}, naRegra: {}, hist: [] };
+    gravar(k, {
+      ...at,
+      placar: { ...at.placar, [jogador]: (at.placar[jogador] || 0) + valor },
+      naRegra: valor === 2
+        ? { ...at.naRegra, [jogador]: (at.naRegra[jogador] || 0) + 1 }
+        : { ...at.naRegra },
+      hist: [...(at.hist || []), { j: jogador, v: valor }],
+    });
+  };
+  const desfazer = (k) => {
+    const at = resultados[k]; if (!at || !at.hist || !at.hist.length) return;
+    const hist = [...at.hist], ult = hist.pop();
+    const placar = { ...at.placar, [ult.j]: Math.max(0, (at.placar[ult.j] || 0) - ult.v) };
+    const naRegra = { ...at.naRegra };
+    if (ult.v === 2) naRegra[ult.j] = Math.max(0, (naRegra[ult.j] || 0) - 1);
+    gravar(k, hist.length || Object.values(placar).some(Boolean)
+      ? { ...at, placar, naRegra, hist } : undefined);
+  };
+  const encerrar = (k, par, vencedor) => {
+    const at = resultados[k] || {};
+    gravar(k, { ...at, vencedor, perdedor: par.find(j => j !== vencedor), bonus: at.bonus || [] });
+  };
+  /* Nas partidas já lançadas, tocar no mesmo vencedor desfaz; tocar no outro
+     troca e mantém o bônus, que não depende de quem ganhou. */
+  const lancar = (k, par, vencedor) => {
+    const at = resultados[k];
+    if (at && at.vencedor === vencedor) {
+      const { vencedor: _v, perdedor: _p, ...resto } = at;
+      gravar(k, Object.keys(resto.placar || {}).length ? resto : undefined);
+    } else encerrar(k, par, vencedor);
+  };
   const bonus = (k, nome) => {
-    const atual = resultados[k]; if (!atual) return;
-    const lista = atual.bonus || [];
-    const nova = lista.includes(nome) ? lista.filter(x => x !== nome) : [...lista, nome];
-    setCamp({ ...camp, resultados: { ...resultados, [k]: { ...atual, bonus: nova } } });
+    const at = resultados[k]; if (!at) return;
+    const lista = at.bonus || [];
+    gravar(k, { ...at, bonus: lista.includes(nome) ? lista.filter(x => x !== nome) : [...lista, nome] });
   };
 
-  const total = totalPartidas(rodadas);
+  const total = totalPartidas(blocos);
   const prontas = Object.values(resultados).filter(r => r && r.vencedor).length;
+  const porRegra = camp.formato === "porregra";
 
   return (<>
     <div className="gr-progresso">
@@ -219,22 +301,39 @@ function TodosContraTodos({ camp, setCamp }) {
     </div>
     {acabou && <div className="gr-fim"><Award size={15} /> Campeonato completo. A tabela abaixo é a final.</div>}
 
-    {rodadas.map((rd, ri) => {
-      const regraId = regraDaVez(escolhidas, ri);
-      const aberta = ri === iAtual;
+    {blocos.map((bl, bi) => {
+      const abertoAqui = atual && atual.startsWith(`b${bi}-`);
+      const nPart = bl.rodadas.reduce((a, r) => a + r.jogos.length, 0);
+      const nFeitas = bl.rodadas.reduce((a, r, ri) =>
+        a + r.jogos.filter((_, pi) => feita(chaveDaPartida(bi, ri, pi))).length, 0);
       return (
-        <div className={"rd" + (aberta ? " aberta" : "")} key={ri}>
+        <div className={"rd" + (abertoAqui ? " aberta" : "")} key={bi}>
           <div className="rd-head">
-            <span className="rd-n">Rodada {ri + 1}</span>
-            {rd.juiz && <span className="rd-juiz"><Gauge size={11} /> apita: {rd.juiz}</span>}
+            <span className="rd-n">{porRegra ? `Regra ${bi + 1}` : `Rodada ${bi + 1}`}</span>
+            <span className="rd-cont">{nFeitas}/{nPart}</span>
           </div>
-          {aberta && <RegraDaVez id={regraId} titulo={`Regra da rodada ${ri + 1}`} />}
-          {!aberta && regraId && <div className="rd-regra">{regraPorId(regraId)?.nome || ""}</div>}
-          {rd.jogos.map((par, pi) => {
-            const k = `r${ri}-${pi}`;
-            return <Partida key={k} par={par} res={resultados[k]} atual={aberta}
-              onVencedor={(v) => lancar(k, par, v)} onBonus={(n) => bonus(k, n)} />;
-          })}
+          {abertoAqui
+            ? <RegraDaVez id={bl.regraId} titulo={porRegra ? "Regra deste rodízio" : `Regra da rodada ${bi + 1}`} />
+            : <div className="rd-regra">{bl.regraId ? (regraPorId(bl.regraId)?.nome || "") : "sem regra"}</div>}
+
+          {bl.rodadas.map((rd, ri) => (
+            <div className="rdz" key={ri}>
+              {porRegra && (
+                <div className="rdz-head"><span>Rodada {ri + 1}</span>
+                  {rd.juiz && <span className="rd-juiz"><Gauge size={11} /> apita: {rd.juiz}</span>}</div>)}
+              {!porRegra && rd.juiz && (
+                <div className="rdz-head"><span /><span className="rd-juiz"><Gauge size={11} /> apita: {rd.juiz}</span></div>)}
+              {rd.jogos.map((par, pi) => {
+                const k = chaveDaPartida(bi, ri, pi);
+                return <Partida key={k} par={par} res={resultados[k]} atual={k === atual}
+                  onVencedor={(v) => lancar(k, par, v)} onBonus={(n) => bonus(k, n)}
+                  placarProps={{
+                    onMarcar: (j, v) => marcar(k, j, v),
+                    onDesfazer: () => desfazer(k),
+                    onEncerrar: (v) => encerrar(k, par, v),
+                  }} />;
+              })}
+            </div>))}
         </div>);
     })}
 
@@ -301,6 +400,23 @@ function ReiDaMesa({ camp, setCamp }) {
   </>);
 }
 
+/* Um campeonato gravado antes dos blocos guardava `rodadas` soltas, com a
+   regra saindo do índice da rodada, e as chaves das partidas em outro
+   formato. Converter é barato; largar alguém no meio de um campeonato por
+   causa de uma mudança de formato, não. */
+function migrar(camp) {
+  if (!camp || camp.formato === "rei" || camp.blocos) return camp;
+  const rodadas = camp.rodadas || [];
+  const blocos = rodadas.map((rd, i) => ({ regraId: regraDaVez(camp.escolhidas || [], i), rodadas: [rd] }));
+  const resultados = {};
+  Object.entries(camp.resultados || {}).forEach(([k, v]) => {
+    const m = /^r(\d+)-(\d+)$/.exec(k);
+    resultados[m ? chaveDaPartida(Number(m[1]), 0, Number(m[2])) : k] = v;
+  });
+  const { rodadas: _r, ...resto } = camp;
+  return { ...resto, blocos, resultados };
+}
+
 /* ---------- a aba ---------- */
 function GrupoTab() {
   const [s, setS] = useState(null);
@@ -310,7 +426,7 @@ function GrupoTab() {
        existe mais viraria um buraco no rodízio ("sem regra") no meio do
        campeonato, então ela é descartada na entrada. */
     g.escolhidas = (g.escolhidas || []).filter(id => regraPorId(id));
-    if (g.camp) g.camp = { ...g.camp, escolhidas: (g.camp.escolhidas || []).filter(id => regraPorId(id)) };
+    if (g.camp) g.camp = migrar({ ...g.camp, escolhidas: (g.camp.escolhidas || []).filter(id => regraPorId(id)) });
     setS(g);
   })(); }, []);
   if (!s) return <div className="loading">Carregando o campeonato…</div>;
@@ -325,9 +441,9 @@ function GrupoTab() {
 
   const comecar = () => {
     const base = { formato, jogadores: [...jogadores], escolhidas: [...escolhidas], resultados: {}, pendente: null };
-    grava({ camp: formato === "todos"
-      ? { ...base, rodadas: tabelaTodosContraTodos(jogadores) }
-      : { ...base, rei: { mesa: jogadores.slice(0, 2), fila: jogadores.slice(2), seguidas: 0, campeao: null } } });
+    grava({ camp: formato === "rei"
+      ? { ...base, rei: { mesa: jogadores.slice(0, 2), fila: jogadores.slice(2), seguidas: 0, campeao: null } }
+      : { ...base, blocos: montarBlocos(formato, jogadores, escolhidas) } });
   };
   const encerrar = () => {
     if (!confirm("Encerrar o campeonato?\n\nOs resultados são apagados e a lista de jogadores volta a ser editável.")) return;
@@ -342,9 +458,9 @@ function GrupoTab() {
         <Hero tone="purple" icon={<Trophy size={13} />} eyebrow={`Campeonato · ${f.nome}`}
           title="Valendo" sub={`${camp.jogadores.length} jogadores · ${camp.escolhidas.length} regra${camp.escolhidas.length === 1 ? "" : "s"} no rodízio`} />
         <Elenco jogadores={camp.jogadores} travado />
-        {camp.formato === "todos"
-          ? <TodosContraTodos camp={camp} setCamp={c => grava({ camp: c })} />
-          : <ReiDaMesa camp={camp} setCamp={c => grava({ camp: c })} />}
+        {camp.formato === "rei"
+          ? <ReiDaMesa camp={camp} setCamp={c => grava({ camp: c })} />
+          : <Tabelado camp={camp} setCamp={c => grava({ camp: c })} />}
         <button className="gr-zerar" onClick={encerrar}><RotateCcw size={14} /> Encerrar o campeonato</button>
       </>);
   }
@@ -398,8 +514,8 @@ function GrupoTab() {
         <div className="gr-pronto-l">
           <span><strong>{jogadores.length}</strong> jogador{jogadores.length === 1 ? "" : "es"}</span>
           <span><strong>{escolhidas.length}</strong> regra{escolhidas.length === 1 ? "" : "s"}</span>
-          {formato === "todos" && jogadores.length >= fmt.minJog &&
-            <span><strong>{totalPartidas(tabelaTodosContraTodos(jogadores))}</strong> partidas</span>}
+          {formato !== "rei" && jogadores.length >= fmt.minJog &&
+            <span><strong>{totalPartidas(montarBlocos(formato, jogadores, escolhidas))}</strong> partidas</span>}
         </div>
         <button className="gr-prox" disabled={!podeComecar} onClick={comecar}>
           Começar o campeonato <ChevronRight size={16} /></button>
