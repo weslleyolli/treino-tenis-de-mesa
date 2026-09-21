@@ -1147,6 +1147,35 @@ court texture ============ */
      branco com 260 px de sobra. */
   .painel>.block:has(>.heat){max-width:672px;}
 
+  /* ---- TIPOGRAFIA DE TELA GRANDE ----
+     O app foi desenhado para o celular na mão, a uns 30 cm do olho. No
+     notebook, a 60 cm, o mesmo tamanho em px fica pequeno — e a resposta não
+     pode ser "dá zoom", porque o zoom desmonta o layout que a tela larga
+     ganhou. Então o caminho de leitura cresce ~10% aqui: é o bastante para
+     ler sentado sem mexer em nada.
+     Só o que se lê: título e dose do exercício, a frase de atenção, as listas
+     e as anotações. Rótulo, chip e etiqueta ficam como estão — crescer tudo
+     junto só ocuparia espaço sem ganhar legibilidade. */
+  .sess-title{font-size:17.5px;}
+  .sess-sub{font-size:13px;}
+  .tl-label{font-size:15.5px;}
+  .tl-time{font-size:12px;}
+  .tl-target{font-size:14.5px;}
+  .tl-cue{font-size:13.5px;line-height:1.5;}
+  .tl-passos li{font-size:13.5px;}
+  .tl-limite{font-size:12.5px;}
+  .exc-nome{font-size:14px;}
+  .exc-l{font-size:13.5px;}
+  .exc-cue{font-size:13px;}
+  .exc-dose{font-size:12px;}
+  .clean-list li,.p-lead{font-size:14.5px;}
+  .check-list li{font-size:14px;}
+  .notes-ta{font-size:14px;}
+  .md{font-size:11.5px;}
+  .mini-title,.section-eyebrow{font-size:11px;}
+  .day-short{font-size:13.5px;}
+  .porque p,.fasebox,.guia-sit{font-size:13.5px;}
+
   /* Texto corrido não passa de ~70 caracteres nem em tela larga, e a linha de
      lista não passa de ~85 dentro de um cartão que agora tem 1.800 px. */
   .p-lead,.wk-focus-note,.porque p{max-width:68ch;}
@@ -1176,10 +1205,17 @@ court texture ============ */
     position:sticky;top:119px;max-height:calc(100vh - 133px);overflow-y:auto;scrollbar-width:thin;}
   .wk-aside>*{margin:0;}
   /* Flex, e não grade de colunas fixas: dois treinos dividem a linha, um
-     treino sozinho ocupa a linha inteira. Nunca sobra coluna vazia. */
+     treino sozinho ocupa a linha inteira. Nunca sobra coluna vazia.
+
+     O `max(430px, 50%)` é o que impede a terceira coluna: numa tela muito
+     larga (ou com o navegador em zoom baixo, que dá no mesmo) a base de cada
+     cartão nunca fica menor que metade da linha, então cabem DOIS e o
+     terceiro desce. Três cartões lado a lado deixavam cada um com 400 px de
+     texto de celular — ilegível sem dar zoom, que é o oposto do que a tela
+     grande deveria resolver. */
   .wk-main{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;}
   .wk-main>*{flex:0 0 100%;min-width:0;}
-  .wk-main>.sess{flex:1 1 430px;margin-bottom:0;}
+  .wk-main>.sess{flex:1 1 max(430px, calc(50% - 7px));margin-bottom:0;}
 }
 
 /* ============================================================
