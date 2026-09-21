@@ -12,6 +12,7 @@ import { StrokesTab, TacticsTab, EvolutionTab } from "./tabs/StrokesTacticsEvolu
 import { TournamentTab } from "./tabs/TournamentTab.jsx";
 import { RankingTab } from "./tabs/RankingTab.jsx";
 import { ConfrontosTab } from "./tabs/ConfrontosTab.jsx";
+import { GrupoTab } from "./tabs/GrupoTab.jsx";
 import { SyncBadge } from "./components/Sync.jsx";
 import { sincronizar } from "./lib/sync.js";
 
@@ -24,6 +25,7 @@ const NAV = [
     { id: "saque", label: "Saque" },
     { id: "taticas", label: "Táticas" },
   ] },
+  { id: "grupo", label: "Grupo", icon: Users },
   { id: "progresso", label: "Progresso", icon: TrendingUp },
   { id: "jogos", label: "Jogos", icon: Trophy, subs: [
     { id: "torneio", label: "Torneio" },
@@ -117,6 +119,7 @@ export default function App() {
         {group === "hoje" && <WeekTab week={week} setWeek={changeWeek} activeIdx={activeIdx} setActiveIdx={setActiveIdx} done={done}
           toggleSession={toggleSession} records={records} setRecord={setRecord} notes={notes} setNote={setNote}
           onTimer={onTimer} resetWeek={resetWeek} monthDone={monthDone} />}
+        {group === "grupo" && <GrupoTab onTimer={onTimer} />}
         {view === "golpes" && <StrokesTab />}
         {view === "saque" && <ServeTab onTimer={onTimer} serveNote={serveNote} onServeNote={saveServeNote} />}
         {view === "taticas" && <TacticsTab />}
