@@ -119,7 +119,7 @@ export default function App() {
         {group === "hoje" && <WeekTab week={week} setWeek={changeWeek} activeIdx={activeIdx} setActiveIdx={setActiveIdx} done={done}
           toggleSession={toggleSession} records={records} setRecord={setRecord} notes={notes} setNote={setNote}
           onTimer={onTimer} resetWeek={resetWeek} monthDone={monthDone} />}
-        {group === "grupo" && <GrupoTab onTimer={onTimer} />}
+        {group === "grupo" && <GrupoTab />}
         {view === "golpes" && <StrokesTab />}
         {view === "saque" && <ServeTab onTimer={onTimer} serveNote={serveNote} onServeNote={saveServeNote} />}
         {view === "taticas" && <TacticsTab />}
